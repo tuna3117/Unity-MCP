@@ -62,6 +62,8 @@ namespace Project.Editor.AITools
             cam.transform.position = settings.AimCamPos;
             cam.transform.LookAt(settings.AimLookAt);
             camGo.AddComponent<AudioListener>();
+            camGo.AddComponent<CameraShake>();
+            var roundCam = camGo.AddComponent<RoundCamera>();
 
             var lightGo = new GameObject("Directional Light");
             var light = lightGo.AddComponent<Light>();
@@ -89,6 +91,21 @@ namespace Project.Editor.AITools
             var input = roundGo.AddComponent<ShotInput>();
             input.Round = round;
             input.Preview = preview;
+            roundCam.Round = round;
+            roundCam.S = settings;
+
+            var juiceGo = new GameObject("Juice");
+            var timeCtl = juiceGo.AddComponent<TimeScaleController>();
+            var popups = juiceGo.AddComponent<PopupText>();
+            popups.Cam = cam;
+            var sfx = juiceGo.AddComponent<SynthSfx>();
+            var juice = juiceGo.AddComponent<BasketJuice>();
+            juice.Round = round;
+            juice.S = settings;
+            juice.Shake = camGo.GetComponent<CameraShake>();
+            juice.TimeCtl = timeCtl;
+            juice.Popups = popups;
+            juice.Sfx = sfx;
 
             var uiRoot = new GameObject("UI");
             BasketHud.Create(uiRoot.transform);

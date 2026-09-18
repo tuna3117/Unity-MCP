@@ -63,11 +63,20 @@ namespace Project.Editor.AITools
             var explosionPrefab = SavePrefab("VFX_Explosion", overwrite, report, root => BuildExplosion(root, additive, alpha));
             var pickupPrefab = SavePrefab("VFX_Pickup", overwrite, report, root => BuildPickup(root, additive));
 
+            var swishPrefab = SavePrefab("VFX_Swish", overwrite, report, root => BuildBurst(root, additive, new Color(3f, 2.4f, 1f, 1f), 22, 2.2f, true));
+            var multiplyPrefab = SavePrefab("VFX_Multiply", overwrite, report, root => BuildBurst(root, additive, new Color(3f, 2.2f, 0.6f, 1f), 16, 2.4f, false));
+            var addPrefab = SavePrefab("VFX_Add", overwrite, report, root => BuildBurst(root, additive, new Color(0.8f, 3f, 1.4f, 1f), 16, 2.4f, false));
+            var rimHitPrefab = SavePrefab("VFX_RimHit", overwrite, report, root => BuildBurst(root, additive, new Color(3f, 1.6f, 0.5f, 1f), 6, 3f, false));
+
             var defs = new List<VfxDefinition>
             {
                 CreateDefinition("hit", hitPrefab, 0.6f, 4, 32, overwrite, report),
                 CreateDefinition("explosion", explosionPrefab, 3f, 2, 8, overwrite, report),
                 CreateDefinition("pickup", pickupPrefab, 1.2f, 3, 16, overwrite, report),
+                CreateDefinition("swish", swishPrefab, 1.0f, 2, 8, overwrite, report),
+                CreateDefinition("multiply", multiplyPrefab, 0.8f, 8, 64, overwrite, report),
+                CreateDefinition("add", addPrefab, 0.8f, 8, 64, overwrite, report),
+                CreateDefinition("rim_hit", rimHitPrefab, 0.5f, 8, 64, overwrite, report),
             };
 
             var library = AssetDatabase.LoadAssetAtPath<VfxLibrary>(LibraryPath);
@@ -290,6 +299,37 @@ namespace Project.Editor.AITools
             shrenderer.renderMode = ParticleSystemRenderMode.HorizontalBillboard;
             SizeOverLifetime(shock, 0.2f, 6f);
             ColorOverLifetime(shock, (new Color(1f, 1f, 1f, 0.9f), 0f), (new Color(1f, 0.8f, 0.6f, 0f), 1f));
+        }
+
+        /// <summary>Generic radial burst with an optional expanding ring (used for the basket round events).</summary>
+        private static void BuildBurst(GameObject root, Material additive, Color color, int count, float speed, bool ring)
+        {
+            var burst = AddSystem(root, "Burst", additive);
+            var main = burst.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.7f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(speed * 0.5f, speed);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.14f);
+            main.startColor = color;
+            main.gravityModifier = 0.6f;
+            var shape = burst.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.15f;
+            Burst(burst, count);
+            SizeOverLifetime(burst, 1f, 0f);
+            ColorOverLifetime(burst, (Color.white, 0f), (new Color(color.r / 3f, color.g / 3f, color.b / 3f, 1f), 0.5f), (new Color(color.r / 3f, color.g / 3f, color.b / 3f, 0f), 1f));
+            if (!ring) return;
+
+            var halo = AddSystem(root, "Ring", additive);
+            var hm = halo.main;
+            hm.startLifetime = 0.35f;
+            hm.startSpeed = 0f;
+            hm.startSize = 0.8f;
+            hm.startColor = new Color(color.r * 0.7f, color.g * 0.7f, color.b * 0.7f, 0.9f);
+            Burst(halo, 1);
+            halo.GetComponent<ParticleSystemRenderer>().renderMode = ParticleSystemRenderMode.HorizontalBillboard;
+            SizeOverLifetime(halo, 0.3f, 3f);
+            ColorOverLifetime(halo, (new Color(1f, 1f, 1f, 0.9f), 0f), (new Color(1f, 0.9f, 0.7f, 0f), 1f));
         }
 
         private static void BuildPickup(GameObject root, Material additive)

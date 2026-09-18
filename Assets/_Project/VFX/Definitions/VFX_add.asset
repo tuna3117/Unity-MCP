@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f57ba552edf6a4270b2bdcc1489f5b4e, type: 3}
+  m_Name: VFX_add
+  m_EditorClassIdentifier: Project.Runtime::Project.VFX.VfxDefinition
+  id: add
+  prefab: {fileID: 74113298394355726, guid: 78fd1d515d7114178bb4fcc3409c4f0e, type: 3}
+  lifetime: 0.8
+  prewarmCount: 8
+  maxPoolSize: 64
+  scale: 1
