@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d12c73fa5f1684a82880858146e4e77a, type: 3}
+  m_Name: BasketSettings
+  m_EditorClassIdentifier: Project.Runtime::Project.Basket.BasketSettings
+  LaunchStart: {x: 0, y: 1.9, z: 6.2}
+  FlightGravity: 9.8
+  BallSpacing: 0.09
+  AimJitter: 0.03
+  DropGravity: 5
+  SlabEntryZ: 0.3
+  EntryForwardDamping: 0.25
+  SlabHalfDepth: 0.5
+  BallRadius: 0.12
+  BallMass: 0.6
+  Backspin: 9
+  StuckSeconds: 3
+  NudgeSeconds: 1.5
+  SlowSeconds: 0.6
+  SlowSpeed: 0.15
+  RimTube: 0.03
+  RimSegments: 12
+  FriendlyRim: 1
+  RimAssistMinInward: 0.6
+  RimUpSpeedCap: 2.6
+  CloneScatter: 1.6
+  AddDropSpeed: 3
+  MaxBalls: 900
+  MaxSimulated: 400
+  BallMaterial: {fileID: 13400000, guid: 0c9f7ca7495d54254868767173f095a0, type: 2}
+  RimMaterial: {fileID: 13400000, guid: 23011144d9c3c4ecdbaf02c71b4f4e54, type: 2}
+  BackboardMaterial: {fileID: 13400000, guid: 9e9832c4d48ff4844aa45d33a7738c07, type: 2}
+  WallMaterial: {fileID: 13400000, guid: 425068411e56648de9179d888ec45e7b, type: 2}
+  CageMaterial: {fileID: 13400000, guid: 32a8fb0c14d1c41ecb0f5a9b1e42f78a, type: 2}
+  BallVisualMaterial: {fileID: 0}
+  RimVisualMaterial: {fileID: 0}
+  BackboardVisualMaterial: {fileID: 0}
+  WallVisualMaterial: {fileID: 0}
+  NetVisualMaterial: {fileID: 0}
+  RoundTimeout: 30
+  SwishSlowMoScale: 0.35
+  SwishSlowMoSeconds: 0.4
+  SwishShake: 0.04
+  ShakeDecay: 9
+  HitStopSeconds: 0.03
+  PopupSeconds: 0.9
+  PopupMinInterval: 0.35
+  AimCamPos: {x: 0, y: 2.6, z: 11}
+  AimLookAt: {x: 0, y: 3, z: 0}
+  Fov: 60
+  DropCamZ: 9.5
+  BasketCamZ: 13.5
+  AimSmoothing: 4
+  DropSmoothing: 2.2
+  BasketSmoothing: 2
