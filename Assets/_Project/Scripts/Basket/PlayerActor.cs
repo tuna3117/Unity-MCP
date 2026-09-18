@@ -12,6 +12,7 @@ namespace Project.Basket
 
         public void Bind(BasketRound round)
         {
+            Unbind();
             _round = round;
             _baseScale = transform.localScale;
             _basePos = transform.position;
@@ -20,8 +21,19 @@ namespace Project.Basket
             gameObject.SetActive(round.Current == BasketRound.State.Aim);
         }
 
+        private void Unbind()
+        {
+            if (_round == null) return;
+            _round.ShotFired -= OnShot;
+            _round.StateChanged -= OnState;
+            _round = null;
+        }
+
+        private void OnDestroy() => Unbind();
+
         private void OnState(BasketRound.State s)
         {
+            if (this == null) return;
             if (s == BasketRound.State.Aim)
             {
                 gameObject.SetActive(true);
@@ -33,6 +45,7 @@ namespace Project.Basket
 
         private void OnShot(AimPoint aim)
         {
+            if (this == null || _round == null) return;
             _animT = 0f;
             _hideAt = Time.time + _round.Layout.BallCount * _round.Settings.BallSpacing + 0.35f;
         }

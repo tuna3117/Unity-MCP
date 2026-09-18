@@ -11,12 +11,17 @@ namespace Project.Basket
         public float FlightGravity = 9.8f;
         [Tooltip("Seconds between consecutive balls of one shot.")] public float BallSpacing = 0.09f;
         [Tooltip("Per-ball lateral aim jitter in metres (±).")] public float AimJitter = 0.03f;
+        [Tooltip("The flight targets this much above the aim point so the ball clears the front of the rim and drops in (3D-only correction).")] public float ArrivalLift = 0f;
 
         [Header("Drop")]
         [Tooltip("Gravity while falling through the column; lower than flight so the eye can follow.")] public float DropGravity = 5.0f;
-        [Tooltip("Ball z below which a flying ball is inside the column slab.")] public float SlabEntryZ = 0.3f;
-        [Tooltip("Forward (z) velocity multiplier when entering the slab; stands in for the original 2D hand-off.")] public float EntryForwardDamping = 0.25f;
+        [Tooltip("Ball z below which a flying ball is inside the column slab.")] public float SlabEntryZ = 0f;
+        [Tooltip("Forward (z) velocity multiplier when entering the slab; stands in for the original 2D hand-off.")] public float EntryForwardDamping = 0.1f;
         public float SlabHalfDepth = 0.5f;
+        [Tooltip("Sideways speed given to a ball that arrives more than 1 m above the rim (original: \"over the backboard\" → falls beside the hoop).")] public float OverPowerSideKick = 1.5f;
+        public float OverPowerAbove = 1.0f;
+        [Tooltip("A ball arriving this much above the rim \"hits the backboard\": its lateral speed is scaled by BackboardLateralDamping (original rule).")] public float BackboardHitAbove = 0.45f;
+        public float BackboardLateralDamping = 0.3f;
 
         [Header("Ball")]
         public float BallRadius = 0.12f;

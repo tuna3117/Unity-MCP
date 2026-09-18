@@ -10,6 +10,12 @@ namespace Project.Basket
         private float _baseFixed = -1f;
         private float _slowUntil = -1f, _slowScale = 1f, _stopUntil = -1f;
 
+        private void Awake()
+        {
+            // A domain reload during slow-mo/hit-stop can leave the editor's time scale stuck; always start clean.
+            Time.timeScale = 1f;
+        }
+
         private void Start() => _baseFixed = Time.fixedDeltaTime;
 
         public void SlowMo(float scale, float seconds)

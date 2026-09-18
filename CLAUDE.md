@@ -119,7 +119,7 @@ Aşağıdakileri sırayla yap, bitenleri işaretle ve "Proje durumu"nu güncelle
 
 ## 12. Proje durumu (bunu sen güncel tut)
 
-_Son güncelleme: 2026-09-18 (ilk kurulum oturumu)._
+_Son güncelleme: 2026-09-19 (basket turu yeniden yapımı)._
 
 - **Unity sürümü:** 6000.6.2f1 (Unity 6.6), macOS 26.6 / Apple Silicon / Metal. Proje `urp-blank` şablonundan üretildi.
 - **URP sürümü:** 17.6.0. Render Graph aktif; `Assets/Settings/` altında PC/Mobile RP asset'leri şablondan geliyor.
@@ -140,7 +140,7 @@ _Son güncelleme: 2026-09-18 (ilk kurulum oturumu)._
   - `apply_text_edits` için önce `get_sha` ile `precondition_sha256` al.
   - Konsolda tekrar eden `currentFileSystemTime.ticks != 0 ... FSTimeGet` hatası Unity/macOS kaynaklı gürültü; `.meta` dosyalarına 2262 tarihli mtime yazıyor, işlevsel etkisi görülmedi.
   - `defaults write` ile dışarıdan yazılan EditorPrefs'i çalışan Unity görmüyor; ayarları Unity içinden (script/menü) set et.
-- **Yazılmış AITools** (`Assets/_Project/Editor/AITools/`, hem menü hem MCP özel aracı, hepsi test edildi):
+- **Yazılmış AITools** (`Assets/_Project/Editor/AITools/`, hem menü hem MCP özel aracı, hepsi test edildi; basket araçları aşağıda ayrıca):
   - `ai_bulk_rename` — desenli toplu yeniden adlandırma (`{name}`, `{i}`, `{i:00}`)
   - `ai_bulk_assign_material` — çok objeye materyal atama (slot seçimi, alt objeler)
   - `ai_create_prefab` — sahne objesinden prefab üret ve bağla
@@ -151,4 +151,11 @@ _Son güncelleme: 2026-09-18 (ilk kurulum oturumu)._
   - Ekran görüntüsü için köprünün `manage_camera` aracı yeterli olduğundan ayrı araç yazılmadı.
 - **Hazır efektler** (`Assets/_Project/VFX/`, `VfxService.Play("hit"|"explosion"|"pickup", pos, rot)`): prefab + `VfxDefinition` + `VfxLibrary.asset`, `UnityEngine.Pool` ile havuzlanır, sahnede `VfxService` objesi var. Global Volume: Bloom 1.0 / eşik 0.9, Vignette 0.25, Color Adjustments (kontrast +10, doygunluk +8). Yeni efekt: prefab + `Project/VFX/VFX Definition` asset'i + kütüphaneye ekle.
 - **Testler:** EditMode `Assets/_Project/Tests/EditMode` (`run_tests {"mode":"EditMode"}` → `get_test_job`).
-- **Aktif oyun / mevcut aşama:** Henüz oyun yok. Altyapı hazır; kullanıcıdan ilk oyun fikri bekleniyor (bkz. §10).
+- **Basket turu (Pota "Faz A" yeniden yapımı, 2026-09-19):** sahne `Assets/_Project/Scenes/Basket.unity`, kod `Assets/_Project/Scripts/Basket/` (saf kurallar: `AimMapper`, `TrajectorySolver`, `LevelRules`, `RoundRules`; bileşenler: `BasketRound` durum makinesi, `Ball`/`BallPool`, `Hoop`, `BasketCage`, `HoopColumnBuilder`, `RoundCamera`, `BasketJuice`, `BasketHud`, `Visual/*`), ayarlar `Assets/_Project/Settings/BasketSettings.asset` (tüm sayılar orada; koda gömme). Tasarım `docs/superpowers/specs/2026-09-18-basket-round-design.md`, plan `docs/superpowers/plans/2026-09-18-basket-round.md`, ölçüm `docs/measurements/2026-09-19-basket-sweep-L1.md`, görüntüler `docs/screenshots/`.
+  - Araçlar: `ai_basket_build_scene` (sahneyi sıfırdan kurar; katmanlar BallFlight/BallDrop/Hoop/Slab, fizik malzemeleri, sanat referansları), `ai_basket_sweep` (Play Mode'da atış taraması, action start/status/cancel), `ai_basket_ball_texture` (basketbol dokusu). Menü: `AI Tools/Basket/...`.
+  - Kaynak oyun `~/projects/Pota` (three.js) salt okunur; görselleri `Assets/_Project/Art/Pota/` altına kopyalandı (`oyuncu.glb` glTFast ile).
+  - Fidelite notları: uçuş 1 sn parabol, 0.09 sn top aralığı, ×2/+1 kuralları, bölüm tablosu, sepet sayımı orijinalle aynı. 3B'ye özel devir: uçan top pota katmanıyla çarpışmaz, z=0'da Drop fazına geçer (ileri hız ×0.1); 0.45 m üstünden gelen top yanal hız ×0.3 ("panoya çarptı"), 1 m üstünden gelen yana itilir ("panoyu aştı"). Geçiş: yukarıdan giren top düzlemin altında R−r/2 içindeyse sayılır. 1. bölüm taraması: min 12 / medyan 19 / maks 28 (orijinal 12 / 21 / 32).
+  - Play Mode içinde script derleme YAPMA: domain reload havuzu/abonelikleri bozuyor ve konsolun hata-duraklatması editörü "Pause"a alabiliyor (`EditorApplication.isPaused`). Önce `manage_editor stop`.
+  - Denemek için: Basket sahnesini aç, Play, fareyle aşağıdan yukarı sürükle (sola/sağa pota seçer, uzunluk güç); "Tekrar" düğmesi turu sıfırlar. Bölüm değiştirmek: `Round` objesindeki `Level` alanı.
+  - Sıradaki adaylar: üst kuyruk ayarı (alt sıra geçişleri / CloneScatter), telefon dokunmatik testi ve build, Faz B (bulmaca) entegrasyonu.
+- **Aktif oyun / mevcut aşama:** Basket turu 4 aşamada bitti (gri kutu → kamera/his → görsel → ölçüm). Tuna'nın geri bildirimi bekleniyor.

@@ -16,10 +16,13 @@ MonoBehaviour:
   FlightGravity: 9.8
   BallSpacing: 0.09
   AimJitter: 0.03
+  ArrivalLift: 0
   DropGravity: 5
-  SlabEntryZ: 0.3
-  EntryForwardDamping: 0.25
+  SlabEntryZ: 0
+  EntryForwardDamping: 0.1
   SlabHalfDepth: 0.5
+  OverPowerSideKick: 1.5
+  OverPowerAbove: 1
   BallRadius: 0.12
   BallMass: 0.6
   Backspin: 9

@@ -23,6 +23,7 @@ namespace Project.Basket
         public float PrevY;               // y before the last physics step (for rim-plane crossing tests)
 
         public event Action<Ball, Collision> RimContact;
+        public event Action<Ball> SlabEntered;
 
         private BasketSettings _s;
         private int _layerFlight, _layerDrop;
@@ -77,6 +78,7 @@ namespace Project.Basket
             v.z *= _s.EntryForwardDamping;
             Body.linearVelocity = v;
             if (_trail != null) _trail.emitting = false;
+            SlabEntered?.Invoke(this);
         }
 
         public void MarkPiled()

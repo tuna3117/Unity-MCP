@@ -38,7 +38,7 @@ namespace Project.Basket
 
         public void Show(AimPoint aim, BasketSettings s)
         {
-            var target = new Vector3(aim.X, aim.Y, 0f);
+            var target = new Vector3(aim.X, aim.Y + s.ArrivalLift, 0f);
             var v = TrajectorySolver.LaunchVelocity(s.LaunchStart, target, aim.FlightTime, s.FlightGravity);
             for (int i = 0; i < Points; i++)
             {
@@ -46,7 +46,7 @@ namespace Project.Basket
                 _line.SetPosition(i, TrajectorySolver.PositionAt(s.LaunchStart, v, s.FlightGravity, t));
             }
             _lineMat.color = aim.OverPower ? Red : White;
-            _marker.position = target;
+            _marker.position = new Vector3(aim.X, aim.Y, 0f);
             _line.enabled = true;
             _markerRenderer.enabled = true;
         }

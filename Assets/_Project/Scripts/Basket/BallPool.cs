@@ -16,6 +16,7 @@ namespace Project.Basket
         private Transform _root;
 
         public IReadOnlyList<Ball> Active => _active;
+        public System.Action<Ball> SlabEntered;
         public int ActiveCount => _active.Count;
 
         public void Initialize(BasketSettings settings, int flightLayer, int dropLayer)
@@ -77,6 +78,7 @@ namespace Project.Basket
             trail.material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")) { color = new Color(1f, 0.9f, 0.6f, 0.6f) };
             var ball = go.AddComponent<Ball>();
             ball.Configure(Settings, _layerFlight, _layerDrop);
+            ball.SlabEntered += b => SlabEntered?.Invoke(b);
             go.SetActive(false);
             return ball;
         }

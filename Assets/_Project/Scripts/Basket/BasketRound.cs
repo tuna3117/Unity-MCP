@@ -53,10 +53,14 @@ namespace Project.Basket
             LayerHoop = ResolveLayer("Hoop");
             LayerSlab = ResolveLayer("Slab");
             if (LayerFlight >= 0 && LayerSlab >= 0) Physics.IgnoreLayerCollision(LayerFlight, LayerSlab, true);
+            // Like the original 2D hand-off: a flying ball does not touch rims/backboards until it reaches the hoop plane.
+            if (LayerFlight >= 0 && LayerHoop >= 0) Physics.IgnoreLayerCollision(LayerFlight, LayerHoop, true);
             if (Pool == null) Pool = GetComponent<BallPool>();
             if (Pool == null) Pool = gameObject.AddComponent<BallPool>();
             Pool.Initialize(Settings, Mathf.Max(0, LayerFlight), Mathf.Max(0, LayerDrop));
-            _prevFixedDelta = Time.fixedDeltaTime;
+            Pool.SlabEntered = OnSlabEntered;
+            Time.timeScale = 1f;
+            _prevFixedDelta = Time.fixedDeltaTime > 0.001f ? Time.fixedDeltaTime : 0.02f;
             Time.fixedDeltaTime = 1f / 120f;
         }
 
@@ -86,6 +90,7 @@ namespace Project.Basket
             {
                 foreach (var h in Column.Hoops) { h.Passed -= OnHoopPassed; h.RimHit -= OnRimHit; }
                 Column.Cage.Entered -= OnBallEntered;
+                if (Column.Player != null) Destroy(Column.Player); // unsubscribes in OnDestroy
                 Destroy(Column.Root.gameObject);
             }
             Layout = LevelRules.Build(Level);
@@ -117,7 +122,7 @@ namespace Project.Basket
             for (int i = 0; i < n; i++)
             {
                 float jx = ((float)_rng.NextDouble() - 0.5f) * 2f * Settings.AimJitter;
-                var target = new Vector3(aim.X + jx, aim.Y, 0f);
+                var target = new Vector3(aim.X + jx, aim.Y + Settings.ArrivalLift, 0f);
                 var v = TrajectorySolver.LaunchVelocity(Settings.LaunchStart, target, aim.FlightTime, Settings.FlightGravity);
                 var b = Pool.Get();
                 b.Launch(Settings.LaunchStart, v);
@@ -169,6 +174,32 @@ namespace Project.Basket
             var b = Pool.Get();
             b.Drop(p, new Vector3(0f, -Settings.AddDropSpeed, 0f), hoop);
             TotalSpawned++;
+        }
+
+        /// <summary>Original rule: a ball arriving more than 1 m above its top hoop "clears the backboard" and falls beside the rim.</summary>
+        private void OnSlabEntered(Ball ball)
+        {
+            if (Column == null) return;
+            Hoop nearest = null; float best = float.MaxValue;
+            foreach (var h in Column.Hoops)
+            {
+                if (!h.Spec.IsTop) continue;
+                float d = Mathf.Abs(h.Center.x - ball.transform.position.x);
+                if (d < best) { best = d; nearest = h; }
+            }
+            if (nearest == null) return;
+            float above = ball.transform.position.y - nearest.Center.y;
+            var v = ball.Body.linearVelocity;
+            if (above > Settings.OverPowerAbove)
+            {
+                float side = ball.transform.position.x >= nearest.Center.x ? 1f : -1f;
+                v.x = side * Settings.OverPowerSideKick;
+            }
+            else if (above > Settings.BackboardHitAbove)
+            {
+                v.x *= Settings.BackboardLateralDamping; // "hit the backboard": drops almost straight down
+            }
+            ball.Body.linearVelocity = v;
         }
 
         private void OnBallEntered(Ball ball)

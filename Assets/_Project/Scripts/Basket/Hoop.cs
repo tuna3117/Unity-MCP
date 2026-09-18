@@ -14,8 +14,9 @@ namespace Project.Basket
     public class HoopTrigger : MonoBehaviour
     {
         public Hoop Hoop;
-        private void OnTriggerEnter(Collider other) => Hoop?.HandleTrigger(other);
+        private void OnTriggerEnter(Collider other) => Hoop?.HandleTriggerEnter(other);
         private void OnTriggerStay(Collider other) => Hoop?.HandleTrigger(other);
+        private void OnTriggerExit(Collider other) => Hoop?.HandleTriggerExit(other);
     }
 
     /// <summary>
@@ -37,6 +38,8 @@ namespace Project.Basket
         private float _wobbleT = -1f;
         private Vector3 _netBasePos;
         private const float PassGate = 0.3f;
+        // Balls that entered the pass volume from above the rim plane (clones/bonus balls are born below it).
+        private readonly System.Collections.Generic.HashSet<Ball> _fromAbove = new System.Collections.Generic.HashSet<Ball>();
 
         public static Hoop Build(Transform parent, HoopSpec spec, BasketSettings s, int layerHoop)
         {
@@ -182,21 +185,45 @@ namespace Project.Basket
             }
         }
 
-        internal void HandleTrigger(Collider other)
+        private static Ball BallOf(Collider other)
         {
             var body = other.attachedRigidbody;
-            if (body == null) return;
-            var ball = body.GetComponent<Ball>();
+            return body != null ? body.GetComponent<Ball>() : null;
+        }
+
+        internal void HandleTriggerEnter(Collider other)
+        {
+            var ball = BallOf(other);
+            if (ball == null) return;
+            // Entered while still above the rim plane → a genuine approach from above.
+            if (ball.transform.position.y > Center.y - 0.01f && ball.PrevY > Center.y - 0.01f) _fromAbove.Add(ball);
+            else _fromAbove.Remove(ball);
+        }
+
+        internal void HandleTriggerExit(Collider other)
+        {
+            var ball = BallOf(other);
+            if (ball != null) _fromAbove.Remove(ball);
+        }
+
+        /// <summary>
+        /// Pass = a ball that came from above the rim plane is now at/below it and close enough to the
+        /// centre (R - r/2, the original's window). Evaluated every physics step while inside the volume,
+        /// so the friendly rim can still steer a ball in after it crossed the plane on the rim.
+        /// </summary>
+        internal void HandleTrigger(Collider other)
+        {
+            var ball = BallOf(other);
             if (ball == null || ball.Phase == BallPhase.Frozen) return;
-            if (ball.Body.linearVelocity.y >= 0f) return;
+            if (!_fromAbove.Contains(ball)) return;
             float y = ball.transform.position.y;
-            // Only a ball that was above the rim plane before this physics step and is at/below it now counts
-            // (clones and bonus balls are born below the plane, so they never re-pass their own hoop).
-            if (!(ball.PrevY > Center.y && y <= Center.y)) return;
+            if (y > Center.y) return;
+            if (ball.Body.linearVelocity.y > 0.5f) return; // bouncing back up
             var d = ball.transform.position - Center;
             float horizontal = new Vector2(d.x, d.z).magnitude;
             if (horizontal >= Spec.Radius - _s.BallRadius * 0.5f) return;
             if (ball.LastHoop == this && Time.time - ball.LastPassTime < PassGate) return;
+            _fromAbove.Remove(ball);
             ball.LastPassTime = Time.time;
             ball.LastHoop = this;
             Passed?.Invoke(this, ball);
