@@ -34,12 +34,14 @@ namespace Project.Basket
             float h = cage.TopY - cage.FloorY;
             float midY = (cage.TopY + cage.FloorY) * 0.5f;
 
-            var wallMat = s.WallVisualMaterial != null ? s.WallVisualMaterial : RimMeshBuilder.UrpLit(new Color(0.25f, 0.25f, 0.28f, 1f), 0.3f);
-            Wall(go.transform, "Floor", new Vector3(0f, cage.FloorY - 0.1f, 0f), new Vector3(cage.Width + 0.4f, 0.2f, cage.Depth + 0.4f), s.CageMaterial, wallMat, true);
-            Wall(go.transform, "Left", new Vector3(-cage.Width * 0.5f - 0.1f, midY, 0f), new Vector3(0.2f, h + 0.5f, cage.Depth + 0.4f), s.CageMaterial, wallMat, false);
-            Wall(go.transform, "Right", new Vector3(cage.Width * 0.5f + 0.1f, midY, 0f), new Vector3(0.2f, h + 0.5f, cage.Depth + 0.4f), s.CageMaterial, wallMat, false);
-            Wall(go.transform, "Back", new Vector3(0f, midY, -cage.Depth * 0.5f - 0.1f), new Vector3(cage.Width + 0.4f, h + 0.5f, 0.2f), s.CageMaterial, wallMat, true);
+            Wall(go.transform, "Floor", new Vector3(0f, cage.FloorY - 0.1f, 0f), new Vector3(cage.Width + 0.4f, 0.2f, cage.Depth + 0.4f), s.CageMaterial, null, false);
+            Wall(go.transform, "Left", new Vector3(-cage.Width * 0.5f - 0.1f, midY, 0f), new Vector3(0.2f, h + 0.5f, cage.Depth + 0.4f), s.CageMaterial, null, false);
+            Wall(go.transform, "Right", new Vector3(cage.Width * 0.5f + 0.1f, midY, 0f), new Vector3(0.2f, h + 0.5f, cage.Depth + 0.4f), s.CageMaterial, null, false);
+            Wall(go.transform, "Back", new Vector3(0f, midY, -cage.Depth * 0.5f - 0.1f), new Vector3(cage.Width + 0.4f, h + 0.5f, 0.2f), s.CageMaterial, null, false);
             Wall(go.transform, "Front", new Vector3(0f, midY, cage.Depth * 0.5f + 0.1f), new Vector3(cage.Width + 0.4f, h + 0.5f, 0.2f), s.CageMaterial, null, false);
+            var wire = RimMeshBuilder.UrpLit(new Color(0.1f, 0.1f, 0.11f), 0.45f);
+            var rail = RimMeshBuilder.UrpLit(s.RimColor, 0.6f);
+            CageMeshBuilder.Build(go.transform, cage.Width, h, cage.Depth, cage.FloorY, wire, rail);
 
             var trig = new GameObject("EntryTrigger");
             trig.transform.SetParent(go.transform, false);

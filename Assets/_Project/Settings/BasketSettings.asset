@@ -41,11 +41,28 @@ MonoBehaviour:
   BackboardMaterial: {fileID: 13400000, guid: 9e9832c4d48ff4844aa45d33a7738c07, type: 2}
   WallMaterial: {fileID: 13400000, guid: 425068411e56648de9179d888ec45e7b, type: 2}
   CageMaterial: {fileID: 13400000, guid: 32a8fb0c14d1c41ecb0f5a9b1e42f78a, type: 2}
-  BallVisualMaterial: {fileID: 0}
+  BallVisualMaterial: {fileID: 2100000, guid: 09d2f7edb93bb45d2b3942f87cf151cc, type: 2}
   RimVisualMaterial: {fileID: 0}
   BackboardVisualMaterial: {fileID: 0}
   WallVisualMaterial: {fileID: 0}
   NetVisualMaterial: {fileID: 0}
+  FacadeTexture: {fileID: 2800000, guid: 3cdabfb32b8e944839dcf57d1ed01af5, type: 3}
+  WingTexture: {fileID: 2800000, guid: fdac50450b8b749a8b7ff58e4475a09e, type: 3}
+  CityTexture: {fileID: 2800000, guid: 06ea1e3bfe6824fe686fe43d9d44bd72, type: 3}
+  SkyTexture: {fileID: 2800000, guid: ea634917d0e4441b49f5ee8bbc9cffb3, type: 3}
+  BackboardTexture: {fileID: 2800000, guid: 34773f249fd6b4f93817a6a7283c506b, type: 3}
+  PlayerPrefab: {fileID: 4814140183114437194, guid: 8f5aa6806a83b4b30b47f811855bbcc2, type: 3}
+  SkyColor: {r: 0.557, g: 0.788, b: 0.949, a: 1}
+  FogColor: {r: 0.62, g: 0.827, b: 0.961, a: 1}
+  FogStart: 26
+  FogEnd: 115
+  RimColor: {r: 1, g: 0.416, b: 0.102, a: 1}
+  GoldColor: {r: 1, g: 0.702, b: 0.102, a: 1}
+  GreenColor: {r: 0.184, g: 0.702, b: 0.42, a: 1}
+  NavyColor: {r: 0.078, g: 0.157, b: 0.314, a: 1}
+  TerraceColor: {r: 0.247, g: 0.42, b: 0.31, a: 1}
+  GlassColor: {r: 0.16, g: 0.3, b: 0.48, a: 1}
+  BuildEnvironment: 1
   RoundTimeout: 30
   SwishSlowMoScale: 0.35
   SwishSlowMoSeconds: 0.4
@@ -58,7 +75,7 @@ MonoBehaviour:
   AimLookAt: {x: 0, y: 3, z: 0}
   Fov: 60
   DropCamZ: 9.5
-  BasketCamZ: 13.5
+  BasketCamZ: 9.5
   AimSmoothing: 4
   DropSmoothing: 2.2
   BasketSmoothing: 2

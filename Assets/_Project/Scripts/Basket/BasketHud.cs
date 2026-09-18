@@ -85,7 +85,7 @@ namespace Project.Basket
             hud.BasketText = MakeText(canvasGo.transform, "Basket", font, 48, new Vector2(1f, 1f), new Vector2(-40f, -40f), new Vector2(300f, 70f), TextAnchor.UpperRight, new Color(1f, 0.78f, 0.24f));
             var basketLabel = MakeText(canvasGo.transform, "BasketLabel", font, 22, new Vector2(1f, 1f), new Vector2(-40f, -14f), new Vector2(300f, 30f), TextAnchor.UpperRight, Color.white);
             basketLabel.text = "SEPET";
-            hud.HintText = MakeText(canvasGo.transform, "Hint", font, 28, new Vector2(0.5f, 0f), new Vector2(0f, 120f), new Vector2(900f, 50f), TextAnchor.MiddleCenter, Color.white);
+            hud.HintText = MakeText(canvasGo.transform, "Hint", font, 26, new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(900f, 40f), TextAnchor.MiddleCenter, new Color(1f, 1f, 1f, 0.9f));
             hud.HintText.text = "Kaydır: sola/sağa pota seç, uzunluk güç";
             hud.MissedText = MakeText(canvasGo.transform, "Missed", font, 64, new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(600f, 90f), TextAnchor.MiddleCenter, new Color(1f, 0.42f, 0.37f));
             hud.MissedText.text = "Kaçtı";

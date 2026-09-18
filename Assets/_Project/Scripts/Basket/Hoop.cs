@@ -78,8 +78,8 @@ namespace Project.Basket
                 cap.sharedMaterial = _s.RimMaterial;
                 seg.AddComponent<RimSegment>().Hoop = this;
             }
-            var mat = _s.RimVisualMaterial != null ? _s.RimVisualMaterial : RimMeshBuilder.UrpLit(new Color(1f, 0.42f, 0.1f), 0.7f);
-            RimMeshBuilder.MeshObject("RimMesh", RimRoot, RimMeshBuilder.Torus(r, _s.RimTube), mat);
+            var mat = _s.RimVisualMaterial != null ? _s.RimVisualMaterial : RimMeshBuilder.UrpLit(_s.RimColor, 0.7f);
+            RimMeshBuilder.MeshObject("RimMesh", RimRoot, RimMeshBuilder.Torus(r, _s.RimTube * 1.15f), mat);
         }
 
         private void BuildBackboard(int layer)
@@ -92,16 +92,39 @@ namespace Project.Basket
             board.transform.localPosition = new Vector3(0f, 0.38f, -r - 0.06f);
             board.transform.localScale = new Vector3(1.05f, 0.78f, 0.05f);
             board.GetComponent<BoxCollider>().sharedMaterial = _s.BackboardMaterial;
-            board.GetComponent<MeshRenderer>().sharedMaterial = _s.BackboardVisualMaterial != null
-                ? _s.BackboardVisualMaterial : RimMeshBuilder.UrpLit(new Color(0.97f, 0.96f, 0.92f), 0.4f);
+            var boardRenderer = board.GetComponent<MeshRenderer>();
+            if (_s.BackboardTexture != null)
+            {
+                boardRenderer.enabled = false;
+                var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                quad.name = "BackboardArt";
+                Destroy(quad.GetComponent<Collider>());
+                quad.transform.SetParent(transform, false);
+                quad.transform.localPosition = new Vector3(0f, 0.38f, -r - 0.03f);
+                quad.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                quad.transform.localScale = new Vector3(1.05f, 0.82f, 1f);
+                var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                mat.SetTexture("_BaseMap", _s.BackboardTexture);
+                mat.SetFloat("_AlphaClip", 1f);
+                mat.SetFloat("_Cutoff", 0.5f);
+                mat.SetFloat("_Smoothness", 0.45f);
+                mat.EnableKeyword("_ALPHATEST_ON");
+                quad.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            }
+            else
+            {
+                boardRenderer.sharedMaterial = _s.BackboardVisualMaterial != null
+                    ? _s.BackboardVisualMaterial : RimMeshBuilder.UrpLit(new Color(0.97f, 0.96f, 0.92f), 0.4f);
+            }
 
             var arm = GameObject.CreatePrimitive(PrimitiveType.Cube);
             arm.name = "Arm";
             arm.layer = layer;
+            Destroy(arm.GetComponent<Collider>());
             arm.transform.SetParent(transform, false);
             arm.transform.localPosition = new Vector3(0f, 0f, -r - 0.02f);
             arm.transform.localScale = new Vector3(0.08f, 0.08f, 0.16f);
-            arm.GetComponent<MeshRenderer>().sharedMaterial = RimMeshBuilder.UrpLit(new Color(0.85f, 0.35f, 0.1f), 0.5f);
+            arm.GetComponent<MeshRenderer>().sharedMaterial = RimMeshBuilder.UrpLit(_s.RimColor * 0.8f, 0.5f);
         }
 
         private void BuildTrigger(int layer)
@@ -121,12 +144,8 @@ namespace Project.Basket
             NetRoot = new GameObject("Net").transform;
             NetRoot.SetParent(transform, false);
             _netBasePos = NetRoot.localPosition;
-            var mat = _s.NetVisualMaterial != null ? _s.NetVisualMaterial : RimMeshBuilder.UrpLit(new Color(0.95f, 0.95f, 0.95f), 0.2f);
-            for (int k = 1; k <= 4; k++)
-            {
-                var ring = RimMeshBuilder.MeshObject($"NetRing{k}", NetRoot, RimMeshBuilder.Torus(Spec.Radius * (1f - k * 0.12f), 0.012f, 24, 6), mat);
-                ring.transform.localPosition = new Vector3(0f, -0.1f * k, 0f);
-            }
+            var mat = _s.NetVisualMaterial != null ? _s.NetVisualMaterial : RimMeshBuilder.UrpLit(new Color(0.97f, 0.97f, 0.97f), 0.25f);
+            NetBuilder.Build(NetRoot, Spec.Radius, mat);
         }
 
         private void BuildBadge()
@@ -135,18 +154,31 @@ namespace Project.Basket
             BadgeRoot.SetParent(transform, false);
             BadgeRoot.localPosition = new Vector3(0f, 1.05f, 0.2f);
             BadgeRoot.localRotation = Quaternion.Euler(0f, 180f, 0f); // face the camera (which looks toward -z)
-            var tm = BadgeRoot.gameObject.AddComponent<TextMesh>();
-            tm.text = Spec.Kind == HoopEffectKind.Multiply ? $"x{Spec.Amount}" : $"+{Spec.Amount}";
+            bool multiply = Spec.Kind == HoopEffectKind.Multiply;
+            var plate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            plate.name = "Plate";
+            Destroy(plate.GetComponent<Collider>());
+            plate.transform.SetParent(BadgeRoot, false);
+            plate.transform.localPosition = new Vector3(0f, 0f, 0.03f);
+            plate.transform.localScale = new Vector3(0.9f, 0.45f, 0.06f);
+            plate.GetComponent<MeshRenderer>().sharedMaterial = RimMeshBuilder.UrpLit(multiply ? _s.GoldColor : _s.GreenColor, 0.6f);
+
+            var textGo = new GameObject("Text");
+            textGo.transform.SetParent(BadgeRoot, false);
+            textGo.transform.localPosition = new Vector3(0f, 0f, -0.01f);
+            var tm = textGo.AddComponent<TextMesh>();
+            tm.text = multiply ? $"x{Spec.Amount}" : $"+{Spec.Amount}";
             tm.fontSize = 64;
-            tm.characterSize = 0.08f;
+            tm.characterSize = 0.075f;
+            tm.fontStyle = FontStyle.Bold;
             tm.anchor = TextAnchor.MiddleCenter;
             tm.alignment = TextAlignment.Center;
-            tm.color = Spec.Kind == HoopEffectKind.Multiply ? new Color(1f, 0.7f, 0.1f) : new Color(0.18f, 0.7f, 0.42f);
+            tm.color = multiply ? _s.NavyColor : Color.white;
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (font != null)
             {
                 tm.font = font;
-                BadgeRoot.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+                textGo.GetComponent<MeshRenderer>().sharedMaterial = DepthTextMaterial.Create(font);
             }
         }
 

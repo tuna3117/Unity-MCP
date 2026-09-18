@@ -61,6 +61,8 @@ namespace Project.Editor.AITools
             cam.farClipPlane = 200f;
             cam.transform.position = settings.AimCamPos;
             cam.transform.LookAt(settings.AimLookAt);
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = settings.SkyColor;
             camGo.AddComponent<AudioListener>();
             camGo.AddComponent<CameraShake>();
             var roundCam = camGo.AddComponent<RoundCamera>();
@@ -116,7 +118,15 @@ namespace Project.Editor.AITools
             if (library != null) VfxAuthoringTool.EnsureServiceInScene(library, report);
             else report.Add("VfxLibrary missing (run AI Tools/VFX/Create Starter Effects first)");
 
-            RenderSettings.fog = false;
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = settings.FogColor;
+            RenderSettings.fogStartDistance = settings.FogStart;
+            RenderSettings.fogEndDistance = settings.FogEnd;
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.86f, 0.94f, 1f);
+            RenderSettings.ambientEquatorColor = new Color(0.72f, 0.72f, 0.7f);
+            RenderSettings.ambientGroundColor = new Color(0.54f, 0.48f, 0.4f);
 
             AIToolsCommon.EnsureFolder("Assets/_Project/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -146,6 +156,16 @@ namespace Project.Editor.AITools
             settings.BackboardMaterial = EnsurePhysicsMaterial("Basket_Backboard", 0.5f, 0.3f, report);
             settings.WallMaterial = EnsurePhysicsMaterial("Basket_Wall", 0.6f, 0.3f, report);
             settings.CageMaterial = EnsurePhysicsMaterial("Basket_Cage", 0.12f, 0.5f, report);
+
+            const string art = "Assets/_Project/Art/Pota/";
+            settings.FacadeTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "kule-cam.jpg");
+            settings.WingTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "kule-renkli.jpg");
+            settings.CityTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "cephe.jpg");
+            settings.SkyTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "sehir.jpg");
+            settings.BackboardTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "pano.png");
+            settings.PlayerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(art + "Mesh/oyuncu.glb");
+            settings.BallVisualMaterial = BasketballTextureTool.Ensure(false);
+            report.Add($"art refs: facade={settings.FacadeTexture != null} wing={settings.WingTexture != null} city={settings.CityTexture != null} sky={settings.SkyTexture != null} board={settings.BackboardTexture != null} player={settings.PlayerPrefab != null} ball={settings.BallVisualMaterial != null}");
             EditorUtility.SetDirty(settings);
             return settings;
         }

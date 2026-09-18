@@ -92,6 +92,7 @@ namespace Project.Basket
             Column = HoopColumnBuilder.Build(transform, Layout, Settings, Mathf.Max(0, LayerHoop), Mathf.Max(0, LayerSlab));
             foreach (var h in Column.Hoops) { h.Passed += OnHoopPassed; h.RimHit += OnRimHit; }
             Column.Cage.Entered += OnBallEntered;
+            if (Column.Player != null) Column.Player.Bind(this);
             BasketCount = 0; TopPasses = 0; Missed = false; TotalSpawned = 0; VirtualCount = 0; Elapsed = 0f; InFlight = 0;
             BallsToThrow = Layout.BallCount; FirstBall = null;
             SetState(State.Aim);

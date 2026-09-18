@@ -54,6 +54,24 @@ namespace Project.Basket
         public Material WallVisualMaterial;
         public Material NetVisualMaterial;
 
+        [Header("Art (assigned by the scene tool)")]
+        public Texture2D FacadeTexture;     // kule-cam.jpg, tiled 3.2 x 5.7 m
+        public Texture2D WingTexture;       // kule-renkli.jpg
+        public Texture2D CityTexture;       // cephe.jpg
+        public Texture2D SkyTexture;        // sehir.jpg
+        public Texture2D BackboardTexture;  // pano.png
+        public GameObject PlayerPrefab;     // oyuncu.glb
+        public Color SkyColor = new Color(0.557f, 0.788f, 0.949f);
+        public Color FogColor = new Color(0.62f, 0.827f, 0.961f);
+        public float FogStart = 26f, FogEnd = 115f;
+        public Color RimColor = new Color(1f, 0.416f, 0.102f);
+        public Color GoldColor = new Color(1f, 0.702f, 0.102f);
+        public Color GreenColor = new Color(0.184f, 0.702f, 0.42f);
+        public Color NavyColor = new Color(0.078f, 0.157f, 0.314f);
+        public Color TerraceColor = new Color(0.247f, 0.42f, 0.31f);
+        public Color GlassColor = new Color(0.16f, 0.3f, 0.48f);
+        public bool BuildEnvironment = true;
+
         [Header("End")]
         public float RoundTimeout = 30f;
 
