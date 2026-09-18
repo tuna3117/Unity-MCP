@@ -108,22 +108,47 @@ Kullanıcı bir oyun fikri verdiğinde:
 
 Aşağıdakileri sırayla yap, bitenleri işaretle ve "Proje durumu"nu güncelle:
 
-- [ ] `ProjectVersion.txt` ve `manifest.json` oku; Unity sürümü, URP sürümü, input sistemi durumunu not et
-- [ ] Git yoksa başlat, Unity `.gitignore` ekle, ilk commit
-- [ ] MCP köprüsünü seç (bkz. §3), güncel kurulum adımlarını resmi dokümanından doğrula, kur, Claude Code'a proje kapsamında kaydet (`.mcp.json`)
-- [ ] Duman testi: sahne hiyerarşisini oku → bir küp oluştur → materyal ata → ekran görüntüsü al → bilerek hatalı bir script yaz, konsoldan hatayı oku, düzelt → küpü ve scripti sil
-- [ ] Klasör yapısını ve asmdef'leri oluştur (§7)
-- [ ] `AITools` başlangıç setini yaz ve her birini test et (§8)
-- [ ] `VfxService` + pool + örnek 3 efekt (hit, patlama, toplama/pickup) ve bir post-processing Volume kur (§9)
+- [x] `ProjectVersion.txt` ve `manifest.json` oku; Unity sürümü, URP sürümü, input sistemi durumunu not et
+- [x] Git yoksa başlat, Unity `.gitignore` ekle, ilk commit
+- [x] MCP köprüsünü seç (bkz. §3), güncel kurulum adımlarını resmi dokümanından doğrula, kur, Claude Code'a proje kapsamında kaydet (`.mcp.json`)
+- [x] Duman testi: sahne hiyerarşisini oku → bir küp oluştur → materyal ata → ekran görüntüsü al → bilerek hatalı bir script yaz, konsoldan hatayı oku, düzelt → küpü ve scripti sil
+- [x] Klasör yapısını ve asmdef'leri oluştur (§7)
+- [x] `AITools` başlangıç setini yaz ve her birini test et (§8)
+- [x] `VfxService` + pool + örnek 3 efekt (hit, patlama, toplama/pickup) ve bir post-processing Volume kur (§9)
 - [ ] Kullanıcıya kısa rapor ver ve ilk oyun fikrini iste
 
 ## 12. Proje durumu (bunu sen güncel tut)
 
-- Unity sürümü: _(doldur)_
-- URP sürümü: _(doldur)_
-- Input: _(eski / yeni Input System)_
-- MCP köprüsü ve sürümü: _(doldur)_
-- Köprüye özel notlar (araç adları, tuhaflıklar, bağlantı kopunca ne yapılıyor): _(doldur)_
-- Yazılmış AITools: _(liste)_
-- Hazır efektler: _(liste)_
-- Aktif oyun / mevcut aşama: _(doldur)_
+_Son güncelleme: 2026-09-18 (ilk kurulum oturumu)._
+
+- **Unity sürümü:** 6000.6.2f1 (Unity 6.6), macOS 26.6 / Apple Silicon / Metal. Proje `urp-blank` şablonundan üretildi.
+- **URP sürümü:** 17.6.0. Render Graph aktif; `Assets/Settings/` altında PC/Mobile RP asset'leri şablondan geliyor.
+- **Input:** Yeni Input System 1.20.0 (`Assets/InputSystem_Actions.inputactions` şablondan). Eski `UnityEngine.Input` kullanma.
+- **Kurulu olmayanlar:** Cinemachine, ProBuilder, VFX Graph, TextMeshPro (gerekince `manage_packages` ile kur ve buraya yaz).
+- **MCP köprüsü ve sürümü:** CoplayDev/unity-mcp **v10.2.0**, `Packages/com.coplaydev.unity-mcp` altına **gömülü (embedded)** ve yamalı. Python sunucusu `mcpforunityserver` (uvx ile), HTTP transport, `http://localhost:8080/mcp`. Proje kapsamlı `.mcp.json` var; paketin kurulum sihirbazı ayrıca `~/.claude.json` içine aynı URL ile local-scope `UnityMCP` kaydı yazdı (ikisi aynı sunucuya gider, biri fazla ama zararsız).
+- **Unity 6.6 yaması (önemli):** `Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityObjectIdCompat.cs` → `InstanceIDToObjectCompat`. Unity 6000.6'da paketin yansımayla çağırdığı `EditorUtility.InstanceIDToObject(int)` `NotImplementedException` atıyor; yama, int handle'ı EntityId'nin versiyon kelimesini (`0x100 | v<<9`, v=0..255) deneyerek tam EntityId'ye çeviriyor, bulamazsa tüm objeleri tarıyor. Bu olmadan hedef obje alan **hiçbir** araç (materyal atama, bileşen, silme...) çalışmaz. Paketi güncellerken bu yamayı koru (upstream'e PR açılabilir).
+- **Köprüye özel notlar:**
+  - `Assets/_Project/Editor/AITools/McpBridgeBootstrap.cs` her editor açılışında/domain reload'da yerel HTTP sunucuyu başlatır ve köprüyü bağlar (paketin "Auto-Start on Editor Load" ayarı da açık). Menü: `AI Tools/MCP/Ensure Bridge Running`, `AI Tools/MCP/Log Status`.
+  - Domain reload (script değişikliği, Play Mode giriş/çıkış) sonrası köprü ~5 sn kopar; yeniden dene.
+  - Shell'den araç çağırma (proje kökünden): `uv run Tools/mcp_call.py list` / `describe <tool>` / `call <tool> '<json>'` / `call <tool> @dosya.json`. Görüntüler `Temp/mcp_out/` altına iner.
+  - Projeye özel araçlar: `execute_custom_tool {"tool_name":"ai_...","parameters":{...}}`. Yeni `[McpForUnityTool]` sınıfı `Assets/_Project/Editor/` altına yazılır; derleme sonrası otomatik kaydolur.
+  - Script değişikliği sonrası derletme: `refresh_unity {"mode":"force","scope":"all","compile":"request","wait_for_ready":true}` → sonra `read_console {"types":["error"],"filter_text":"error CS"}`.
+  - Unity'nin kendi asset yenilemesi yalnızca Editor odak alınca çalışır; köprü yoksa `open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app` ile odak ver.
+  - Ekran görüntüsü: `manage_camera {"action":"screenshot","capture_source":"game_view"|"scene_view","view_target":...,"view_position":[x,y,z],"include_image":true}`. Play Mode'da efekt yakalamak için `EditorApplication.update` ile tekrarlı spawner kur ve ana kamerayı yaklaştır (Play Mode değişiklikleri kalıcı değil); "duraklat-çek" yaklaşımı efekti yakalayamadı.
+  - `manage_material create` `color` parametresini uygulamıyor → ardından `set_material_color` çağır. Bilinmeyen shader adı sessizce URP/Lit'e düşer.
+  - `execute_code` CodeDom (C# 6) ile derler: tuple/`out var` yok, obsolete API (`GetInstanceID`) derlemeyi bozar. Proje tiplerine `System.Type.GetType("Project.VFX.VfxService, Project.Runtime")` ile eriş.
+  - `apply_text_edits` için önce `get_sha` ile `precondition_sha256` al.
+  - Konsolda tekrar eden `currentFileSystemTime.ticks != 0 ... FSTimeGet` hatası Unity/macOS kaynaklı gürültü; `.meta` dosyalarına 2262 tarihli mtime yazıyor, işlevsel etkisi görülmedi.
+  - `defaults write` ile dışarıdan yazılan EditorPrefs'i çalışan Unity görmüyor; ayarları Unity içinden (script/menü) set et.
+- **Yazılmış AITools** (`Assets/_Project/Editor/AITools/`, hem menü hem MCP özel aracı, hepsi test edildi):
+  - `ai_bulk_rename` — desenli toplu yeniden adlandırma (`{name}`, `{i}`, `{i:00}`)
+  - `ai_bulk_assign_material` — çok objeye materyal atama (slot seçimi, alt objeler)
+  - `ai_create_prefab` — sahne objesinden prefab üret ve bağla
+  - `ai_scatter` — prefab'ı yüzeye/grid'e dağıt (raycast, rastgele dönüş/ölçek, seed)
+  - `ai_scan_missing` — eksik script + kopuk referans taraması (`fix_missing_scripts`)
+  - `ai_scan_pink_materials` — URP uyumsuz materyal taraması (`fix` = MaterialUpgrader ile dönüştür)
+  - `ai_vfx_create_starters` — başlangıç efekt setini üretir
+  - Ekran görüntüsü için köprünün `manage_camera` aracı yeterli olduğundan ayrı araç yazılmadı.
+- **Hazır efektler** (`Assets/_Project/VFX/`, `VfxService.Play("hit"|"explosion"|"pickup", pos, rot)`): prefab + `VfxDefinition` + `VfxLibrary.asset`, `UnityEngine.Pool` ile havuzlanır, sahnede `VfxService` objesi var. Global Volume: Bloom 1.0 / eşik 0.9, Vignette 0.25, Color Adjustments (kontrast +10, doygunluk +8). Yeni efekt: prefab + `Project/VFX/VFX Definition` asset'i + kütüphaneye ekle.
+- **Testler:** EditMode `Assets/_Project/Tests/EditMode` (`run_tests {"mode":"EditMode"}` → `get_test_job`).
+- **Aktif oyun / mevcut aşama:** Henüz oyun yok. Altyapı hazır; kullanıcıdan ilk oyun fikri bekleniyor (bkz. §10).
