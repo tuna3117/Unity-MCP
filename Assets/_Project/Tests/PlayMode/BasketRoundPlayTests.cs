@@ -42,7 +42,9 @@ namespace Project.Tests
             yield return WaitForDone(round);
             Assert.AreEqual(BasketRound.State.Done, round.Current, "round did not finish");
             Assert.GreaterOrEqual(round.TopPasses, 7, $"top passes {round.TopPasses}");
+            Assert.LessOrEqual(round.TopPasses, 10, $"top passes {round.TopPasses} (clones must not re-pass)");
             Assert.GreaterOrEqual(round.BasketCount, 8, $"basket {round.BasketCount}");
+            Assert.LessOrEqual(round.BasketCount, 60, $"basket {round.BasketCount} (level 1 original max is 32)");
             Assert.IsFalse(round.Missed);
         }
 

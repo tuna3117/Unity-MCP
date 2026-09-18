@@ -109,10 +109,10 @@ namespace Project.Basket
             var trig = new GameObject("PassTrigger");
             trig.transform.SetParent(transform, false);
             trig.layer = layer;
-            trig.transform.localPosition = new Vector3(0f, -0.06f, 0f);
+            trig.transform.localPosition = new Vector3(0f, -0.10f, 0f);
             var box = trig.AddComponent<BoxCollider>();
             box.isTrigger = true;
-            box.size = new Vector3(Spec.Radius * 2f, 0.10f, Spec.Radius * 2f);
+            box.size = new Vector3(Spec.Radius * 2f, 0.40f, Spec.Radius * 2f);
             trig.AddComponent<HoopTrigger>().Hoop = this;
         }
 
@@ -134,6 +134,7 @@ namespace Project.Basket
             BadgeRoot = new GameObject("Badge").transform;
             BadgeRoot.SetParent(transform, false);
             BadgeRoot.localPosition = new Vector3(0f, 1.05f, 0.2f);
+            BadgeRoot.localRotation = Quaternion.Euler(0f, 180f, 0f); // face the camera (which looks toward -z)
             var tm = BadgeRoot.gameObject.AddComponent<TextMesh>();
             tm.text = Spec.Kind == HoopEffectKind.Multiply ? $"x{Spec.Amount}" : $"+{Spec.Amount}";
             tm.fontSize = 64;
@@ -156,6 +157,10 @@ namespace Project.Basket
             var ball = body.GetComponent<Ball>();
             if (ball == null || ball.Phase == BallPhase.Frozen) return;
             if (ball.Body.linearVelocity.y >= 0f) return;
+            float y = ball.transform.position.y;
+            // Only a ball that was above the rim plane before this physics step and is at/below it now counts
+            // (clones and bonus balls are born below the plane, so they never re-pass their own hoop).
+            if (!(ball.PrevY > Center.y && y <= Center.y)) return;
             var d = ball.transform.position - Center;
             float horizontal = new Vector2(d.x, d.z).magnitude;
             if (horizontal >= Spec.Radius - _s.BallRadius * 0.5f) return;

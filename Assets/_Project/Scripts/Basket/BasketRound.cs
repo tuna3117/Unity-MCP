@@ -138,7 +138,7 @@ namespace Project.Basket
             }
             if (hoop.Spec.Kind == HoopEffectKind.Multiply)
             {
-                for (int k = 1; k < hoop.Spec.Amount; k++) SpawnClone(ball);
+                for (int k = 1; k < hoop.Spec.Amount; k++) SpawnClone(ball, hoop);
             }
             else
             {
@@ -147,7 +147,7 @@ namespace Project.Basket
             HoopPassed?.Invoke(hoop, ball, firstTopSwish);
         }
 
-        private void SpawnClone(Ball source)
+        private void SpawnClone(Ball source, Hoop hoop)
         {
             if (!Pool.CanSimulateMore) { VirtualCount++; BasketCount++; return; }
             var v = source.Body.linearVelocity;
@@ -157,7 +157,7 @@ namespace Project.Basket
             var p = source.transform.position;
             p.x += ((float)_rng.NextDouble() - 0.5f) * 0.05f;
             var b = Pool.Get();
-            b.Drop(p, v);
+            b.Drop(p, v, hoop);
             TotalSpawned++;
         }
 
@@ -166,7 +166,7 @@ namespace Project.Basket
             if (!Pool.CanSimulateMore) { VirtualCount++; BasketCount++; return; }
             var p = new Vector3(hoop.Center.x + ((float)_rng.NextDouble() - 0.5f) * 0.1f, hoop.Center.y - 0.15f, 0f);
             var b = Pool.Get();
-            b.Drop(p, new Vector3(0f, -Settings.AddDropSpeed, 0f));
+            b.Drop(p, new Vector3(0f, -Settings.AddDropSpeed, 0f), hoop);
             TotalSpawned++;
         }
 

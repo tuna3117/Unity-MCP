@@ -20,6 +20,7 @@ namespace Project.Basket
         public float StuckTimer;
         public float SlowTimer;
         public float LowestY;             // lowest y reached so far (progress tracking)
+        public float PrevY;               // y before the last physics step (for rim-plane crossing tests)
 
         public event Action<Ball, Collision> RimContact;
 
@@ -55,12 +56,14 @@ namespace Project.Basket
             if (_trail != null) { _trail.Clear(); _trail.emitting = true; }
         }
 
-        public void Drop(Vector3 position, Vector3 velocity)
+        /// <summary>Spawn a dropping ball (clone / bonus). fromHoop is inherited so the ball cannot re-pass the hoop it was born under.</summary>
+        public void Drop(Vector3 position, Vector3 velocity, Hoop fromHoop = null)
         {
             ResetState(position);
             Phase = BallPhase.Drop;
             gameObject.layer = _layerDrop;
             Body.linearVelocity = velocity;
+            if (fromHoop != null) { LastHoop = fromHoop; LastPassTime = Time.time; }
             if (_trail != null) _trail.emitting = false;
         }
 
@@ -97,6 +100,7 @@ namespace Project.Basket
             StuckTimer = 0f;
             SlowTimer = 0f;
             LowestY = position.y;
+            PrevY = position.y;
         }
 
         private void ResetState(Vector3 position)
@@ -111,12 +115,14 @@ namespace Project.Basket
             StuckTimer = 0f;
             SlowTimer = 0f;
             LowestY = position.y;
+            PrevY = position.y;
             gameObject.SetActive(true);
         }
 
         private void FixedUpdate()
         {
             if (Phase == BallPhase.Frozen || Body == null || Body.isKinematic || _s == null) return;
+            PrevY = Body.position.y;
             float g = Phase == BallPhase.Flight ? _s.FlightGravity : _s.DropGravity;
             Body.AddForce(Vector3.down * g, ForceMode.Acceleration);
             if (Phase == BallPhase.Flight && Body.position.z < _s.SlabEntryZ) EnterSlab();
