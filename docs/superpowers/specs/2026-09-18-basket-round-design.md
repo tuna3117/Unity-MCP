@@ -1,8 +1,8 @@
 # Basket round ("Faz A") rebuild in Unity — design
 
-Date: 2026-09-18 · Decision (Tuna): direction **A = faithful+** (same rules, numbers, economy and art style; better physics, camera, feel, visuals) · reuse Pota assets · drop pacing left to me · PC first, phone later.
+Date: 2026-09-18 · Decision: direction **A = faithful+** (same rules, numbers, economy and art style; better physics, camera, feel, visuals) · reuse Pota assets · drop pacing left to me · PC first, phone later.
 
-Source game: `~/projects/Pota` (three.js + hand-written 2D solver). Read-only reference; nothing there is modified. Rule numbers below come from `src/kurallar.ts`, `src/fizik.ts`, `src/oyun.ts` (see the exploration report summarised in this doc).
+Source game: the author's own three.js original with a hand-written 2D solver, kept in a local folder. Read-only reference; nothing there is modified. Rule numbers below come from `src/kurallar.ts`, `src/fizik.ts`, `src/oyun.ts` (see the exploration report summarised in this doc).
 
 ## 1. Goal and success criteria
 
@@ -77,7 +77,7 @@ Editor tools (`Project.Editor`, `AI Tools/Basket/…` + MCP custom tools): `ai_b
 - PlayMode: middle hoop at power 0.6 → ≥ 90 % of balls pass the top hoop and basket ≥ N; far side shot → Missed; 200-ball pile settles < 30 s and count is exact.
 - Sweep: `ai_basket_sweep` on level 1 (3 hoops × 6 powers × 3 offsets) → median in 15–27, min ≥ 8, max ≤ 40; results recorded in CLAUDE.md.
 
-## 6. Stages (each ends with screenshots shown to Tuna)
+## 6. Stages (each ends with screenshots for review)
 
 1. Gray box: builder, colliders, pool, input, trajectory, pass detection, ×/+, end, HUD. Tests a/b.
 2. Camera + feel: poses, slow-mo, shake, popups, particles, SFX, trail, spin, net wobble, marker.

@@ -132,10 +132,7 @@ namespace Project.Editor.AITools
             EditorSceneManager.SaveScene(scene, ScenePath);
             report.Add($"saved {ScenePath}");
 
-            var buildScenes = new List<EditorBuildSettingsScene> { new EditorBuildSettingsScene(ScenePath, true) };
-            const string sample = "Assets/Scenes/SampleScene.unity";
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(sample) != null) buildScenes.Add(new EditorBuildSettingsScene(sample, true));
-            EditorBuildSettings.scenes = buildScenes.ToArray();
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             report.Add("build settings updated");
             AssetDatabase.SaveAssets();
             return report;

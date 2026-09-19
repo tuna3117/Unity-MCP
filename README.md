@@ -157,11 +157,13 @@ Keep this file if you update the package.
 - `execute_code` compiles with CodeDom (C# 6): no tuples, no `out var`, and obsolete APIs break the build.
 - A repeating `currentFileSystemTime.ticks != 0 … FSTimeGet` console error is Unity/macOS noise with no observed functional effect.
 
-## Credits and licenses
+## License and credits
 
-- **MCP bridge:** [CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) v10.2.0, MIT — vendored under `Packages/com.coplaydev.unity-mcp/` with the patch described above.
-- **Art** under `Assets/_Project/Art/Pota/` (backboard, towers, city, court, player mesh) comes from the author's own three.js game and is reused here with permission.
-- `Assets/Scenes/`, `Assets/Settings/` and `Assets/TutorialInfo/` are leftovers from Unity's `urp-blank` template.
-- Everything under `Assets/_Project/` and `Tools/` was written for this project.
+The code and documentation written for this repository are MIT licensed — see [LICENSE](LICENSE). Two parts are not covered by it:
+
+- **The MCP bridge**, [CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) v10.2.0 (MIT), vendored under `Packages/com.coplaydev.unity-mcp/` with the patch described above and used under its own license.
+- **The art** under `Assets/_Project/Art/` — backboard, towers, city, court and player mesh come from the author's own three.js original. All rights reserved.
+
+`Assets/Settings/` holds render pipeline assets that came from Unity's `urp-blank` template.
 
 `CLAUDE.md` is the agent's standing instruction file for this repository. It is written in Turkish (the project language) and describes the working loop, the Unity pitfalls to avoid, and the current project state.

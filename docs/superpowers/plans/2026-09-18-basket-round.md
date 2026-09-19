@@ -290,7 +290,7 @@ PlayMode tests (`Project.Tests.PlayMode.asmdef`: references Project.Runtime, Uni
 - [ ] Steps: write files → refresh → no errors → run `ai_basket_build_scene` → `run_tests PlayMode` → pass → screenshots (aim view; mid-drop; pile) → commit `feat(basket): gray-box round, input, HUD, scene tool, play tests`.
 
 ### Task 8: Stage 1 checkpoint
-- [ ] Take 3 Game View screenshots via a programmatic shot in Play Mode; show to Tuna; note observations in the plan; commit.
+- [ ] Take 3 Game View screenshots via a programmatic shot in Play Mode; show them for review; note observations in the plan; commit.
 
 ## Stage 2 — Camera + feel
 
