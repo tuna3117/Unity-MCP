@@ -52,3 +52,6 @@ crashlytics-build.properties
 # MCP bridge screenshot dump
 /[Aa]ssets/Screenshots/
 /[Aa]ssets/Screenshots.meta
+
+# frame recordings
+/[Tt]emp/record/

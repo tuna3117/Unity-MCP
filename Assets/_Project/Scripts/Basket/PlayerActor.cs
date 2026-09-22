@@ -9,6 +9,15 @@ namespace Project.Basket
         private Vector3 _baseScale, _basePos;
         private float _animT = -1f;
         private float _hideAt = -1f;
+        /// <summary>Stage pieces (terrace, rail) that hide and show with the player: the camera descends through them otherwise.</summary>
+        public GameObject[] AlsoHide;
+
+        private void Show(bool on)
+        {
+            gameObject.SetActive(on);
+            if (AlsoHide == null) return;
+            foreach (var go in AlsoHide) if (go != null) go.SetActive(on);
+        }
 
         public void Bind(BasketRound round)
         {
@@ -18,7 +27,7 @@ namespace Project.Basket
             _basePos = transform.position;
             round.ShotFired += OnShot;
             round.StateChanged += OnState;
-            gameObject.SetActive(round.Current == BasketRound.State.Aim);
+            Show(round.Current == BasketRound.State.Aim);
         }
 
         private void Unbind()
@@ -36,7 +45,7 @@ namespace Project.Basket
             if (this == null) return;
             if (s == BasketRound.State.Aim)
             {
-                gameObject.SetActive(true);
+                Show(true);
                 transform.localScale = _baseScale;
                 transform.position = _basePos;
                 _hideAt = -1f;
@@ -52,7 +61,7 @@ namespace Project.Basket
 
         private void Update()
         {
-            if (_hideAt > 0f && Time.time >= _hideAt) { gameObject.SetActive(false); _hideAt = -1f; return; }
+            if (_hideAt > 0f && Time.time >= _hideAt) { Show(false); _hideAt = -1f; return; }
             if (_animT < 0f) return;
             _animT += Time.deltaTime;
             float t = _animT;

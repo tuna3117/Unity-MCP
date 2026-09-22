@@ -91,11 +91,14 @@ namespace Project.Basket.Visual
             // --- terrace the player stands on ---
             var terraceMat = RimMeshBuilder.UrpLit(s.TerraceColor, 0.2f);
             // Terrace top at y = 0: the player's hands end up at the launch height (1.9 m), like the original.
-            Box(env, "Terrace", new Vector3(0f, -0.15f, 7.2f), new Vector3(7f, 0.3f, 2.4f), terraceMat);
+            // The terrace hides with the player after the shot (PlayerActor.AlsoHide): the camera descends past
+            // y = 0 at z ≈ 9.5 and the slab (z 6–8.4) used to fill the frame for ~1.3 s (seen frame by frame, 2026-09-23).
+            var stage = new System.Collections.Generic.List<GameObject>();
+            stage.Add(Box(env, "Terrace", new Vector3(0f, -0.15f, 7.2f), new Vector3(7f, 0.3f, 2.4f), terraceMat));
             var railMat = RimMeshBuilder.UrpLit(new Color(0.2f, 0.2f, 0.22f), 0.5f);
-            Box(env, "Rail", new Vector3(0f, 0.9f, 6.05f), new Vector3(7f, 0.06f, 0.06f), railMat);
+            stage.Add(Box(env, "Rail", new Vector3(0f, 0.9f, 6.05f), new Vector3(7f, 0.06f, 0.06f), railMat));
             for (float px = -3.4f; px <= 3.4f; px += 1.7f)
-                Box(env, "RailPost", new Vector3(px, 0.45f, 6.05f), new Vector3(0.05f, 0.9f, 0.05f), railMat);
+                stage.Add(Box(env, "RailPost", new Vector3(px, 0.45f, 6.05f), new Vector3(0.05f, 0.9f, 0.05f), railMat));
 
             // --- player ---
             PlayerActor actor = null;
@@ -111,6 +114,7 @@ namespace Project.Basket.Visual
                 player.transform.position = new Vector3(0f, 0f - (bounds.min.y - player.transform.position.y), 6.8f);
                 player.transform.rotation = Quaternion.Euler(0f, 180f, 0f); // back to the camera (verified by screenshot)
                 actor = player.AddComponent<PlayerActor>();
+                actor.AlsoHide = stage.ToArray();
             }
             return actor;
         }
