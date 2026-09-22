@@ -119,7 +119,7 @@ Aşağıdakileri sırayla yap, bitenleri işaretle ve "Proje durumu"nu güncelle
 
 ## 12. Proje durumu (bunu sen güncel tut)
 
-_Son güncelleme: 2026-09-19 (basket turu yeniden yapımı)._
+_Son güncelleme: 2026-09-22 (renk avı denemesi)._
 
 - **Unity sürümü:** 6000.6.2f1 (Unity 6.6), macOS 26.6 / Apple Silicon / Metal. Proje `urp-blank` şablonundan üretildi.
 - **URP sürümü:** 17.6.0. Render Graph aktif; `Assets/Settings/` altında PC/Mobile RP asset'leri şablondan geliyor.
@@ -158,4 +158,8 @@ _Son güncelleme: 2026-09-19 (basket turu yeniden yapımı)._
   - Play Mode içinde script derleme YAPMA: domain reload havuzu/abonelikleri bozuyor ve konsolun hata-duraklatması editörü "Pause"a alabiliyor (`EditorApplication.isPaused`). Önce `manage_editor stop`.
   - Denemek için: Basket sahnesini aç, Play, fareyle aşağıdan yukarı sürükle (sola/sağa pota seçer, uzunluk güç); "Tekrar" düğmesi turu sıfırlar. Bölüm değiştirmek: `Round` objesindeki `Level` alanı.
   - Sıradaki adaylar: üst kuyruk ayarı (alt sıra geçişleri / CloneScatter), telefon dokunmatik testi ve build, Faz B (bulmaca) entegrasyonu.
-- **Aktif oyun / mevcut aşama:** Basket turu 4 aşamada bitti (gri kutu → kamera/his → görsel → ölçüm). Kullanıcının his geri bildirimi bekleniyor.
+- **Renk avı (Pota 2. aşama denemesi, 2026-09-22):** sahne `Assets/_Project/Scenes/ColorHunt.unity`, kod `Assets/_Project/Scripts/ColorHunt/` (saf kural `ColorHuntRules` = Pota `src/renkAvi.ts` portu, mulberry32 dâhil; `ColorHuntGame` durum makinesi + animasyon kuyruğu; `BlockView`, `BoardBuilder`+`RoundedBoxMesh`, `ColorHuntFx` (tek parçacık sistemi seti, `Emit` ile renk), `BallSalvo`, `ColorHuntHud` (uGUI, üretilmiş sprite'lar), `ColorHuntJuice` (Basket'in `CameraShake`/`TimeScaleController`/`PopupText`/`SynthSfx`'i), `ColorHuntCamera` (en/boya göre sığdırma), `ColorHuntInput` (Input System pointer)). Ayarlar `Assets/_Project/Settings/ColorHuntSettings.asset` (bölüm 20: 7×7, 5 renk, can 3–14, cephane 158, hedef 22 kırmızı + 16 mavi; efekt/juice sayıları). Tasarım `docs/superpowers/specs/2026-09-22-color-hunt-design.md`, görüntüler `docs/screenshots/colorhunt_*.png`. Testler `Tests/EditMode/ColorHuntRulesTests.cs` (8/8).
+  - Araçlar: `ai_colorhunt_build_scene` (sahneyi sıfırdan kurar, Game view'ı 1080×1920'ye alır — `GameViewPortrait`, yansımayla), `ai_colorhunt_play` (Play Mode: status / tap {cell} / rotate {dir} / auto {moves} / slowmo {scale, seconds} / retry). Menü: `AI Tools/Color Hunt/...`.
+  - Öğrenilen: `Time.timeScale`'i doğrudan yazma — `TimeScaleController` her karede geri alır; yavaş çekim için `SlowMo(scale, s)`. TextMesh etiket + gölge aynı kuyruktaysa çizim sırası rastgele (gri rakam): etiket 3002, gölge 3001. Dinamik font atlası yeniden kurulunca TextMesh UV'leri bayatlıyor: `Font.textureRebuilt`te metni yeniden ata, rakamları `RequestCharactersInTexture` ile önceden iste. `AddComponent<ParticleSystem>` hemen oynamaya başlar, `duration` yazmadan önce `Stop(StopEmittingAndClear)`. Köprünün `manage_camera screenshot`ı `Assets/Screenshots/` altına async yazar (birkaç saniye bekle).
+  - Sahneyi denemek: ColorHunt sahnesini aç, Play, bloğa tıkla (bas-sürükle-bırak seçimi), alttaki oklar döndürür. Pota projesine taşınmadı — Tuna Unity'de bakıp karar verecek.
+- **Aktif oyun / mevcut aşama:** Basket turu bitti; renk avı Unity denemesi Tuna'nın bakışını bekliyor (patlama/efekt hissi, tahta boyu, HUD).

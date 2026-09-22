@@ -8,5 +8,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/Basket.unity
     guid: 09e715ac37c3e4c2cb7d9938e6ecb36d
+  - enabled: 1
+    path: Assets/_Project/Scenes/ColorHunt.unity
+    guid: 5a4c62b85fac44017ae4a9cdb0a9197b
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

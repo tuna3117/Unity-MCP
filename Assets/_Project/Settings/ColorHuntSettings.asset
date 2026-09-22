@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d746d4f19999c46a590446964bb9b6f0, type: 3}
+  m_Name: ColorHuntSettings
+  m_EditorClassIdentifier: Project.Runtime::Project.ColorHunt.ColorHuntSettings
+  Size: 7
+  ColorCount: 5
+  HpMin: 3
+  HpMax: 14
+  Ammo: 158
+  Targets:
+  - {x: 0, y: 22}
+  - {x: 1, y: 16}
+  Seed: 0
+  Palette:
+  - {r: 0.91, g: 0.271, b: 0.235, a: 1}
+  - {r: 0.184, g: 0.498, b: 0.847, a: 1}
+  - {r: 0.235, g: 0.729, b: 0.431, a: 1}
+  - {r: 1, g: 0.69, b: 0.227, a: 1}
+  - {r: 0.659, g: 0.392, b: 0.847, a: 1}
+  FrameColor: {r: 1, g: 0.541, b: 0.165, a: 1}
+  PlateColor: {r: 0.106, g: 0.208, b: 0.373, a: 1}
+  SkyTop: {r: 0.62, g: 0.8, b: 0.93, a: 1}
+  SkyBottom: {r: 0.83, g: 0.91, b: 0.96, a: 1}
+  NavyColor: {r: 0.106, g: 0.208, b: 0.373, a: 1}
+  GoldColor: {r: 1, g: 0.78, b: 0.24, a: 1}
+  GreenColor: {r: 0.3, g: 0.85, b: 0.45, a: 1}
+  RedColor: {r: 1, g: 0.42, b: 0.42, a: 1}
+  BlockSize: 0.92
+  BlockDepth: 0.55
+  BlockRadius: 0.16
+  BlockFace: {fileID: 2800000, guid: 60eff7e55aa6b41ffa63304f34641f10, type: 3}
+  Font: {fileID: 12800000, guid: 7181214f7ac4d41448dd33944c414135, type: 3}
+  ArrowIcon: {fileID: 2800000, guid: e29169b82b746471798daaba2fcace0a, type: 3}
+  BallMaterial: {fileID: 2100000, guid: 09d2f7edb93bb45d2b3942f87cf151cc, type: 2}
+  DimAmount: 0.55
+  SalvoDuration: 0.5
+  SalvoLaunchFraction: 0.55
+  SalvoFlightFraction: 0.42
+  SalvoMaxBalls: 24
+  SalvoSpread: 1.1
+  SalvoScatter: 0.46
+  DropTimePerCell: 0.25
+  ChainTime: 0.15
+  RotateTime: 0.34
+  WinWait: 0.85
+  LoseWait: 0.45
+  InsufficientShake: 0.3
+  HitStopTap: 0.05
+  HitStopChainBase: 0.09
+  HitStopChainPerDepth: 0.02
+  HitStopChainMax: 0.18
+  ShakeBallHit: 0.015
+  ShakeTap: 0.08
+  ShakeChain: 0.07
+  ShakeChainPerDepth: 0.03
+  ShakeWin: 0.14
+  NeighbourRipple: 0.16
+  ShardsBase: 14
+  ShardsPerDepth: 5
+  ShardsMax: 34
+  SparksBase: 16
+  LightFlashIntensity: 6
+  LightFlashTime: 0.18

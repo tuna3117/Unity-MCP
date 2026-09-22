@@ -77,6 +77,17 @@ Images returned by tools (screenshots) are written to `Temp/mcp_out/`.
 
 ---
 
+
+## Color Hunt (second round prototype, 2026-09-22)
+
+A second, Unity-native prototype in the same project: the colour-hunt board from Pota's `renk-avi` branch (7×7 numbered blocks, tap costs the block's hp in balls, match-3 chains, free 90° rotation, colour targets), rebuilt to see what Unity adds — 3D shard explosions in the block's colour, flash + shockwave, sparks, light flash, ball salvo with trails, drop dust, hit-stop and shake.
+
+| Tap | Explosion | Chain |
+|---|---|---|
+| ![Tap](docs/screenshots/colorhunt_tap.png) | ![Explosion](docs/screenshots/colorhunt_explosion.png) | ![Chain](docs/screenshots/colorhunt_chain.png) |
+
+Open `Assets/_Project/Scenes/ColorHunt.unity`, press **Play**, click a block (press, drag, release), use the bottom arrows to rotate. Everything tunable is in `Assets/_Project/Settings/ColorHuntSettings.asset`. Rules are a straight port of the original TypeScript (`ColorHuntRules.cs`, EditMode-tested); the editor tools `ai_colorhunt_build_scene` and `ai_colorhunt_play` rebuild the scene and drive it from an MCP client. Design notes: `docs/superpowers/specs/2026-09-22-color-hunt-design.md`.
+
 ## Repository layout
 
 ```

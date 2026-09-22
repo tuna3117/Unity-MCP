@@ -48,3 +48,7 @@ crashlytics-build.properties
 
 # macOS
 .DS_Store
+
+# MCP bridge screenshot dump
+/[Aa]ssets/Screenshots/
+/[Aa]ssets/Screenshots.meta
