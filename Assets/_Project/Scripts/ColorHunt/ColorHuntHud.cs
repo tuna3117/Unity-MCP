@@ -13,15 +13,15 @@ namespace Project.ColorHunt
         public ColorHuntGame Game;
         public ColorHuntSettings S;
 
-        private Text _ammo;
-        private Text _hint;
-        private Text _resultTitle;
-        private GameObject _resultPanel;
-        private Transform _targets;
+        // Serialized: the HUD is built once by the scene tool in Edit Mode and must survive scene load / Play Mode.
+        [SerializeField] private Text _ammo;
+        [SerializeField] private Text _hint;
+        [SerializeField] private Text _resultTitle;
+        [SerializeField] private GameObject _resultPanel;
+        [SerializeField] private Transform _targets;
+        [SerializeField] private Font _font;
         private readonly List<(int color, Image swatch, Text count, Text tick)> _targetRows = new List<(int, Image, Text, Text)>();
-        private float _ammoPop;
         private readonly Dictionary<Text, float> _pops = new Dictionary<Text, float>();
-        private Font _font;
 
         public void Bind(ColorHuntGame game)
         {
@@ -40,8 +40,8 @@ namespace Project.ColorHunt
 
         private void OnStarted()
         {
-            _resultPanel.SetActive(false);
-            _hint.enabled = true;
+            if (_resultPanel != null) _resultPanel.SetActive(false);
+            if (_hint != null) _hint.enabled = true;
             BuildTargets();
             OnAmmo();
         }
@@ -50,7 +50,7 @@ namespace Project.ColorHunt
         {
             if (Game == null) return;
             string s = Game.DisplayedAmmo.ToString();
-            if (_ammo.text != s) { _ammo.text = s; }
+            if (_ammo != null && _ammo.text != s) { _ammo.text = s; }
         }
 
         private void OnTargets()
@@ -70,14 +70,17 @@ namespace Project.ColorHunt
 
         private void OnEnded(bool won, string reason)
         {
-            _resultTitle.text = won ? "Hedef tamam!" : reason == "ammo" ? "Top bitti" : "Hamle kalmadı";
-            _resultTitle.color = won ? S.GreenColor : S.RedColor;
-            _resultPanel.SetActive(true);
+            if (_resultTitle != null)
+            {
+                _resultTitle.text = won ? "Hedef tamam!" : reason == "ammo" ? "Top bitti" : "Hamle kalmadı";
+                _resultTitle.color = won ? S.GreenColor : S.RedColor;
+            }
+            if (_resultPanel != null) _resultPanel.SetActive(true);
         }
 
         private void Update()
         {
-            if (Game != null && Game.Busy) _hint.enabled = false;
+            if (Game != null && Game.Busy && _hint != null) _hint.enabled = false;
             if (_iconPops.Count > 0)
             {
                 var ikeys = new List<Transform>(_iconPops.Keys);
@@ -100,9 +103,9 @@ namespace Project.ColorHunt
 
         private void BuildTargets()
         {
-            foreach (Transform c in _targets) Destroy(c.gameObject);
             _targetRows.Clear();
-            if (Game == null || Game.Board == null) return;
+            if (_targets == null || Game == null || Game.Board == null) return;
+            foreach (Transform c in _targets) Destroy(c.gameObject);
             float x = 0f;
             foreach (var t in Game.Board.Targets)
             {

@@ -36,6 +36,13 @@ namespace Project.ColorHunt
         public event Action<bool, string> RoundEnded;
         public event Action RoundStarted;
 
+        /// <summary>Listeners (HUD) must not be able to abort the animation queue: a throwing listener is logged, not propagated.</summary>
+        private static void Raise(Action a)
+        {
+            try { a?.Invoke(); }
+            catch (Exception e) { Debug.LogException(e); }
+        }
+
         private abstract class Job { public float T; }
         private class SalvoJob : Job { public int Cell, Cost, AmmoBefore; public List<Step> Steps; public bool Started; public int Arrived; }
         private class StepJob : Job { public Step Step; public bool Dropping; public float DropTime; public bool Started; public int Depth; }
@@ -118,9 +125,9 @@ namespace Project.ColorHunt
             _checkNeeded = true;
             _resultTimer = -1f;
             BoardRoot.localRotation = Quaternion.identity;
-            RoundStarted?.Invoke();
-            AmmoChanged?.Invoke();
-            TargetsChanged?.Invoke();
+            Raise(RoundStarted);
+            Raise(AmmoChanged);
+            Raise(TargetsChanged);
         }
 
         // ---------- public actions ----------
@@ -251,7 +258,7 @@ namespace Project.ColorHunt
                     if (!s.Started) StartSalvo(s);
                     s.T += dt;
                     DisplayedAmmo = Mathf.Max(Board.Ammo, s.AmmoBefore - Mathf.RoundToInt(s.Cost * Mathf.Min(1f, s.T / S.SalvoDuration)));
-                    AmmoChanged?.Invoke();
+                    Raise(AmmoChanged);
                     if (s.T >= S.SalvoDuration) FinishSalvo(s);
                     break;
                 case StepJob st:
@@ -310,8 +317,8 @@ namespace Project.ColorHunt
             }
             Juice?.Tap(pos, s.Cost);
             DisplayedAmmo = Board.Ammo;
-            AmmoChanged?.Invoke();
-            TargetsChanged?.Invoke();
+            Raise(AmmoChanged);
+            Raise(TargetsChanged);
             _jobs.RemoveAt(0);
             int depth = -1;
             foreach (var step in s.Steps)
@@ -368,7 +375,7 @@ namespace Project.ColorHunt
             }
             center /= Mathf.Max(1, st.Step.Exploded.Count);
             Juice?.Chain(st.Depth, center);
-            TargetsChanged?.Invoke();
+            Raise(TargetsChanged);
         }
 
         private void StartDrops(StepJob st)
