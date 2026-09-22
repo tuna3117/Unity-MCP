@@ -11,12 +11,17 @@ namespace Project.ColorHunt
     public class ColorHuntFx : MonoBehaviour
     {
         public ColorHuntSettings S;
+        public Material ItemMaterial;
 
         private ParticleSystem _flash, _ring, _shards, _sparks, _puff, _sparkle, _confetti;
         private readonly List<(Light light, float t0, float dur, float peak)> _lights = new List<(Light, float, float, float)>();
         private readonly Stack<Light> _lightPool = new Stack<Light>();
         private Transform _lightRoot;
         private bool _built;
+        private class Flyer { public Transform T; public MeshRenderer R; public Vector3 From, To; public float T0, Dur; public System.Action Done; }
+        private readonly List<Flyer> _flyers = new List<Flyer>();
+        private readonly Stack<Flyer> _flyerPool = new Stack<Flyer>();
+        private Transform _flyerRoot;
 
         public void Build(Mesh shardMesh)
         {
@@ -147,6 +152,36 @@ namespace Project.ColorHunt
             }
         }
 
+        /// <summary>Send an item sprite from a block to a HUD point on an arc, scaling down; calls back on arrival.</summary>
+        public void FlyItem(Texture2D icon, Vector3 from, Vector3 to, float duration, System.Action onArrive)
+        {
+            if (icon == null || ItemMaterial == null) return;
+            if (_flyerRoot == null) { _flyerRoot = new GameObject("Flyers").transform; _flyerRoot.SetParent(transform, false); }
+            Flyer f = _flyerPool.Count > 0 ? _flyerPool.Pop() : NewFlyer();
+            f.From = from; f.To = to; f.T0 = Time.time; f.Dur = duration; f.Done = onArrive;
+            var mpb = new MaterialPropertyBlock();
+            mpb.SetTexture("_BaseMap", icon);
+            mpb.SetColor("_BaseColor", Color.white);
+            f.R.SetPropertyBlock(mpb);
+            float aspect = icon.width / (float)icon.height;
+            f.T.localScale = new Vector3(0.7f * Mathf.Min(1f, aspect), 0.7f * Mathf.Min(1f, 1f / aspect), 1f);
+            f.T.position = from;
+            f.T.gameObject.SetActive(true);
+            _flyers.Add(f);
+        }
+
+        private Flyer NewFlyer()
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            go.name = "Flyer";
+            Destroy(go.GetComponent<Collider>());
+            go.transform.SetParent(_flyerRoot, false);
+            var r = go.GetComponent<MeshRenderer>();
+            r.sharedMaterial = ItemMaterial;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return new Flyer { T = go.transform, R = r };
+        }
+
         // ---------- internals ----------
 
         private void Emit(ParticleSystem ps, Vector3 pos, Color color, int count, float sizeMul = 1f)
@@ -185,6 +220,25 @@ namespace Project.ColorHunt
 
         private void Update()
         {
+            for (int i = _flyers.Count - 1; i >= 0; i--)
+            {
+                var f = _flyers[i];
+                float u = (Time.time - f.T0) / f.Dur;
+                if (u >= 1f)
+                {
+                    f.T.gameObject.SetActive(false);
+                    _flyerPool.Push(f);
+                    _flyers.RemoveAt(i);
+                    f.Done?.Invoke();
+                    continue;
+                }
+                float e = u * u * (3f - 2f * u);
+                var p = Vector3.Lerp(f.From, f.To, e);
+                p += Vector3.up * Mathf.Sin(Mathf.PI * u) * 0.8f;
+                f.T.position = p;
+                float s = u < 0.2f ? Mathf.Lerp(1f, 1.35f, u / 0.2f) : Mathf.Lerp(1.35f, 0.45f, (u - 0.2f) / 0.8f);
+                f.T.localScale = new Vector3(0.7f * s, 0.7f * s, 1f);
+            }
             for (int i = _lights.Count - 1; i >= 0; i--)
             {
                 var (l, t0, dur, peak) = _lights[i];

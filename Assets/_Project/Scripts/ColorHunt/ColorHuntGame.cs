@@ -18,6 +18,8 @@ namespace Project.ColorHunt
         public ColorHuntFx Fx;
         public BallSalvo Salvo;
         public ColorHuntJuice Juice;
+        public ColorHuntHud Hud;
+        public Camera Cam;
 
         public State Current { get; private set; } = State.Idle;
         public Board Board { get; private set; }
@@ -48,7 +50,7 @@ namespace Project.ColorHunt
         private class DropState { public float StartY, Distance, T; public bool Landed; }
 
         private Mesh _blockMesh, _shardMesh;
-        private Material _blockMat, _textMat, _shadowMat;
+        private Material _blockMat, _textMat, _shadowMat, _itemMat;
         private Font _font;
         private Transform _blocksRoot;
         private bool _checkNeeded;
@@ -73,6 +75,13 @@ namespace Project.ColorHunt
             _shadowMat = DepthTextMaterial.Create(_font);
             _shadowMat.renderQueue = 3001;
             _font.RequestCharactersInTexture("0123456789", 96, FontStyle.Bold);
+            _itemMat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            _itemMat.SetFloat("_Surface", 1f); _itemMat.SetFloat("_Blend", 0f); _itemMat.SetFloat("_ZWrite", 0f);
+            _itemMat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            _itemMat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            _itemMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            _itemMat.renderQueue = 3000;
+            if (Fx != null) Fx.ItemMaterial = _itemMat;
             _blockMesh = RoundedBoxMesh.Create(new Vector3(S.BlockSize, S.BlockSize, S.BlockDepth), S.BlockRadius, 6);
             _shardMesh = RoundedBoxMesh.Create(Vector3.one, 0.22f, 3);
             _blockMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
@@ -294,6 +303,7 @@ namespace Project.ColorHunt
             if (view != null)
             {
                 Fx?.Explode(pos, S.PaletteColor(view.Block.Color), 0);
+                FlyItem(view, pos);
                 RippleNeighbours(s.Cell);
                 Recycle(view);
                 _views.Remove(s.Cell);
@@ -310,6 +320,22 @@ namespace Project.ColorHunt
                 _jobs.Add(new StepJob { Step = step, Depth = depth });
             }
             if (depth > LongestChain) LongestChain = depth;
+        }
+
+        /// <summary>A counted block's item sprite flies to its target box in the HUD and pops it (Unity extra).</summary>
+        private void FlyItem(BlockView v, Vector3 from)
+        {
+            if (Fx == null || Hud == null || Cam == null) return;
+            int color = v.Block.Color;
+            bool counted = false;
+            foreach (var t in Board.Targets) if (t.Color == color) counted = true;
+            if (!counted) return;
+            var icon = v.ItemIcon;
+            if (icon == null) return;
+            if (!Hud.TargetScreenPoint(color, out var screen)) return;
+            float depth = Mathf.Abs(Cam.transform.position.z - from.z) - 1.5f;
+            var to = Cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, depth));
+            Fx.FlyItem(icon, from + Vector3.back * 0.6f, to, 0.55f, () => Hud.PopTarget(color));
         }
 
         private void RippleNeighbours(int cell)
@@ -338,6 +364,7 @@ namespace Project.ColorHunt
                 var p = CellWorld(i);
                 center += p;
                 Fx?.Explode(p, S.PaletteColor(v.Block.Color), st.Depth);
+                FlyItem(v, p);
             }
             center /= Mathf.Max(1, st.Step.Exploded.Count);
             Juice?.Chain(st.Depth, center);
@@ -440,7 +467,7 @@ namespace Project.ColorHunt
                 var go = new GameObject("Block");
                 go.transform.SetParent(_blocksRoot, false);
                 v = go.AddComponent<BlockView>();
-                v.Init(S, _blockMesh, _blockMat, _font, _textMat, _shadowMat);
+                v.Init(S, _blockMesh, _blockMat, _font, _textMat, _shadowMat, _itemMat);
             }
             v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false;
             v.SetBlock(block, cell);

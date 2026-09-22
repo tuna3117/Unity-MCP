@@ -42,6 +42,13 @@ namespace Project.ColorHunt
         public Texture2D BlockFace;
         public Font Font;
         public Texture2D ArrowIcon;
+        [Tooltip("Item sprite per colour (Pota ESYALAR order: forma, ayakkabı, şapka, çorap, bileklik). Empty = number only.")]
+        public Texture2D[] ItemIcons;
+        [Tooltip("Item placement on the block face (Pota: item at +0.13 scale 0.62, number at −0.2 scale 0.56).")]
+        public float ItemOffsetY = 0.13f;
+        public float ItemScale = 0.62f;
+        public float NumberOffsetY = -0.2f;
+        public float NumberScale = 0.56f;
         public Material BallMaterial;
         [Tooltip("Ammo does not cover this block: colour fades toward grey by this amount.")]
         [Range(0f, 1f)] public float DimAmount = 0.55f;
@@ -85,6 +92,8 @@ namespace Project.ColorHunt
             if (Palette == null || Palette.Length == 0) return Color.white;
             return Palette[Mathf.Clamp(index, 0, Palette.Length - 1)];
         }
+
+        public Texture2D ItemIcon(int color) => ItemIcons != null && color >= 0 && color < ItemIcons.Length ? ItemIcons[color] : null;
 
         public LevelDesign ToDesign()
         {

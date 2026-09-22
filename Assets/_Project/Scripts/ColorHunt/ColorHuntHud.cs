@@ -78,6 +78,16 @@ namespace Project.ColorHunt
         private void Update()
         {
             if (Game != null && Game.Busy) _hint.enabled = false;
+            if (_iconPops.Count > 0)
+            {
+                var ikeys = new List<Transform>(_iconPops.Keys);
+                foreach (var t in ikeys)
+                {
+                    float p = Mathf.Max(0f, _iconPops[t] - Time.unscaledDeltaTime * 4f);
+                    t.localScale = Vector3.one * (1f + 0.5f * Mathf.Sin(p * Mathf.PI));
+                    if (p <= 0f) _iconPops.Remove(t); else _iconPops[t] = p;
+                }
+            }
             if (_pops.Count == 0) return;
             var keys = new List<Text>(_pops.Keys);
             foreach (var t in keys)
@@ -99,13 +109,24 @@ namespace Project.ColorHunt
                 var swatchGo = new GameObject("Swatch", typeof(Image));
                 swatchGo.transform.SetParent(_targets, false);
                 var swatch = swatchGo.GetComponent<Image>();
-                swatch.sprite = RoundedRect(64, 16, Color.white, new Color(1f, 1f, 1f, 0.9f), 6);
-                swatch.type = Image.Type.Sliced;
-                swatch.color = S.PaletteColor(t.Color);
+                var icon = S.ItemIcon(t.Color);
+                if (icon != null)
+                {
+                    swatch.sprite = Sprite.Create(icon, new Rect(0, 0, icon.width, icon.height), new Vector2(0.5f, 0.5f));
+                    swatch.preserveAspect = true;
+                    var shadow = swatchGo.AddComponent<Shadow>();
+                    shadow.effectColor = new Color(0f, 0f, 0f, 0.35f); shadow.effectDistance = new Vector2(0f, -3f);
+                }
+                else
+                {
+                    swatch.sprite = RoundedRect(64, 16, Color.white, new Color(1f, 1f, 1f, 0.9f), 6);
+                    swatch.type = Image.Type.Sliced;
+                    swatch.color = S.PaletteColor(t.Color);
+                }
                 var srt = swatchGo.GetComponent<RectTransform>();
                 srt.anchorMin = srt.anchorMax = new Vector2(0f, 0.5f); srt.pivot = new Vector2(0f, 0.5f);
-                srt.anchoredPosition = new Vector2(x, -2f); srt.sizeDelta = new Vector2(44f, 44f);
-                x += 52f;
+                srt.anchoredPosition = new Vector2(x, -2f); srt.sizeDelta = icon != null ? new Vector2(60f, 60f) : new Vector2(44f, 44f);
+                x += icon != null ? 68f : 52f;
                 var count = MakeText(_targets, "Count", 56, new Vector2(0f, 0.5f), new Vector2(x, 0f), new Vector2(90f, 70f), TextAnchor.MiddleLeft, S.GoldColor);
                 count.text = t.Remaining.ToString();
                 var tick = MakeText(_targets, "Tick", 40, new Vector2(0f, 0.5f), new Vector2(x + 70f, 2f), new Vector2(50f, 70f), TextAnchor.MiddleLeft, S.GreenColor);
@@ -118,6 +139,33 @@ namespace Project.ColorHunt
             trt.sizeDelta = new Vector2(x + 16f, 70f);
             OnTargets();
         }
+
+        /// <summary>Screen-space centre of a target's icon (for the flying item), false if that colour has no box.</summary>
+        public bool TargetScreenPoint(int color, out Vector2 screen)
+        {
+            screen = default;
+            foreach (var row in _targetRows)
+            {
+                if (row.color != color) continue;
+                var rt = row.swatch.rectTransform;
+                screen = RectTransformUtility.WorldToScreenPoint(null, rt.TransformPoint(rt.rect.center));
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>The flying item arrived: bounce the icon and its count.</summary>
+        public void PopTarget(int color)
+        {
+            foreach (var row in _targetRows)
+            {
+                if (row.color != color) continue;
+                _pops[row.count] = 1f;
+                _iconPops[row.swatch.transform] = 1f;
+            }
+        }
+
+        private readonly Dictionary<Transform, float> _iconPops = new Dictionary<Transform, float>();
 
         // ---------- construction ----------
 

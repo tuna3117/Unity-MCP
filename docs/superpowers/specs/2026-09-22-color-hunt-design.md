@@ -76,3 +76,10 @@ EditMode testleri (`run_tests`), sahne kurulumu, Play Mode'da otomatik hamlelerl
 ## 6. Kapsam dışı
 
 Pota'ya taşıma · basket aşamasıyla akış bağı · 40 bölüm · ses tasarımı (sentez yeter) · mobil build.
+
+## 7. Revizyon 2026-09-23 — eşyalı bloklar
+
+Pota'da Tuna'nın seçtiği düzen: **renkli blok + basket eşyası + sayı** (kırmızı forma · mavi ayakkabı · yeşil şapka ·
+sarı çorap · mor bileklik; `RENKLER` sırası), rakam eşyanın önünde ve alt kenarda, hedef panelinde renk karesi yerine eşya
+ikonu, kamera tam karşıdan. Unity'de aynısı: `ItemIcons` + yerleşim sayıları ayar dosyasında. Ek: sayılan bloğun eşyası
+patlayınca hedef kutusuna uçar (`colorhunt_item_fly.png`). Kavanoz fikri Pota'da da oyuna girmedi; burada da yok.

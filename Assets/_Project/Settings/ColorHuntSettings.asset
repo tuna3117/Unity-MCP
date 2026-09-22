@@ -41,6 +41,16 @@ MonoBehaviour:
   BlockFace: {fileID: 2800000, guid: 60eff7e55aa6b41ffa63304f34641f10, type: 3}
   Font: {fileID: 12800000, guid: 7181214f7ac4d41448dd33944c414135, type: 3}
   ArrowIcon: {fileID: 2800000, guid: e29169b82b746471798daaba2fcace0a, type: 3}
+  ItemIcons:
+  - {fileID: 2800000, guid: 738b492f0b35f40c2ab853c70f80e520, type: 3}
+  - {fileID: 2800000, guid: 1b09e2e7c3f5f4fca9ab04b7ed2fcca9, type: 3}
+  - {fileID: 2800000, guid: b069a9c9ae0a5420d92b09f7e3c72291, type: 3}
+  - {fileID: 2800000, guid: 10fbc9ee4087744439d6cf87ec1f4407, type: 3}
+  - {fileID: 2800000, guid: 38be11dd0fc9b44909c2763979072e68, type: 3}
+  ItemOffsetY: 0.13
+  ItemScale: 0.62
+  NumberOffsetY: -0.2
+  NumberScale: 0.56
   BallMaterial: {fileID: 2100000, guid: 09d2f7edb93bb45d2b3942f87cf151cc, type: 2}
   DimAmount: 0.55
   SalvoDuration: 0.5

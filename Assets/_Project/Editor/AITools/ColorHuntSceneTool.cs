@@ -26,6 +26,7 @@ namespace Project.Editor.AITools
         public const string ArrowPath = "Assets/_Project/Art/Pota/ok-a.png";
         public const string FontPath = "Assets/_Project/Art/Fonts/ArialRoundedBold.ttf";
         public const string BallMaterialPath = "Assets/_Project/Art/Generated/Basketball.mat";
+        public static readonly string[] ItemNames = { "forma", "ayakkabi", "sapka", "corap", "bileklik" };
 
         public class Parameters { }
 
@@ -109,6 +110,8 @@ namespace Project.Editor.AITools
             var uiRoot = new GameObject("UI");
             var hud = ColorHuntHud.Create(uiRoot.transform, settings);
             hud.Game = game;
+            game.Hud = hud;
+            game.Cam = cam;
             var es = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             es.transform.SetParent(uiRoot.transform, false);
             // HUD subscribes at runtime through a small bootstrap so the serialized reference is enough.
@@ -146,8 +149,13 @@ namespace Project.Editor.AITools
             if (s.ArrowIcon == null) s.ArrowIcon = AssetDatabase.LoadAssetAtPath<Texture2D>(ArrowPath);
             if (s.Font == null) s.Font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
             if (s.BallMaterial == null) s.BallMaterial = AssetDatabase.LoadAssetAtPath<Material>(BallMaterialPath);
+            if (s.ItemIcons == null || s.ItemIcons.Length != ItemNames.Length || System.Array.Exists(s.ItemIcons, t => t == null))
+            {
+                s.ItemIcons = new Texture2D[ItemNames.Length];
+                for (int i = 0; i < ItemNames.Length; i++) s.ItemIcons[i] = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/_Project/Art/Pota/esya-{ItemNames[i]}.png");
+            }
             EditorUtility.SetDirty(s);
-            report.Add($"settings: face={(s.BlockFace != null)} arrow={(s.ArrowIcon != null)} font={(s.Font != null)} ball={(s.BallMaterial != null)}");
+            report.Add($"settings: face={(s.BlockFace != null)} arrow={(s.ArrowIcon != null)} font={(s.Font != null)} ball={(s.BallMaterial != null)} items={System.Array.FindAll(s.ItemIcons, t => t != null).Length}/{ItemNames.Length}");
             return s;
         }
     }
