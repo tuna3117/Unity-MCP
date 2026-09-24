@@ -1,0 +1,28 @@
+{
+  "name": "dunk2",
+  "model": "uthana/text-to-motion-diffusion-v2:0ad729c8d6e63800404d6918c4d1e0a7be0e8ce94efe85afba9c397330174308",
+  "prediction": "648axqkqbhrmt0d0tnjvgt75mr",
+  "input": {
+    "prompt": "A person takes two fast running steps forward, leaps high into the air off both feet, swings the right arm straight up above the head with the hand high, then slams the right arm down forcefully in front of the body while in the air, and lands on both feet.",
+    "character": "Y Bot",
+    "output_ext": "FBX",
+    "fps": 30,
+    "motion_length": 3.5,
+    "foot_ik": true,
+    "internal_ik": true,
+    "no_mesh": false,
+    "seed": 11,
+    "cfg_scale": 2.5
+  },
+  "input_files": {},
+  "outputs": {
+    "output": "out/motion/dunk2.FBX"
+  },
+  "seconds": 6.0,
+  "metrics": {
+    "generic_output_count": 1,
+    "predict_time": 3.324076503,
+    "total_time": 3.3507407049999998
+  },
+  "time": "2026-09-25T00:49:57"
+}

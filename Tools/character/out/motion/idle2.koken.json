@@ -1,0 +1,28 @@
+{
+  "name": "idle2",
+  "model": "uthana/text-to-motion-diffusion-v2:0ad729c8d6e63800404d6918c4d1e0a7be0e8ce94efe85afba9c397330174308",
+  "prediction": "nyqkajvqesrmy0d0tnjvy5qmac",
+  "input": {
+    "prompt": "A person stands still in a relaxed idle stance, feet shoulder-width apart, arms hanging loosely at the sides, breathing calmly and shifting weight slightly.",
+    "character": "Y Bot",
+    "output_ext": "FBX",
+    "fps": 30,
+    "motion_length": 4.0,
+    "foot_ik": true,
+    "internal_ik": true,
+    "no_mesh": false,
+    "seed": 11,
+    "cfg_scale": 2.0
+  },
+  "input_files": {},
+  "outputs": {
+    "output": "out/motion/idle2.FBX"
+  },
+  "seconds": 11.2,
+  "metrics": {
+    "generic_output_count": 1,
+    "predict_time": 8.951627202,
+    "total_time": 8.975244269000001
+  },
+  "time": "2026-09-25T00:50:02"
+}

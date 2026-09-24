@@ -1,0 +1,23 @@
+{
+  "name": "oyuncu2_rig",
+  "model": "uthana/create-character-v1:6b1fe45c55256a159804f4794afcdcdf9a54c5ca90e9883ddc725863153c727f",
+  "prediction": "7xj68rn59xrmy0d0tnps4xpte0",
+  "input": {
+    "character_file": "https://api.replicate.com/v1/files/OGU0N2M2OGQtOWI3NC00MDEyLTljZTItNGE1OTA5YzI3MTQ2.glb",
+    "auto_rig": true,
+    "front_facing": true
+  },
+  "input_files": {
+    "/Users/tunaaltin17/projects/Unity MCP/Tools/character/out/oyuncu2.model_file.glb": "8d0949941c9a31093f59376b991f5f3dc626bbe83f67e924874706f50d9eddf1"
+  },
+  "outputs": {
+    "output": "out/oyuncu2_rig.glb"
+  },
+  "seconds": 43.7,
+  "metrics": {
+    "generic_output_count": 1,
+    "predict_time": 39.165988431,
+    "total_time": 39.180643043
+  },
+  "time": "2026-09-25T00:59:30"
+}

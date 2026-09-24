@@ -1,0 +1,29 @@
+{
+  "name": "oyuncu2",
+  "model": "fishwowater/trellis2:52e1ad6852599ea10ce8e257635a3c11485cba51c181ea5173e34d9b2955b226",
+  "prediction": "cejym3sjvxrnc0d0tnh8gbr90c",
+  "input": {
+    "image": "https://api.replicate.com/v1/files/NjY1YjJiMzctNGYwZC00ZjZiLTkzZTItZTEyNjFiYmY5Y2M4.png",
+    "pipeline_type": "1024_cascade",
+    "texture_size": 2048,
+    "decimation_target": 100000,
+    "generate_model": true,
+    "generate_video": true,
+    "preprocess_image": true,
+    "seed": 7,
+    "randomize_seed": false
+  },
+  "input_files": {
+    "/Users/tunaaltin17/projects/Unity MCP/Tools/character/out/apose2.rgba.png": "8384885246d238d073f8219273972b648c2679b803725896e49991a2a8f1f5a8"
+  },
+  "outputs": {
+    "model_file": "out/oyuncu2.model_file.glb",
+    "video": "out/oyuncu2.video.mp4"
+  },
+  "seconds": 668.9,
+  "metrics": {
+    "predict_time": 291.968686826,
+    "total_time": 663.398279982
+  },
+  "time": "2026-09-25T00:57:26"
+}

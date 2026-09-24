@@ -1,0 +1,12 @@
+{
+ "prompt": "A person takes two fast running steps forward, leaps high into the air off both feet, swings the right arm straight up above the head with the hand high, then slams the right arm down forcefully in front of the body while in the air, and lands on both feet.",
+ "character": "Y Bot",
+ "output_ext": "FBX",
+ "fps": 30,
+ "motion_length": 3.5,
+ "foot_ik": true,
+ "internal_ik": true,
+ "no_mesh": false,
+ "seed": 11,
+ "cfg_scale": 2.5
+}

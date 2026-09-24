@@ -1,0 +1,12 @@
+{
+ "prompt": "A basketball player stands relaxed and idle, shifting weight slightly from foot to foot, breathing, holding a basketball at the right hip with one hand.",
+ "character": "Y Bot",
+ "output_ext": "FBX",
+ "fps": 30,
+ "motion_length": 4.0,
+ "foot_ik": true,
+ "internal_ik": true,
+ "no_mesh": false,
+ "seed": 3,
+ "cfg_scale": 1
+}

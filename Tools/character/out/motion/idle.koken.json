@@ -1,0 +1,28 @@
+{
+  "name": "idle",
+  "model": "uthana/text-to-motion-diffusion-v2:0ad729c8d6e63800404d6918c4d1e0a7be0e8ce94efe85afba9c397330174308",
+  "prediction": "2hn16gdsbdrmt0d0tngt2nhe3g",
+  "input": {
+    "prompt": "A basketball player stands relaxed and idle, shifting weight slightly from foot to foot, breathing, holding a basketball at the right hip with one hand.",
+    "character": "Y Bot",
+    "output_ext": "FBX",
+    "fps": 30,
+    "motion_length": 4.0,
+    "foot_ik": true,
+    "internal_ik": true,
+    "no_mesh": false,
+    "seed": 3,
+    "cfg_scale": 1
+  },
+  "input_files": {},
+  "outputs": {
+    "output": "out/motion/idle.FBX"
+  },
+  "seconds": 6.4,
+  "metrics": {
+    "generic_output_count": 1,
+    "predict_time": 3.3429757,
+    "total_time": 3.413941285
+  },
+  "time": "2026-09-25T00:45:52"
+}

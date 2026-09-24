@@ -55,3 +55,11 @@ crashlytics-build.properties
 
 # frame recordings
 /[Tt]emp/record/
+
+# character pipeline intermediates (paid Replicate outputs stay on disk, provenance json is tracked)
+/Tools/character/out/*
+!/Tools/character/out/*.koken.json
+!/Tools/character/out/*.json
+!/Tools/character/out/motion/
+/Tools/character/out/motion/*
+!/Tools/character/out/motion/*.json

@@ -65,7 +65,8 @@ namespace Project.Basket
         public Texture2D CityTexture;       // cephe.jpg
         public Texture2D SkyTexture;        // sehir.jpg
         public Texture2D BackboardTexture;  // pano.png
-        public GameObject PlayerPrefab;     // oyuncu.glb
+        public GameObject PlayerPrefab;     // PlayerCharacter.prefab (Humanoid, Animator) or the static oyuncu.glb
+        [Tooltip("Where inside the Shoot clip playback starts on a shot (seconds), so the release lines up with the balls leaving.")] public float PlayerShootClipStart = 0.9f;
         public Color SkyColor = new Color(0.557f, 0.788f, 0.949f);
         public Color FogColor = new Color(0.62f, 0.827f, 0.961f);
         public float FogStart = 26f, FogEnd = 115f;

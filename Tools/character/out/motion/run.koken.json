@@ -1,0 +1,28 @@
+{
+  "name": "run",
+  "model": "uthana/text-to-motion-diffusion-v2:0ad729c8d6e63800404d6918c4d1e0a7be0e8ce94efe85afba9c397330174308",
+  "prediction": "6ery8fxsssrmt0d0tngtzhya1m",
+  "input": {
+    "prompt": "A person runs forward at a steady jogging pace with a relaxed upper body, arms swinging naturally, continuous running cycle.",
+    "character": "Y Bot",
+    "output_ext": "FBX",
+    "fps": 30,
+    "motion_length": 2.0,
+    "foot_ik": true,
+    "internal_ik": true,
+    "no_mesh": false,
+    "seed": 3,
+    "cfg_scale": 1
+  },
+  "input_files": {},
+  "outputs": {
+    "output": "out/motion/run.FBX"
+  },
+  "seconds": 11.6,
+  "metrics": {
+    "generic_output_count": 1,
+    "predict_time": 9.058315911,
+    "total_time": 9.078218859
+  },
+  "time": "2026-09-25T00:45:57"
+}

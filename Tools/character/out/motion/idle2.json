@@ -1,0 +1,12 @@
+{
+ "prompt": "A person stands still in a relaxed idle stance, feet shoulder-width apart, arms hanging loosely at the sides, breathing calmly and shifting weight slightly.",
+ "character": "Y Bot",
+ "output_ext": "FBX",
+ "fps": 30,
+ "motion_length": 4.0,
+ "foot_ik": true,
+ "internal_ik": true,
+ "no_mesh": false,
+ "seed": 11,
+ "cfg_scale": 2.0
+}

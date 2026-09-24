@@ -2,10 +2,17 @@ using UnityEngine;
 
 namespace Project.Basket
 {
-    /// <summary>Shows the player while aiming, plays a squash/jump on the shot and hides afterwards.</summary>
+    /// <summary>
+    /// Shows the player while aiming, plays the shot and hides afterwards. With an Animator (Humanoid prefab) the shot
+    /// plays the "Shoot" state; without one it falls back to a squash/jump on the transform.
+    /// </summary>
     public class PlayerActor : MonoBehaviour
     {
+        private static readonly int ShootState = Animator.StringToHash("Shoot");
+        private static readonly int IdleState = Animator.StringToHash("Idle");
+
         private BasketRound _round;
+        private Animator _animator;
         private Vector3 _baseScale, _basePos;
         private float _animT = -1f;
         private float _hideAt = -1f;
@@ -25,6 +32,8 @@ namespace Project.Basket
             _round = round;
             _baseScale = transform.localScale;
             _basePos = transform.position;
+            _animator = GetComponentInChildren<Animator>();
+            if (_animator != null && _animator.runtimeAnimatorController == null) _animator = null;
             round.ShotFired += OnShot;
             round.StateChanged += OnState;
             Show(round.Current == BasketRound.State.Aim);
@@ -49,14 +58,23 @@ namespace Project.Basket
                 transform.localScale = _baseScale;
                 transform.position = _basePos;
                 _hideAt = -1f;
+                if (_animator != null) _animator.Play(IdleState, 0, 0f);
             }
         }
 
         private void OnShot(AimPoint aim)
         {
             if (this == null || _round == null) return;
-            _animT = 0f;
             _hideAt = Time.time + _round.Layout.BallCount * _round.Settings.BallSpacing + 0.35f;
+            if (_animator != null)
+            {
+                // Start inside the clip so the hands reach the release point right after the balls leave.
+                var clip = System.Array.Find(_animator.runtimeAnimatorController.animationClips, c => c.name.StartsWith("player_shoot"));
+                float len = clip != null ? clip.length : 1f;
+                _animator.Play(ShootState, 0, Mathf.Clamp01(_round.Settings.PlayerShootClipStart / len));
+                return;
+            }
+            _animT = 0f;
         }
 
         private void Update()

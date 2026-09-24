@@ -1,0 +1,12 @@
+{
+ "prompt": "A person runs forward at a steady jogging pace with a relaxed upper body, arms swinging naturally, continuous running cycle.",
+ "character": "Y Bot",
+ "output_ext": "FBX",
+ "fps": 30,
+ "motion_length": 2.0,
+ "foot_ik": true,
+ "internal_ik": true,
+ "no_mesh": false,
+ "seed": 3,
+ "cfg_scale": 1
+}

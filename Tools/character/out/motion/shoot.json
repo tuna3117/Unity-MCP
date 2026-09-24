@@ -1,0 +1,12 @@
+{
+ "prompt": "A basketball player performs a jump shot: starts standing with the ball held at chest height, bends the knees, jumps straight up, extends both arms overhead and flicks the wrist to release the ball at the top of the jump, then lands softly on both feet and stands still.",
+ "character": "Y Bot",
+ "output_ext": "FBX",
+ "fps": 30,
+ "motion_length": 3.0,
+ "foot_ik": true,
+ "internal_ik": true,
+ "no_mesh": false,
+ "seed": 3,
+ "cfg_scale": 1
+}

@@ -1,0 +1,12 @@
+{
+ "prompt": "A person stands facing forward, bends the knees deeply while bringing both hands up in front of the chest, then jumps straight up into the air, extends both arms fully straight above the head and snaps both wrists forward at the top of the jump, then lands softly on both feet and stands still.",
+ "character": "Y Bot",
+ "output_ext": "FBX",
+ "fps": 30,
+ "motion_length": 3.0,
+ "foot_ik": true,
+ "internal_ik": true,
+ "no_mesh": false,
+ "seed": 11,
+ "cfg_scale": 2.5
+}

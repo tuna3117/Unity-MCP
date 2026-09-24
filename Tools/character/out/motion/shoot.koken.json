@@ -1,0 +1,28 @@
+{
+  "name": "shoot",
+  "model": "uthana/text-to-motion-diffusion-v2:0ad729c8d6e63800404d6918c4d1e0a7be0e8ce94efe85afba9c397330174308",
+  "prediction": "0bv4gq5t7drmy0d0tngtcz1s4m",
+  "input": {
+    "prompt": "A basketball player performs a jump shot: starts standing with the ball held at chest height, bends the knees, jumps straight up, extends both arms overhead and flicks the wrist to release the ball at the top of the jump, then lands softly on both feet and stands still.",
+    "character": "Y Bot",
+    "output_ext": "FBX",
+    "fps": 30,
+    "motion_length": 3.0,
+    "foot_ik": true,
+    "internal_ik": true,
+    "no_mesh": false,
+    "seed": 3,
+    "cfg_scale": 1
+  },
+  "input_files": {},
+  "outputs": {
+    "output": "out/motion/shoot.FBX"
+  },
+  "seconds": 16.9,
+  "metrics": {
+    "generic_output_count": 1,
+    "predict_time": 11.755485369,
+    "total_time": 11.804531677
+  },
+  "time": "2026-09-25T00:46:02"
+}

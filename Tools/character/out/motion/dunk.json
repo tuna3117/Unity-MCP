@@ -1,0 +1,12 @@
+{
+ "prompt": "A basketball player takes two quick running steps forward, jumps high off both feet, raises the right arm overhead and slams the ball down hard into a basketball hoop with one hand, then lands on both feet.",
+ "character": "Y Bot",
+ "output_ext": "FBX",
+ "fps": 30,
+ "motion_length": 3.5,
+ "foot_ik": true,
+ "internal_ik": true,
+ "no_mesh": false,
+ "seed": 3,
+ "cfg_scale": 1
+}

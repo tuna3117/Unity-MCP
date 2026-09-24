@@ -1,0 +1,11 @@
+{
+  "image": "@/Users/tunaaltin17/projects/Unity MCP/Tools/character/out/apose2.rgba.png",
+  "pipeline_type": "1024_cascade",
+  "texture_size": 2048,
+  "decimation_target": 100000,
+  "generate_model": true,
+  "generate_video": true,
+  "preprocess_image": true,
+  "seed": 7,
+  "randomize_seed": false
+}

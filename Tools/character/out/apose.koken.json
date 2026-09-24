@@ -1,0 +1,29 @@
+{
+  "name": "apose",
+  "model": "google/nano-banana-pro",
+  "prediction": "kfa608wh5srmy0d0tnfsewvvk0",
+  "input": {
+    "prompt": "Edit this image. Keep the EXACT same character: a toy figurine of a young basketball player with a big round head, short brown hair, thick dark eyebrows, blue sleeveless jersey with a white number 7, black shorts, white socks and chunky orange sneakers. Same glossy 3D toy render style, same materials, same colours, same proportions, same face. Change ONLY the pose: the character now stands in a neutral A-POSE for 3D rigging \u2014 standing straight and facing the camera directly, both arms held straight and relaxed away from the body at about 45 degrees downward, palms facing the thighs, fingers relaxed and slightly apart, legs straight and shoulder-width apart, feet flat and pointing forward, head level, calm friendly light smile, eyes looking straight at the camera. There is NO basketball and no props; both hands are empty. Full body, the whole figure fully inside the frame with a comfortable margin on all sides, centred, seen from eye level straight on with minimal perspective, like a character turnaround sheet front view. Soft even studio lighting, no cast shadow on the ground, no ground, no floor, no pedestal, no base. Plain solid pure green background (#00FF00) filling the whole frame, nothing else in the picture. Exactly one character, shown once. No text, no watermark.",
+    "image_input": [
+      "https://api.replicate.com/v1/files/NDJkNDIyNzMtZDM2OS00YzZlLWIzZjgtOTU5YjdkMzk4ZDZl.png"
+    ],
+    "aspect_ratio": "3:4",
+    "resolution": "2K",
+    "output_format": "png",
+    "safety_filter_level": "block_only_high"
+  },
+  "input_files": {
+    "/Users/tunaaltin17/projects/Pota/public/assets/kahraman.png": "230b22f9bcccd0d9b44f71bd53060a3aef5f529c6d0cc6e90415dc59ce293bdc"
+  },
+  "outputs": {
+    "output": "out/apose.png"
+  },
+  "seconds": 34.1,
+  "metrics": {
+    "image_output_count": 1,
+    "predict_time": 21.834965733,
+    "resolution_target": "2K",
+    "total_time": 21.949796957
+  },
+  "time": "2026-09-25T00:43:52"
+}
