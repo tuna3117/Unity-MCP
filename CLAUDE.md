@@ -119,7 +119,7 @@ Aşağıdakileri sırayla yap, bitenleri işaretle ve "Proje durumu"nu güncelle
 
 ## 12. Proje durumu (bunu sen güncel tut)
 
-_Son güncelleme: 2026-09-23 (renk avı: eşyalı bloklar)._
+_Son güncelleme: 2026-09-25 (animasyonlu karakter hattı)._
 
 - **Unity sürümü:** 6000.6.2f1 (Unity 6.6), macOS 26.6 / Apple Silicon / Metal. Proje `urp-blank` şablonundan üretildi.
 - **URP sürümü:** 17.6.0. Render Graph aktif; `Assets/Settings/` altında PC/Mobile RP asset'leri şablondan geliyor.
@@ -165,4 +165,7 @@ _Son güncelleme: 2026-09-23 (renk avı: eşyalı bloklar)._
   - **Revizyon 2026-09-23 (Pota commit 71f8b9e/f55775d):** bloklar renk + basket eşyası + rakam (`ColorHuntSettings.ItemIcons`, `esya-*.png`; eşya yüzün üst yarısında ölçek 0.62, rakam önde ve altta 0.56 — Pota `etiketleriYaz` düzeni), hedef panelinde eşya ikonu, kamera zaten tam karşıdan. Unity ekstrası: sayılan bloğun eşyası patlayınca HUD'daki hedef kutusuna uçar ve ikonu zıplatır (`ColorHuntFx.FlyItem`, `ColorHuntHud.TargetScreenPoint/PopTarget`). Quad primitive zaten −z'ye (kameraya) bakar; 180° çevirme mirror + cull yapar.
   - **Ders (2026-09-23):** sahne aracının Edit Mode'da kurduğu HUD'un `private` alanları serileştirilmiyordu; editör yeniden açılıp sahne diskten gelince null kaldılar, her karede NRE → salvo işi bitmedi → oyun "busy" kilidinde ("oynayamıyorum"). Aynı editör oturumunda kur-ve-oyna bunu gizler. Kural: araçla kurulan her referans `[SerializeField]`; olay dinleyicileri `Raise()` ile sarılı, HUD hatası kuyruğu durduramaz.
   - Sahneyi denemek: ColorHunt sahnesini aç, Play, bloğa tıkla (bas-sürükle-bırak seçimi), alttaki oklar döndürür. Pota projesine taşınmadı — Tuna Unity'de bakıp karar verecek.
-- **Aktif oyun / mevcut aşama:** Basket turu bitti; renk avı Unity denemesi Tuna'nın bakışını bekliyor (patlama/efekt hissi, tahta boyu, HUD).
+- **Karakter hattı (2026-09-25):** `kahraman.png` → nano-banana-pro A-pozu → `firtoz/trellis` GLB → `uthana/create-character-v1` rig → `uthana/text-to-motion-diffusion-v2` klipler → Unity Humanoid. Script'ler ve dersler `Tools/character/README.md`, özet `docs/2026-09-25-character-pipeline.md`, görüntüler `docs/screenshots/2026-09-25-character/`. Ücretli çıktılar `Tools/character/out/` (git dışı, silme). Sonuç: `Assets/_Project/Prefabs/PlayerCharacter.prefab` (rig `Art/Pota/Mesh/player_rig_a.glb` + `.avatar.asset`, controller `Assets/_Project/Anim/`), klipler `Art/Pota/Anim/player_*.fbx`; `BasketSettings.PlayerPrefab` buna bağlı, `PlayerActor` Shoot'u `PlayerShootClipStart`'tan oynatır. Koşu/smaç klipleri controller'da var, oyun tetiklemiyor.
+  - Araçlar: `ai_character_setup` (rig glb → T-pozu, ayakları y=0'a alma, Humanoid avatar, AnimatorController, prefab), `ai_anim_contact_sheet` (model+klip → tek PNG + kemik yükseklik tablosu; klipleri sayıyla değerlendir). Menü: `AI Tools/Character`, `AI Tools/Animation`.
+  - Tuzaklar: Uthana rig'ini glTFast doğrudan okuyamaz → önce `fix_rig_glb.py`; TRELLIS.2 WebP doku verir (`glb_webp_to_png.py`) ve min 100k üçgen ister; Avatar asset'ini üzerine yazma (önce sil), prefab'ı avatar/controller sonrası `ImportAsset(ForceUpdate)` ile yeniden yükle; `execute_code` içinde `AssetDatabase.DeleteAsset` `safety_checks=false` ister; oturum başında Editor Play'de kalmış olabilir, derlemeden önce `manage_editor stop`.
+- **Aktif oyun / mevcut aşama:** Basket turu bitti ve animasyonlu oyuncu eklendi (2026-09-25); renk avı Unity denemesi Tuna'nın bakışını bekliyor (patlama/efekt hissi, tahta boyu, HUD).
