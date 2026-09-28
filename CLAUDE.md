@@ -13,7 +13,7 @@ Kullanıcı yazılımcı değil, ürünü yöneten kişi. Ona teknik karar sorma
 ## 2. Ortam
 
 - macOS, Apple Silicon (Metal). Unity 6, URP. Kesin sürümü `ProjectSettings/ProjectVersion.txt` dosyasından oku, ezberden varsayma.
-- Editor log: `~/Library/Logs/Unity/Editor.log`
+- Editor log: Unity 6.6 açılıştan sonra proje içindeki `Logs/Editor.log`'a yazar (`~/Library/Logs/Unity/Editor.log` yalnızca açılışın ilk satırlarını tutar).
 - Unity binary: `/Applications/Unity/Hub/Editor/<sürüm>/Unity.app/Contents/MacOS/Unity`
 - Kurulu paketler: `Packages/manifest.json`. Bir sistemi yazmadan önce buradan kontrol et (Input System, Cinemachine, VFX Graph, ProBuilder, Test Framework var mı?).
 
@@ -70,17 +70,18 @@ Unity hakkındaki bilgilerinin çoğu eski sürümlerden geliyor. Emin olmadığ
   ```
   Assets/_Project/
     Core/            her oyunun kullandığı ortak parçalar
-      Scripts/       Project.Runtime  (VFX: VfxService/havuz, Juice: CameraShake, TimeScaleController, PopupText, SynthSfx)
-      Editor/AITools Project.Editor   (genel AI araçları, köprü açılışı)
+      Scripts/       Project.Runtime  (VFX: VfxService/havuz, Juice: CameraShake, TimeScaleController, PopupText, SynthSfx,
+                                       Dev: DevSceneSwitcher)
+      Editor/        Project.Editor   (GameProfile, GameViewAutoResolution; AITools/: genel AI araçları, köprü açılışı)
       VFX/           hazır efekt seti + VfxLibrary.asset
-      Tests/EditMode Project.Tests.EditMode
-    Games/<Oyun>/    bir oyunun her şeyi + README.md (oyunun notları)
+      Tests/         EditMode (Project.Tests.EditMode), PlayMode (Project.Tests.PlayMode: sahne açılış testi)
+    Games/<Oyun>/    bir oyunun her şeyi + README.md (oyunun notları) + <Oyun>Profile.asset (GameProfile)
       Scripts/ Editor/ Tests/{EditMode,PlayMode}   <Oyun>.Runtime / .Editor / .Tests.* asmdef'leri
       Scenes/ Settings/ Art/ Prefabs/ Anim/ Shaders/ Materials/ Audio/ (gerektikçe)
     Experiments/     geçici denemeler, oyuna bağlanmayan işler
   ```
 - **Bağımlılık yönü:** oyun Core'u kullanır, Core hiçbir oyunu kullanmaz (asmdef'ler bunu derleme hatasıyla zorlar). Oyuna özel Editor aracı `Games/<Oyun>/Editor/`e yazılır. Bir oyunun kodu ikinci bir oyuna lazım olunca Core'a taşı (juice bileşenleri böyle taşındı).
-- Yeni oyun: `Games/<Oyun>/` aç, Pota'nın dört asmdef'ini örnek al (ad ve referansları değiştir), `README.md` yaz. Araçlara klasör yolu verirken hep oyunun klasörünü ver; genel araçların varsayılan klasörü `Experiments/`.
+- Yeni oyun: `Games/<Oyun>/` aç, Pota'nın dört asmdef'ini örnek al (ad ve referansları değiştir), `README.md` yaz, bir `GameProfile` oluştur (`Games/<Oyun>/<Oyun>Profile.asset`: telefon çözünürlüğü, ürün adı, bundle id, Apple takımı, sahneler). Profil olunca oyunun sahnesi açılınca Game view o çözünürlüğe geçer (`GameViewAutoResolution`) ve `ai_build` o oyunu derleyebilir. Araçlara klasör yolu verirken hep oyunun klasörünü ver; genel araçların varsayılan klasörü `Experiments/`.
 - Asset taşıma/yeniden adlandırma: `ai_move_assets` (AssetDatabase, GUID korunur, önce `dry_run`). Bir oyunu başka Unity projesine götürmek: `Games/<Oyun>/` klasörünü `.meta` dosyalarıyla birlikte kopyala (GUID'ler korunur); hedefte `Core/` da olmalı.
 - **Assembly definition (.asmdef)** kullan: derleme süresi kısalır, bu da senin derle-kontrol et döngünü hızlandırır.
 - Küçük, tek işi olan MonoBehaviour'lar. Ayarlanabilir veriler (hız, hasar, dalga tanımı, efekt parametreleri) **ScriptableObject**'te dursun ki kullanıcı kod görmeden Inspector'dan ayar yapabilsin.
@@ -136,7 +137,7 @@ Aşağıdakileri sırayla yap, bitenleri işaretle ve "Proje durumu"nu güncelle
 
 ## 12. Proje durumu (bunu sen güncel tut)
 
-_Son güncelleme: 2026-09-28 (klasörler oyuna göre ayrıldı: Core / Games / Experiments)._
+_Son güncelleme: 2026-09-28 (Core / Games / Experiments; oyun profilleri, cihaz derlemesi, sahne testleri)._
 
 - **Unity sürümü:** 6000.6.2f1 (Unity 6.6), macOS 26.6 / Apple Silicon / Metal. Proje `urp-blank` şablonundan üretildi.
 - **URP sürümü:** 17.6.0. Render Graph aktif; `Assets/Settings/` altında PC/Mobile RP asset'leri şablondan geliyor.
@@ -147,7 +148,8 @@ _Son güncelleme: 2026-09-28 (klasörler oyuna göre ayrıldı: Core / Games / E
 - **Köprüye özel notlar:**
   - `Assets/_Project/Core/Editor/AITools/McpBridgeBootstrap.cs` her editor açılışında/domain reload'da yerel HTTP sunucuyu başlatır ve köprüyü bağlar (paketin "Auto-Start on Editor Load" ayarı da açık). Menü: `AI Tools/MCP/Ensure Bridge Running`, `AI Tools/MCP/Log Status`.
   - Domain reload (script değişikliği, Play Mode giriş/çıkış) sonrası köprü ~5 sn kopar; yeniden dene.
-  - Shell'den araç çağırma (proje kökünden): `uv run Tools/mcp_call.py list` / `describe <tool>` / `call <tool> '<json>'` / `call <tool> @dosya.json`. Görüntüler `Temp/mcp_out/` altına iner.
+  - **Oturum başı:** `Tools/unity_up.sh` — proje Unity'de açık değilse açar (başka proje açıksa ayrı Unity başlatır) ve köprü bu projeyi görene kadar bekler.
+  - Shell'den araç çağırma (proje kökünden): `~/.local/bin/uv run Tools/mcp_call.py list` / `describe <tool>` / `call <tool> '<json>'` / `call <tool> @dosya.json` / `read <uri>` (ör. `mcpforunity://instances`, `mcpforunity://editor/state`). `uv` Claude'un kabuğunda PATH'te değil, tam yolla çağır. Görüntüler `Temp/mcp_out/` altına iner.
   - Projeye özel araçlar: `execute_custom_tool {"tool_name":"ai_...","parameters":{...}}`. Yeni `[McpForUnityTool]` sınıfı `Core/Editor/AITools/` (genel) ya da `Games/<Oyun>/Editor/` (oyuna özel) altına yazılır; derleme sonrası otomatik kaydolur (köprü `TypeCache` ile tüm assembly'leri tarar).
   - Script değişikliği sonrası derletme: `refresh_unity {"mode":"force","scope":"all","compile":"request","wait_for_ready":true}` → sonra `read_console {"types":["error"],"filter_text":"error CS"}`.
   - Unity'nin kendi asset yenilemesi yalnızca Editor odak alınca çalışır; köprü yoksa `open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app` ile odak ver.
@@ -167,18 +169,23 @@ _Son güncelleme: 2026-09-28 (klasörler oyuna göre ayrıldı: Core / Games / E
   - `ai_vfx_create_starters` — başlangıç efekt setini üretir
   - `ai_anim_contact_sheet` — model + klip → tek PNG + kemik yükseklik tablosu (klipleri sayıyla değerlendir)
   - `ai_move_assets` — asset/klasör taşıma ve yeniden adlandırma (GUID korunur; `dry_run`, boş klasör temizliği, Build Settings sahne yollarını eşitler)
+  - `ai_build` — oyunun `GameProfile`'ından cihaz derlemesi: `{"action":"start","game":"Pota","platform":"ios"|"android"|"mac","scene"?:"ColorHunt","development"?:true}` → `Builds/<Oyun>-<platform>` (iOS'ta Xcode projesi). Derleme editörü dakikalarca meşgul eder; sonuç `{"action":"status"}` ya da `Temp/ai_build_status.json`. Profilin ürün adı/bundle id/yön/takımı yalnız derleme süresince Player Settings'e yazılır; bitince atölyenin kendi ayarları ve editörün önceki platformu geri gelir (ProjectSettings değişmeden kalır). Derleme URP asset'lerindeki shader ön-eleme alanlarını Unity'nin kendisi günceller, normal. Development derlemelerinde `DevSceneSwitcher` üstte "→ sonraki sahne" düğmesi koyar; tek kurulumla oyunun tüm sahneleri denenir.
   - Ekran görüntüsü için köprünün `manage_camera` aracı yeterli olduğundan ayrı araç yazılmadı.
   - Oyuna özel araçlar oyunun README'sinde (Pota: `ai_basket_*`, `ai_colorhunt_*`, `ai_character_setup`).
 - **Hazır efektler** (`Assets/_Project/Core/VFX/`, `VfxService.Play("hit"|"explosion"|"pickup"|"swish"|"multiply"|"add"|"rim_hit", pos, rot)`): prefab + `VfxDefinition` + `VfxLibrary.asset`, `UnityEngine.Pool` ile havuzlanır, sahneye `VfxService` objesi konur. Global Volume: Bloom 1.0 / eşik 0.9, Vignette 0.25, Color Adjustments (kontrast +10, doygunluk +8). Yeni efekt: prefab + `Project/VFX/VFX Definition` asset'i + kütüphaneye ekle.
 - **Juice bileşenleri** (Core, ad alanı `Project.Juice`): `CameraShake`, `TimeScaleController` (`Time.timeScale`'i doğrudan yazma, her karede geri alır; yavaş çekim/hit-stop için `SlowMo(scale, s)`), `PopupText` (Canvas/Font boşsa kendisi kurar), `SynthSfx` (sentez ses efektleri).
-- **Testler:** EditMode `Core/Tests/EditMode` + oyunların `Tests/EditMode`'u, PlayMode oyunların `Tests/PlayMode`'u (`run_tests {"mode":"EditMode"|"PlayMode"}` → `get_test_job`). 2026-09-28: EditMode 34/34, PlayMode 2/2.
+- **Testler:** EditMode `Core/Tests/EditMode` + oyunların `Tests/EditMode`'u; PlayMode `Core/Tests/PlayMode` (`SceneBootTests`: Build Settings'teki her sahne diskten açılıp 3 sn hatasız çalışmalı) + oyunların `Tests/PlayMode`'u (`run_tests {"mode":"EditMode"|"PlayMode"}` → `get_test_job`). Sahne ya da sahne aracı değişince PlayMode'u da çalıştır. 2026-09-28: EditMode 34/34, PlayMode 5/5.
 - **Genel dersler (oyunlardan çıkan):**
   - Play Mode içinde script derleme YAPMA: domain reload havuzu/abonelikleri bozuyor ve konsolun hata-duraklatması editörü "Pause"a alabiliyor (`EditorApplication.isPaused`). Önce `manage_editor stop`. Oturum başında Editor Play'de kalmış olabilir.
   - Araçla kurulan her referans `[SerializeField]` olmalı: Edit Mode'da atanan `private` alanlar serileştirilmez; aynı oturumda çalışır, editör yeniden açılınca null olur (Renk Avı "busy" kilidi, 2026-09-23). Olay dinleyicilerini sar ki UI hatası oyun akışını durdurmasın.
   - Editörün oyun döngüsü ancak bir Game view çizilirken ilerler; ana pencere arka plandayken `Time.frameCount` durur. Kare kare kayıt için kendi Game view'ını aç, Pause + `EditorApplication.Step()` (örnek: Pota `ai_basket_record`).
   - TextMesh etiket + gölge aynı render kuyruğundaysa çizim sırası rastgele: etiket 3002, gölge 3001. Dinamik font atlası yeniden kurulunca TextMesh UV'leri bayatlıyor: `Font.textureRebuilt`te metni yeniden ata, karakterleri `RequestCharactersInTexture` ile önceden iste.
   - `AddComponent<ParticleSystem>` hemen oynamaya başlar; `duration` yazmadan önce `Stop(StopEmittingAndClear)`.
-  - `manage_camera screenshot` varsayılan olarak `Assets/Screenshots/` altına async yazar; `output_folder: "Temp/mcp_out"` ver (git'e girmez).
+  - `manage_camera screenshot` varsayılan olarak `Assets/Screenshots/` altına async yazar; `output_folder: "Temp/mcp_out"` ver (git'e girmez). Kalıcı görseli `Tools/keep_screenshot.sh <kaynak> <ad>` ile kaydet: `docs/screenshots/<ad>.jpg`, en uzun kenar 1280, JPEG 80 (~150 KB; tam boy PNG 4–5 MB idi).
+  - Aktif platform iOS iken Test Runner PlayMode testlerini hiç bulmuyor ("0 test", 2026-09-28); editör Mac (StandaloneOSX) platformunda kalmalı. `ai_build` bu yüzden geri döner; elle geçiş yaptıysan `EditorUserBuildSettings.SwitchActiveBuildTarget(Standalone, StandaloneOSX)`.
+  - Unity'yi kapatmak gerekirse: önce kaydedilmemiş sahne olmadığını kontrol et, sonra `execute_code` (`safety_checks=false`) içinde `SynchronizationContext.Current.Post(_ => EditorApplication.Exit(0), null)`. `osascript ... quit` Unity'yi yarı kapalı bıraktı: `Temp/` ve kilit dosyası silindi, editör çalışmaya devam etti (2026-09-28).
+  - Platform değişince köprü paketi yeniden derlenir ve kendi kodundan `UAC0005` uyarıları çıkar; bizim kodumuz değil, gürültü.
+  - Unity arka plandayken `EditorApplication.delayCall`/`update` uzun süre hiç çalışmayabilir (derleme kuyruğu "queued"da kaldı). İşi sonraya bırakırken `SynchronizationContext.Current.Post(...)` + `EditorApplication.QueuePlayerLoopUpdate()` kullan; köprünün komutları da bu yoldan çalışır.
 - **Karakter hattı (atölye, 2026-09-25):** `kahraman.png` → nano-banana-pro A-pozu → `firtoz/trellis` GLB → `uthana/create-character-v1` rig → `uthana/text-to-motion-diffusion-v2` klipler → Unity Humanoid. Script'ler ve dersler `Tools/character/README.md`, özet `docs/2026-09-25-character-pipeline.md`, görüntüler `docs/screenshots/2026-09-25-character/`. Ücretli çıktılar `Tools/character/out/` (git dışı, silme). Unity adımı `ai_character_setup` şimdilik Pota'da, çünkü varsayılanları Pota'ya göre.
   - Tuzaklar: Uthana rig'ini glTFast doğrudan okuyamaz → önce `fix_rig_glb.py`; TRELLIS.2 WebP doku verir (`glb_webp_to_png.py`) ve min 100k üçgen ister; Avatar asset'ini üzerine yazma (önce sil), prefab'ı avatar/controller sonrası `ImportAsset(ForceUpdate)` ile yeniden yükle; `execute_code` içinde `AssetDatabase.DeleteAsset` `safety_checks=false` ister.
 - **Oyunlar:**

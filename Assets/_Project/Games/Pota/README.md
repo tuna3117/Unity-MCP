@@ -11,6 +11,8 @@ Pota üzerinde çalışırken bu dosyayı oku ve güncel tut. Genel kurallar ve 
 - `Tests/EditMode` → `Pota.Tests.EditMode`, `Tests/PlayMode` → `Pota.Tests.PlayMode`
 - `Scenes/` (Basket, ColorHunt: ikisi de Build Settings'te), `Settings/` (ayar asset'leri + fizik malzemeleri), `Art/` (Pota'dan kopyalanan görseller, `Art/Generated` üretilmiş basketbol dokusu, `Art/Fonts`, `Art/Mesh`, `Art/Anim`), `Prefabs/` (PlayerCharacter), `Anim/` (AnimatorController), `Shaders/` (`Project/TextDepth`)
 - Ortak juice bileşenleri (`CameraShake`, `TimeScaleController`, `PopupText`, `SynthSfx`) artık Core'da, ad alanı `Project.Juice`. VFX: `Project.VFX.VfxService` (Core). Kod içinden tip adı: `"Project.Basket.BasketRound, Pota.Runtime"`.
+- Oyun profili: `PotaProfile.asset` (Game view 1170×2532 = yeni iPhone oranı; ürün adı "Pota Unity", bundle id `com.tunaaltin.pota.unity`, yani gerçek Pota'dan (`com.tunaaltin.pota`) ayrı bir uygulama; Apple takımı `BJPL5XNDLV` (Pota'nın Xcode projesinden); sahneler Basket, ColorHunt).
+- Testler: EditMode kurallar (`AimMapper`, `TrajectorySolver`, `LevelRules`, `RoundRules`, `ColorHuntRules`); PlayMode `BasketRoundPlayTests` (2 atış), `ColorHuntPlayTests` (3 dokunuş: animasyon biter, cephane düşer, HUD yetişir, hedef azalır). Core'daki `SceneBootTests` iki sahneyi de açıp 3 sn hatasız çalıştırır.
 - İlk karakter denemesi (25 Eylül, git'te saklı): `Assets/_Project/Experiments/PotaCharacterExperiment/` (menü `Pota/Character/Build and bake animations`).
 
 ## Basket turu (Pota "Faz A" yeniden yapımı, 2026-09-19)
@@ -36,3 +38,9 @@ Sahne `Scenes/ColorHunt.unity`, kod `Scripts/ColorHunt/` (saf kural `ColorHuntRu
 Karakter hattının kendisi atölyenin parçası (`Tools/character/README.md`, özet `docs/2026-09-25-character-pipeline.md`). Pota'daki sonuç: `Prefabs/PlayerCharacter.prefab` (rig `Art/Mesh/player_rig_a.glb` + `.avatar.asset`, controller `Anim/PlayerCharacter.controller`), klipler `Art/Anim/player_*.fbx`. `BasketSettings.PlayerPrefab` buna bağlı, `PlayerActor` Shoot'u `PlayerShootClipStart`'tan oynatır. Koşu/smaç klipleri controller'da var, oyun tetiklemiyor.
 
 - `ai_character_setup` (`Editor/CharacterSetupTool.cs`) varsayılanları Pota'ya göre (klip adları `player_*`, `BasketSettings.PlayerPrefab` ataması), o yüzden burada duruyor. İkinci bir oyun karakter isterse varsayılanları parametreye çevirip Core'a taşı.
+
+## Telefonda deneme (iPhone)
+
+1. Claude derler: `ai_build {"action":"start","game":"Pota"}` → `Builds/Pota-ios/Unity-iPhone.xcodeproj` (ilk derleme iPhone moduna geçişle birkaç dakika, sonrakiler saniyeler; 2026-09-28'de Unity derlemesi ve imzasız `xcodebuild` ikisi de başarılı). Tek sahne için `"scene":"ColorHunt"`.
+2. Tuna kurar: `open Builds/Pota-ios/Unity-iPhone.xcodeproj` → iPhone'u kabloyla bağla → Xcode'un üst çubuğunda hedef olarak telefonu seç → ▶ (Run). İmza otomatik, takım Pota'nınki. İlk kurulumda telefonda Ayarlar > Genel > VPN ve Cihaz Yönetimi'nden geliştiriciye güvenmek gerekebilir.
+3. Uygulama "Pota Unity" adıyla, gerçek Pota'nın yanına ayrı uygulama olarak kurulur ve Basket'le açılır. Üstteki "→ ColorHunt" düğmesi (yalnız test derlemesinde) sahneler arasında geçer.

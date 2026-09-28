@@ -9,6 +9,7 @@ Usage (from the project root):
   uv run Tools/mcp_call.py describe <tool>           # show a tool's input schema
   uv run Tools/mcp_call.py call <tool> '<json args>' # call a tool
   uv run Tools/mcp_call.py call <tool> @args.json    # args from a file
+  uv run Tools/mcp_call.py read <uri>                # read a resource, e.g. mcpforunity://instances
 
 Options:
   --url URL       MCP endpoint (default: http://localhost:8080/mcp, env UNITY_MCP_URL)
@@ -65,6 +66,16 @@ async def _run(ns):
             print(f"tool not found: {ns.tool}", file=sys.stderr)
             return 2
 
+        if ns.cmd == "read":
+            res = await client.read_resource(ns.uri)
+            for block in getattr(res, "contents", None) or []:
+                text = getattr(block, "text", None)
+                if text is not None:
+                    _print_text(text)
+                else:
+                    print(repr(block))
+            return 0
+
         result = await client.call_tool(ns.tool, _load_args(ns.args), read_timeout_seconds=ns.timeout)
         os.makedirs(ns.out, exist_ok=True)
         had_text = False
@@ -103,6 +114,8 @@ def main():
     c = sub.add_parser("call")
     c.add_argument("tool")
     c.add_argument("args", nargs="?", default=None)
+    r = sub.add_parser("read")
+    r.add_argument("uri")
     ns = p.parse_args()
     try:
         return asyncio.run(_run(ns))
