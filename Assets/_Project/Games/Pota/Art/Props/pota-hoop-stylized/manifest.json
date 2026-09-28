@@ -1,0 +1,42 @@
+{
+  "id": "pota-hoop-stylized",
+  "game": "Pota",
+  "kind": "prop",
+  "version": 1,
+  "files": {
+    "glb": "pota-hoop-stylized.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 1844,
+    "materials": 5,
+    "textures": [],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      1.8,
+      1.2852,
+      1.3212
+    ]
+  },
+  "source": {
+    "recipe": "recipes/pota_hoop.py",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-09-28T22:19:25Z"
+}
