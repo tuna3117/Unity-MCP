@@ -8,6 +8,8 @@ Bu projede sen (Claude Code) sadece C# dosyası yazan biri değilsin; bir MCP k�
 
 Kullanıcı yazılımcı değil, ürünü yöneten kişi. Ona teknik karar sorma; makul varsayılanı seç, ne yaptığını kısa ve sade anlat. Sadece oyunun nasıl hissettireceğini/görüneceğini etkileyen kararları sor.
 
+**Bu projenin rolü: atölye + şablon.** Ortak araçlar (köprü yaması, AI araçları, efekt seti, juice bileşenleri, karakter hattı) burada gelişir, yeni oyun fikirleri ilk denemelerini burada yapar. Yayına gidecek her oyun kendi Unity projesinde yaşar, çünkü bir Unity projesinden tek bir uygulama çıkar (tek ikon, bundle id, build). Örnek: `~/projects/Kaptan` bu projeden kopyalandı. Yeni oyun projesi açarken bu projeyi kopyala, `Assets/_Project/Experiments/` ile o oyuna ait olmayan `Games/*` klasörlerini sil (bkz. §7).
+
 ## 2. Ortam
 
 - macOS, Apple Silicon (Metal). Unity 6, URP. Kesin sürümü `ProjectSettings/ProjectVersion.txt` dosyasından oku, ezberden varsayma.
@@ -54,7 +56,7 @@ Hangi köprü kuruluysa **araç adlarını ezberden yazma**; oturum başında me
 
 Unity hakkındaki bilgilerinin çoğu eski sürümlerden geliyor. Emin olmadığın API'de kurulu paketin kaynak kodunu (`Library/PackageCache/`) veya güncel dokümantasyonu kontrol et. Sık yapılan hatalar:
 
-- `FindObjectOfType` → `FindFirstObjectByType` / `FindAnyObjectByType`
+- `FindObjectOfType` → `FindAnyObjectByType` (Unity 6.6'da `FindFirstObjectByType` de obsolete uyarısı veriyor)
 - `Rigidbody.velocity` → `linearVelocity`; `drag` → `linearDamping`; `angularDrag` → `angularDamping`
 - **Input:** Yeni Input System kuruluysa `UnityEngine.Input.GetKey/GetAxis` çalışmaz (exception atar). `manifest.json` ve Player Settings'teki Active Input Handling'e bak; Input Actions asset'i üzerinden git.
 - **URP özel render pass / renderer feature:** Unity 6'da Render Graph API kullanılır (`RecordRenderGraph`). Eski `Execute(ScriptableRenderContext, ...)` örnekleri çalışmaz ya da uyumluluk moduna düşer. İnternetteki 2021–2022 URP örneklerini kopyalama.
@@ -64,15 +66,30 @@ Unity hakkındaki bilgilerinin çoğu eski sürümlerden geliyor. Emin olmadığ
 
 ## 7. Kod mimarisi
 
-- Klasör yapısı: `Assets/_Project/{Scripts, Editor, Prefabs, Materials, Shaders, VFX, Scenes, Settings, Art, Audio, Tests}`. Üçüncü parti asset'ler `_Project` dışında kalır.
-- `Assets/_Project/Scripts` ve `Editor` için **assembly definition (.asmdef)** kullan: derleme süresi kısalır, bu da senin derle-kontrol et döngünü hızlandırır.
+- Klasör yapısı **oyuna göre**, dosya türüne göre değil. Üçüncü parti asset'ler `_Project` dışında kalır.
+  ```
+  Assets/_Project/
+    Core/            her oyunun kullandığı ortak parçalar
+      Scripts/       Project.Runtime  (VFX: VfxService/havuz, Juice: CameraShake, TimeScaleController, PopupText, SynthSfx)
+      Editor/AITools Project.Editor   (genel AI araçları, köprü açılışı)
+      VFX/           hazır efekt seti + VfxLibrary.asset
+      Tests/EditMode Project.Tests.EditMode
+    Games/<Oyun>/    bir oyunun her şeyi + README.md (oyunun notları)
+      Scripts/ Editor/ Tests/{EditMode,PlayMode}   <Oyun>.Runtime / .Editor / .Tests.* asmdef'leri
+      Scenes/ Settings/ Art/ Prefabs/ Anim/ Shaders/ Materials/ Audio/ (gerektikçe)
+    Experiments/     geçici denemeler, oyuna bağlanmayan işler
+  ```
+- **Bağımlılık yönü:** oyun Core'u kullanır, Core hiçbir oyunu kullanmaz (asmdef'ler bunu derleme hatasıyla zorlar). Oyuna özel Editor aracı `Games/<Oyun>/Editor/`e yazılır. Bir oyunun kodu ikinci bir oyuna lazım olunca Core'a taşı (juice bileşenleri böyle taşındı).
+- Yeni oyun: `Games/<Oyun>/` aç, Pota'nın dört asmdef'ini örnek al (ad ve referansları değiştir), `README.md` yaz. Araçlara klasör yolu verirken hep oyunun klasörünü ver; genel araçların varsayılan klasörü `Experiments/`.
+- Asset taşıma/yeniden adlandırma: `ai_move_assets` (AssetDatabase, GUID korunur, önce `dry_run`). Bir oyunu başka Unity projesine götürmek: `Games/<Oyun>/` klasörünü `.meta` dosyalarıyla birlikte kopyala (GUID'ler korunur); hedefte `Core/` da olmalı.
+- **Assembly definition (.asmdef)** kullan: derleme süresi kısalır, bu da senin derle-kontrol et döngünü hızlandırır.
 - Küçük, tek işi olan MonoBehaviour'lar. Ayarlanabilir veriler (hız, hasar, dalga tanımı, efekt parametreleri) **ScriptableObject**'te dursun ki kullanıcı kod görmeden Inspector'dan ayar yapabilsin.
 - Sistemler arası iletişimde C# event / ScriptableObject event kanalı; her şeyin her şeye eriştiği singleton ağı kurma. `GameManager` gibi birkaç gerçek global için basit singleton kabul.
 - Sık üretilen nesneler (mermi, efekt, düşman) için `UnityEngine.Pool.ObjectPool` kullan.
 - Oyun mantığı için EditMode/PlayMode testleri yaz (Unity Test Framework) ve MCP üzerinden çalıştır; bu sana görsel olmayan işlerde otomatik doğrulama sağlar.
 - Aşırı mühendislik yapma: prototipte DI framework, karmaşık katmanlar gereksiz. Önce çalışsın ve oynanabilsin.
 
-## 8. Projeye özel AI araç katmanı (`Assets/_Project/Editor/AITools/`)
+## 8. Projeye özel AI araç katmanı (`Assets/_Project/Core/Editor/AITools/`, oyuna özel olanlar `Games/<Oyun>/Editor/`)
 
 Köprünün genel araçları tek tek obje işlemleri için iyidir; tekrarlayan veya toplu işler için **kendi Editor araçlarını yaz** ve onları çağır. Bir işi ikinci kez elle (çok sayıda tekil MCP çağrısıyla) yapıyorsan, araç haline getir.
 
@@ -84,7 +101,7 @@ Köprünün genel araçları tek tek obje işlemleri için iyidir; tekrarlayan v
 ## 9. Görsel efektler (VFX) — neyi iyi yaparsın, neyi yapamazsın
 
 **Doğrudan üretebildiklerin (tercih et):**
-- **Particle System (Shuriken):** tüm modülleri koddan/Editor script'inden ayarlanabilir. Patlama, duman, kıvılcım, toz, iz, büyü efekti, hit efekti için ana aracın bu. Her efekti `Assets/_Project/VFX/` altında prefab yap.
+- **Particle System (Shuriken):** tüm modülleri koddan/Editor script'inden ayarlanabilir. Patlama, duman, kıvılcım, toz, iz, büyü efekti, hit efekti için ana aracın bu. Her efekti prefab yap: her oyunun kullanabileceği efektler `Assets/_Project/Core/VFX/`, oyuna özel olanlar `Games/<Oyun>/VFX/`.
 - **Elle yazılmış URP HLSL shader'ları:** dissolve, fresnel/rim, hologram, kalkan, su, toon, outline, UV scroll, vertex animasyonu (rüzgâr, dalga).
 - **Post-processing:** Global/Local Volume + Volume Profile (Bloom, Color Adjustments, Vignette, Chromatic Aberration, Depth of Field, Motion Blur). Parlayan efektler için HDR emission + Bloom birlikte çalışır; ikisini de ayarla.
 - **"Juice":** kamera sarsıntısı (Cinemachine Impulse), hit-stop (kısa `timeScale` düşüşü), squash & stretch, vuruşta beyaz flaş (MaterialPropertyBlock), Trail/Line Renderer, decal'ler, ışık flaşı, ekran efektleri (full screen pass renderer feature).
@@ -119,7 +136,7 @@ Aşağıdakileri sırayla yap, bitenleri işaretle ve "Proje durumu"nu güncelle
 
 ## 12. Proje durumu (bunu sen güncel tut)
 
-_Son güncelleme: 2026-09-25 (animasyonlu karakter hattı)._
+_Son güncelleme: 2026-09-28 (klasörler oyuna göre ayrıldı: Core / Games / Experiments)._
 
 - **Unity sürümü:** 6000.6.2f1 (Unity 6.6), macOS 26.6 / Apple Silicon / Metal. Proje `urp-blank` şablonundan üretildi.
 - **URP sürümü:** 17.6.0. Render Graph aktif; `Assets/Settings/` altında PC/Mobile RP asset'leri şablondan geliyor.
@@ -128,44 +145,43 @@ _Son güncelleme: 2026-09-25 (animasyonlu karakter hattı)._
 - **MCP köprüsü ve sürümü:** CoplayDev/unity-mcp **v10.2.0**, `Packages/com.coplaydev.unity-mcp` altına **gömülü (embedded)** ve yamalı. Python sunucusu `mcpforunityserver` (uvx ile), HTTP transport, `http://localhost:8080/mcp`. Proje kapsamlı `.mcp.json` var; paketin kurulum sihirbazı ayrıca `~/.claude.json` içine aynı URL ile local-scope `UnityMCP` kaydı yazdı (ikisi aynı sunucuya gider, biri fazla ama zararsız).
 - **Unity 6.6 yaması (önemli):** `Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityObjectIdCompat.cs` → `InstanceIDToObjectCompat`. Unity 6000.6'da paketin yansımayla çağırdığı `EditorUtility.InstanceIDToObject(int)` `NotImplementedException` atıyor; yama, int handle'ı EntityId'nin versiyon kelimesini (`0x100 | v<<9`, v=0..255) deneyerek tam EntityId'ye çeviriyor, bulamazsa tüm objeleri tarıyor. Bu olmadan hedef obje alan **hiçbir** araç (materyal atama, bileşen, silme...) çalışmaz. Paketi güncellerken bu yamayı koru (upstream'e PR açılabilir).
 - **Köprüye özel notlar:**
-  - `Assets/_Project/Editor/AITools/McpBridgeBootstrap.cs` her editor açılışında/domain reload'da yerel HTTP sunucuyu başlatır ve köprüyü bağlar (paketin "Auto-Start on Editor Load" ayarı da açık). Menü: `AI Tools/MCP/Ensure Bridge Running`, `AI Tools/MCP/Log Status`.
+  - `Assets/_Project/Core/Editor/AITools/McpBridgeBootstrap.cs` her editor açılışında/domain reload'da yerel HTTP sunucuyu başlatır ve köprüyü bağlar (paketin "Auto-Start on Editor Load" ayarı da açık). Menü: `AI Tools/MCP/Ensure Bridge Running`, `AI Tools/MCP/Log Status`.
   - Domain reload (script değişikliği, Play Mode giriş/çıkış) sonrası köprü ~5 sn kopar; yeniden dene.
   - Shell'den araç çağırma (proje kökünden): `uv run Tools/mcp_call.py list` / `describe <tool>` / `call <tool> '<json>'` / `call <tool> @dosya.json`. Görüntüler `Temp/mcp_out/` altına iner.
-  - Projeye özel araçlar: `execute_custom_tool {"tool_name":"ai_...","parameters":{...}}`. Yeni `[McpForUnityTool]` sınıfı `Assets/_Project/Editor/` altına yazılır; derleme sonrası otomatik kaydolur.
+  - Projeye özel araçlar: `execute_custom_tool {"tool_name":"ai_...","parameters":{...}}`. Yeni `[McpForUnityTool]` sınıfı `Core/Editor/AITools/` (genel) ya da `Games/<Oyun>/Editor/` (oyuna özel) altına yazılır; derleme sonrası otomatik kaydolur (köprü `TypeCache` ile tüm assembly'leri tarar).
   - Script değişikliği sonrası derletme: `refresh_unity {"mode":"force","scope":"all","compile":"request","wait_for_ready":true}` → sonra `read_console {"types":["error"],"filter_text":"error CS"}`.
   - Unity'nin kendi asset yenilemesi yalnızca Editor odak alınca çalışır; köprü yoksa `open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app` ile odak ver.
   - Ekran görüntüsü: `manage_camera {"action":"screenshot","capture_source":"game_view"|"scene_view","view_target":...,"view_position":[x,y,z],"include_image":true}`. Play Mode'da efekt yakalamak için `EditorApplication.update` ile tekrarlı spawner kur ve ana kamerayı yaklaştır (Play Mode değişiklikleri kalıcı değil); "duraklat-çek" yaklaşımı efekti yakalayamadı.
   - `manage_material create` `color` parametresini uygulamıyor → ardından `set_material_color` çağır. Bilinmeyen shader adı sessizce URP/Lit'e düşer.
-  - `execute_code` CodeDom (C# 6) ile derler: tuple/`out var` yok, obsolete API (`GetInstanceID`) derlemeyi bozar. Proje tiplerine `System.Type.GetType("Project.VFX.VfxService, Project.Runtime")` ile eriş.
+  - `execute_code` CodeDom (C# 6) ile derler: tuple/`out var` yok, obsolete API (`GetInstanceID`) derlemeyi bozar. Proje tiplerine `System.Type.GetType("Project.VFX.VfxService, Project.Runtime")` ile eriş (oyun tipleri kendi assembly'sinde, ör. `"Project.Basket.BasketRound, Pota.Runtime"`).
   - `apply_text_edits` için önce `get_sha` ile `precondition_sha256` al.
   - Konsolda tekrar eden `currentFileSystemTime.ticks != 0 ... FSTimeGet` hatası Unity/macOS kaynaklı gürültü; `.meta` dosyalarına 2262 tarihli mtime yazıyor, işlevsel etkisi görülmedi.
   - `defaults write` ile dışarıdan yazılan EditorPrefs'i çalışan Unity görmüyor; ayarları Unity içinden (script/menü) set et.
-- **Yazılmış AITools** (`Assets/_Project/Editor/AITools/`, hem menü hem MCP özel aracı, hepsi test edildi; basket araçları aşağıda ayrıca):
+- **Yazılmış AITools** (Core, `Assets/_Project/Core/Editor/AITools/`, hem menü hem MCP özel aracı, hepsi test edildi):
   - `ai_bulk_rename` — desenli toplu yeniden adlandırma (`{name}`, `{i}`, `{i:00}`)
   - `ai_bulk_assign_material` — çok objeye materyal atama (slot seçimi, alt objeler)
-  - `ai_create_prefab` — sahne objesinden prefab üret ve bağla
+  - `ai_create_prefab` — sahne objesinden prefab üret ve bağla (varsayılan klasör `Experiments/Prefabs`; oyunun klasörünü ver)
   - `ai_scatter` — prefab'ı yüzeye/grid'e dağıt (raycast, rastgele dönüş/ölçek, seed)
-  - `ai_scan_missing` — eksik script + kopuk referans taraması (`fix_missing_scripts`)
+  - `ai_scan_missing` — eksik script + kopuk referans taraması (`fix_missing_scripts`; `scope: prefabs` tüm `_Project` prefab'larını tarar)
   - `ai_scan_pink_materials` — URP uyumsuz materyal taraması (`fix` = MaterialUpgrader ile dönüştür)
   - `ai_vfx_create_starters` — başlangıç efekt setini üretir
+  - `ai_anim_contact_sheet` — model + klip → tek PNG + kemik yükseklik tablosu (klipleri sayıyla değerlendir)
+  - `ai_move_assets` — asset/klasör taşıma ve yeniden adlandırma (GUID korunur; `dry_run`, boş klasör temizliği, Build Settings sahne yollarını eşitler)
   - Ekran görüntüsü için köprünün `manage_camera` aracı yeterli olduğundan ayrı araç yazılmadı.
-- **Hazır efektler** (`Assets/_Project/VFX/`, `VfxService.Play("hit"|"explosion"|"pickup", pos, rot)`): prefab + `VfxDefinition` + `VfxLibrary.asset`, `UnityEngine.Pool` ile havuzlanır, sahnede `VfxService` objesi var. Global Volume: Bloom 1.0 / eşik 0.9, Vignette 0.25, Color Adjustments (kontrast +10, doygunluk +8). Yeni efekt: prefab + `Project/VFX/VFX Definition` asset'i + kütüphaneye ekle.
-- **Testler:** EditMode `Assets/_Project/Tests/EditMode` (`run_tests {"mode":"EditMode"}` → `get_test_job`).
-- **Basket turu (Pota "Faz A" yeniden yapımı, 2026-09-19):** sahne `Assets/_Project/Scenes/Basket.unity`, kod `Assets/_Project/Scripts/Basket/` (saf kurallar: `AimMapper`, `TrajectorySolver`, `LevelRules`, `RoundRules`; bileşenler: `BasketRound` durum makinesi, `Ball`/`BallPool`, `Hoop`, `BasketCage`, `HoopColumnBuilder`, `RoundCamera`, `BasketJuice`, `BasketHud`, `Visual/*`), ayarlar `Assets/_Project/Settings/BasketSettings.asset` (tüm sayılar orada; koda gömme). Tasarım `docs/superpowers/specs/2026-09-18-basket-round-design.md`, plan `docs/superpowers/plans/2026-09-18-basket-round.md`, ölçüm `docs/measurements/2026-09-19-basket-sweep-L1.md`, görüntüler `docs/screenshots/`.
-  - Araçlar: `ai_basket_build_scene` (sahneyi sıfırdan kurar; katmanlar BallFlight/BallDrop/Hoop/Slab, fizik malzemeleri, sanat referansları), `ai_basket_sweep` (Play Mode'da atış taraması, action start/status/cancel), `ai_basket_ball_texture` (basketbol dokusu). Menü: `AI Tools/Basket/...`.
-  - Kaynak oyun (three.js) yerel bir klasörde, salt okunur; görselleri `Assets/_Project/Art/Pota/` altına kopyalandı (`oyuncu.glb` glTFast ile).
-  - Fidelite notları: uçuş 1 sn parabol, 0.09 sn top aralığı, ×2/+1 kuralları, bölüm tablosu, sepet sayımı orijinalle aynı. 3B'ye özel devir: uçan top pota katmanıyla çarpışmaz, z=0'da Drop fazına geçer (ileri hız ×0.1); 0.45 m üstünden gelen top yanal hız ×0.3 ("panoya çarptı"), 1 m üstünden gelen yana itilir ("panoyu aştı"). Geçiş: yukarıdan giren top düzlemin altında R−r/2 içindeyse sayılır. 1. bölüm taraması: min 12 / medyan 19 / maks 28 (orijinal 12 / 21 / 32).
-  - Play Mode içinde script derleme YAPMA: domain reload havuzu/abonelikleri bozuyor ve konsolun hata-duraklatması editörü "Pause"a alabiliyor (`EditorApplication.isPaused`). Önce `manage_editor stop`.
-  - Denemek için: Basket sahnesini aç, Play, fareyle aşağıdan yukarı sürükle (sola/sağa pota seçer, uzunluk güç); "Tekrar" düğmesi turu sıfırlar. Bölüm değiştirmek: `Round` objesindeki `Level` alanı.
-  - **Kare kare inceleme (2026-09-23, Tuna: "video kaydına al, frame frame izle"):** `ai_basket_record` (`BasketRecordTool.cs`) Play Mode'da programatik atışı PNG dizisi olarak kaydeder (`Temp/record/<ad>/`, ana kamera offscreen RenderTexture'a; kare adında fizik zamanı ve sepet sayısı). Editörün oyun döngüsü ancak bir Game view çizilirken ilerler — ana pencere uyuyan ekranda/arka plandayken `Time.frameCount` 1'de kaldı; çözüm: araç kendi küçük yüzen Game view'ını açar, editörü Pause'a alır ve her tick `EditorApplication.Step()` ile TAM BİR oyun karesi ilerletir (`Time.captureDeltaTime` 1/30). Kolaj/mp4 dışarıda ffmpeg ile (`docs/screenshots/basket_round_L1_*.mp4`, `basket_sheet_*.png`). Bulunan ve düzeltilen: teras levhası (z 7.2, y 0) oyuncu gizlenince kalıyor, kamera inerken ~1.3 s kadrajı yeşil kaplıyordu → `PlayerActor.AlsoHide` (teras + korkuluk oyuncuyla birlikte gizlenir). İnceleme sonucu: uçuş, üst geçiş, ×2 çoğalma, +1, sepete dolma ve kamera inişi temiz; 26/25 sepet, 8 üst geçiş.
-  - Sıradaki adaylar: üst kuyruk ayarı (alt sıra geçişleri / CloneScatter), telefon dokunmatik testi ve build, Faz B (bulmaca) entegrasyonu.
-- **Renk avı (Pota 2. aşama denemesi, 2026-09-22):** sahne `Assets/_Project/Scenes/ColorHunt.unity`, kod `Assets/_Project/Scripts/ColorHunt/` (saf kural `ColorHuntRules` = Pota `src/renkAvi.ts` portu, mulberry32 dâhil; `ColorHuntGame` durum makinesi + animasyon kuyruğu; `BlockView`, `BoardBuilder`+`RoundedBoxMesh`, `ColorHuntFx` (tek parçacık sistemi seti, `Emit` ile renk), `BallSalvo`, `ColorHuntHud` (uGUI, üretilmiş sprite'lar), `ColorHuntJuice` (Basket'in `CameraShake`/`TimeScaleController`/`PopupText`/`SynthSfx`'i), `ColorHuntCamera` (en/boya göre sığdırma), `ColorHuntInput` (Input System pointer)). Ayarlar `Assets/_Project/Settings/ColorHuntSettings.asset` (bölüm 20: 7×7, 5 renk, can 3–14, cephane 158, hedef 22 kırmızı + 16 mavi; efekt/juice sayıları). Tasarım `docs/superpowers/specs/2026-09-22-color-hunt-design.md`, görüntüler `docs/screenshots/colorhunt_*.png`. Testler `Tests/EditMode/ColorHuntRulesTests.cs` (8/8).
-  - Araçlar: `ai_colorhunt_build_scene` (sahneyi sıfırdan kurar, Game view'ı 1080×1920'ye alır — `GameViewPortrait`, yansımayla), `ai_colorhunt_play` (Play Mode: status / tap {cell} / rotate {dir} / auto {moves} / slowmo {scale, seconds} / retry). Menü: `AI Tools/Color Hunt/...`.
-  - Öğrenilen: `Time.timeScale`'i doğrudan yazma — `TimeScaleController` her karede geri alır; yavaş çekim için `SlowMo(scale, s)`. TextMesh etiket + gölge aynı kuyruktaysa çizim sırası rastgele (gri rakam): etiket 3002, gölge 3001. Dinamik font atlası yeniden kurulunca TextMesh UV'leri bayatlıyor: `Font.textureRebuilt`te metni yeniden ata, rakamları `RequestCharactersInTexture` ile önceden iste. `AddComponent<ParticleSystem>` hemen oynamaya başlar, `duration` yazmadan önce `Stop(StopEmittingAndClear)`. Köprünün `manage_camera screenshot`ı `Assets/Screenshots/` altına async yazar (birkaç saniye bekle).
-  - **Revizyon 2026-09-23 (Pota commit 71f8b9e/f55775d):** bloklar renk + basket eşyası + rakam (`ColorHuntSettings.ItemIcons`, `esya-*.png`; eşya yüzün üst yarısında ölçek 0.62, rakam önde ve altta 0.56 — Pota `etiketleriYaz` düzeni), hedef panelinde eşya ikonu, kamera zaten tam karşıdan. Unity ekstrası: sayılan bloğun eşyası patlayınca HUD'daki hedef kutusuna uçar ve ikonu zıplatır (`ColorHuntFx.FlyItem`, `ColorHuntHud.TargetScreenPoint/PopTarget`). Quad primitive zaten −z'ye (kameraya) bakar; 180° çevirme mirror + cull yapar.
-  - **Ders (2026-09-23):** sahne aracının Edit Mode'da kurduğu HUD'un `private` alanları serileştirilmiyordu; editör yeniden açılıp sahne diskten gelince null kaldılar, her karede NRE → salvo işi bitmedi → oyun "busy" kilidinde ("oynayamıyorum"). Aynı editör oturumunda kur-ve-oyna bunu gizler. Kural: araçla kurulan her referans `[SerializeField]`; olay dinleyicileri `Raise()` ile sarılı, HUD hatası kuyruğu durduramaz.
-  - Sahneyi denemek: ColorHunt sahnesini aç, Play, bloğa tıkla (bas-sürükle-bırak seçimi), alttaki oklar döndürür. Pota projesine taşınmadı — Tuna Unity'de bakıp karar verecek.
-- **Karakter hattı (2026-09-25):** `kahraman.png` → nano-banana-pro A-pozu → `firtoz/trellis` GLB → `uthana/create-character-v1` rig → `uthana/text-to-motion-diffusion-v2` klipler → Unity Humanoid. Script'ler ve dersler `Tools/character/README.md`, özet `docs/2026-09-25-character-pipeline.md`, görüntüler `docs/screenshots/2026-09-25-character/`. Ücretli çıktılar `Tools/character/out/` (git dışı, silme). Sonuç: `Assets/_Project/Prefabs/PlayerCharacter.prefab` (rig `Art/Pota/Mesh/player_rig_a.glb` + `.avatar.asset`, controller `Assets/_Project/Anim/`), klipler `Art/Pota/Anim/player_*.fbx`; `BasketSettings.PlayerPrefab` buna bağlı, `PlayerActor` Shoot'u `PlayerShootClipStart`'tan oynatır. Koşu/smaç klipleri controller'da var, oyun tetiklemiyor.
-  - Araçlar: `ai_character_setup` (rig glb → T-pozu, ayakları y=0'a alma, Humanoid avatar, AnimatorController, prefab), `ai_anim_contact_sheet` (model+klip → tek PNG + kemik yükseklik tablosu; klipleri sayıyla değerlendir). Menü: `AI Tools/Character`, `AI Tools/Animation`.
-  - Tuzaklar: Uthana rig'ini glTFast doğrudan okuyamaz → önce `fix_rig_glb.py`; TRELLIS.2 WebP doku verir (`glb_webp_to_png.py`) ve min 100k üçgen ister; Avatar asset'ini üzerine yazma (önce sil), prefab'ı avatar/controller sonrası `ImportAsset(ForceUpdate)` ile yeniden yükle; `execute_code` içinde `AssetDatabase.DeleteAsset` `safety_checks=false` ister; oturum başında Editor Play'de kalmış olabilir, derlemeden önce `manage_editor stop`.
-- **Aktif oyun / mevcut aşama:** Basket turu bitti ve animasyonlu oyuncu eklendi (2026-09-25); renk avı Unity denemesi Tuna'nın bakışını bekliyor (patlama/efekt hissi, tahta boyu, HUD).
+  - Oyuna özel araçlar oyunun README'sinde (Pota: `ai_basket_*`, `ai_colorhunt_*`, `ai_character_setup`).
+- **Hazır efektler** (`Assets/_Project/Core/VFX/`, `VfxService.Play("hit"|"explosion"|"pickup"|"swish"|"multiply"|"add"|"rim_hit", pos, rot)`): prefab + `VfxDefinition` + `VfxLibrary.asset`, `UnityEngine.Pool` ile havuzlanır, sahneye `VfxService` objesi konur. Global Volume: Bloom 1.0 / eşik 0.9, Vignette 0.25, Color Adjustments (kontrast +10, doygunluk +8). Yeni efekt: prefab + `Project/VFX/VFX Definition` asset'i + kütüphaneye ekle.
+- **Juice bileşenleri** (Core, ad alanı `Project.Juice`): `CameraShake`, `TimeScaleController` (`Time.timeScale`'i doğrudan yazma, her karede geri alır; yavaş çekim/hit-stop için `SlowMo(scale, s)`), `PopupText` (Canvas/Font boşsa kendisi kurar), `SynthSfx` (sentez ses efektleri).
+- **Testler:** EditMode `Core/Tests/EditMode` + oyunların `Tests/EditMode`'u, PlayMode oyunların `Tests/PlayMode`'u (`run_tests {"mode":"EditMode"|"PlayMode"}` → `get_test_job`). 2026-09-28: EditMode 34/34, PlayMode 2/2.
+- **Genel dersler (oyunlardan çıkan):**
+  - Play Mode içinde script derleme YAPMA: domain reload havuzu/abonelikleri bozuyor ve konsolun hata-duraklatması editörü "Pause"a alabiliyor (`EditorApplication.isPaused`). Önce `manage_editor stop`. Oturum başında Editor Play'de kalmış olabilir.
+  - Araçla kurulan her referans `[SerializeField]` olmalı: Edit Mode'da atanan `private` alanlar serileştirilmez; aynı oturumda çalışır, editör yeniden açılınca null olur (Renk Avı "busy" kilidi, 2026-09-23). Olay dinleyicilerini sar ki UI hatası oyun akışını durdurmasın.
+  - Editörün oyun döngüsü ancak bir Game view çizilirken ilerler; ana pencere arka plandayken `Time.frameCount` durur. Kare kare kayıt için kendi Game view'ını aç, Pause + `EditorApplication.Step()` (örnek: Pota `ai_basket_record`).
+  - TextMesh etiket + gölge aynı render kuyruğundaysa çizim sırası rastgele: etiket 3002, gölge 3001. Dinamik font atlası yeniden kurulunca TextMesh UV'leri bayatlıyor: `Font.textureRebuilt`te metni yeniden ata, karakterleri `RequestCharactersInTexture` ile önceden iste.
+  - `AddComponent<ParticleSystem>` hemen oynamaya başlar; `duration` yazmadan önce `Stop(StopEmittingAndClear)`.
+  - `manage_camera screenshot` varsayılan olarak `Assets/Screenshots/` altına async yazar; `output_folder: "Temp/mcp_out"` ver (git'e girmez).
+- **Karakter hattı (atölye, 2026-09-25):** `kahraman.png` → nano-banana-pro A-pozu → `firtoz/trellis` GLB → `uthana/create-character-v1` rig → `uthana/text-to-motion-diffusion-v2` klipler → Unity Humanoid. Script'ler ve dersler `Tools/character/README.md`, özet `docs/2026-09-25-character-pipeline.md`, görüntüler `docs/screenshots/2026-09-25-character/`. Ücretli çıktılar `Tools/character/out/` (git dışı, silme). Unity adımı `ai_character_setup` şimdilik Pota'da, çünkü varsayılanları Pota'ya göre.
+  - Tuzaklar: Uthana rig'ini glTFast doğrudan okuyamaz → önce `fix_rig_glb.py`; TRELLIS.2 WebP doku verir (`glb_webp_to_png.py`) ve min 100k üçgen ister; Avatar asset'ini üzerine yazma (önce sil), prefab'ı avatar/controller sonrası `ImportAsset(ForceUpdate)` ile yeniden yükle; `execute_code` içinde `AssetDatabase.DeleteAsset` `safety_checks=false` ister.
+- **Oyunlar:**
+  - **Pota** (`Assets/_Project/Games/Pota/`, notlar `Games/Pota/README.md`; Pota üzerinde çalışırken önce onu oku): Basket turu bitti, animasyonlu oyuncu eklendi; Renk Avı denemesi Tuna'nın bakışını bekliyor (patlama/efekt hissi, tahta boyu, HUD). Asıl oyun three.js'te (`~/projects/Pota`). Pota'nın Unity'ye geçip geçmeyeceğine Tuna karar verecek; geçerse bu klasör yeni bir Pota Unity projesine taşınır.
+  - **Kaptan** (`~/projects/Kaptan`): bu şablondan kopyalanmış ayrı Unity projesi. Ortak araçların orada ayrı bir kopyası var; burada düzeltilen ortak kod oraya kendiliğinden gitmez. Üçüncü Unity oyunu gelince `Core/`u iki projenin de bağlandığı yerel bir pakete çevir.
+- **Aktif oyun / mevcut aşama:** Pota denemeleri Tuna'nın bakışını bekliyor; atölye yeni oyun fikrine hazır.

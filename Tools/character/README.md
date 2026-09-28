@@ -11,7 +11,7 @@ Token: `REPLICATE_API_TOKEN` env or `~/projects/copy/.env`.
 | 3. Auto-rig (Mixamo bone names, T-pose) | `uthana/create-character-v1` | `rep.py run uthana/create-character-v1:<v> out/rig_t1.json` | < $0.01, 30 s |
 | 3b. Make the rig glTFast-friendly | – | `fix_rig_glb.py in.glb out.glb` (bakes the 0.01-scaled Armature into metre joints, recomputes inverse bind matrices, metallic 0) ; `glb_webp_to_png.py` if textures are WebP | – |
 | 4. Text → Humanoid animation (Y Bot FBX) | `uthana/text-to-motion-diffusion-v2` | `rep.py run uthana/text-to-motion-diffusion-v2:<v> out/motion/shoot2.json` | < $0.01 / clip, 3–12 s |
-| 5. Unity: Humanoid avatar + AnimatorController + prefab | – | MCP tool `ai_character_setup {"model_path": "Assets/.../player_rig_a.glb"}` | – |
+| 5. Unity: Humanoid avatar + AnimatorController + prefab | – | MCP tool `ai_character_setup {"model_path": "Assets/_Project/Games/Pota/Art/Mesh/player_rig_a.glb"}` (Pota'da, bkz. `Assets/_Project/Games/Pota/README.md`) | – |
 | QA: render a clip on a model as one image | – | MCP tool `ai_anim_contact_sheet {"model_path": ..., "clip_path": ...}` (also prints per-frame bone heights) | – |
 
 Version hashes for the community models are in `versions.txt` (they change; refresh with the Replicate API).
