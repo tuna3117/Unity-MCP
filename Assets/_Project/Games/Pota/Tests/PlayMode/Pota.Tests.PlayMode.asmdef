@@ -1,7 +1,8 @@
 {
-    "name": "Project.Tests.PlayMode",
+    "name": "Pota.Tests.PlayMode",
     "rootNamespace": "Project.Tests",
     "references": [
+        "Pota.Runtime",
         "Project.Runtime",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
