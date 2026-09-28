@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using MCPForUnity.Editor.Helpers;
 using MCPForUnity.Editor.Tools;
 using Newtonsoft.Json.Linq;
@@ -19,8 +20,10 @@ namespace Project.Editor.AITools
     /// minutes, so 'start' only queues it and the result is written to Temp/ai_build_status.json for 'status'.
     /// </summary>
     [McpForUnityTool("ai_build", Description =
-        "Device build of a game from its GameProfile (Games/<Game>/<Game>Profile.asset). action='start' {game, scene?, platform?, development?} " +
-        "queues the build (the editor is busy for minutes, the bridge may not answer meanwhile); action='status' returns the last result. " +
+        "Device build of a game from its GameProfile (Games/<Game>/<Game>Profile.asset); the profile's name/bundle id/orientation/team " +
+        "are applied for the build only. action='start' {game, scene?, platform?, development?} " +
+        "queues the build (the editor is busy for minutes, the bridge may not answer meanwhile) and switches the editor back to its " +
+        "previous platform afterwards; action='status' returns the last result. " +
         "platform: ios (default, writes an Xcode project) | android | mac. scene: build only that scene. Output: Builds/<Game>-<platform>[-<scene>].")]
     public static class BuildTool
     {
@@ -54,7 +57,12 @@ namespace Project.Editor.AITools
             bool development = AIToolsCommon.GetBool(p, "development", true);
 
             WriteStatus(new JObject { ["state"] = "queued", ["game"] = profile.GameName, ["platform"] = platform, ["scenes"] = new JArray(scenes) });
-            EditorApplication.delayCall += () => Build(profile, scenes, platform, scene, development);
+            // Not delayCall: an unfocused editor may not tick for a long time, while the synchronization context
+            // keeps being pumped (the bridge's own commands arrive that way).
+            var context = SynchronizationContext.Current;
+            if (context != null) context.Post(_ => Build(profile, scenes, platform, scene, development), null);
+            else EditorApplication.delayCall += () => Build(profile, scenes, platform, scene, development);
+            EditorApplication.QueuePlayerLoopUpdate();
             return new SuccessResponse($"Build of {profile.GameName} for {platform} queued ({scenes.Length} scene(s)). " +
                                        "The editor is busy for a few minutes; poll action='status'.");
         }
@@ -80,16 +88,21 @@ namespace Project.Editor.AITools
 
         public static BuildReport Build(GameProfile profile, string[] scenes, string platform, string onlyScene, bool development)
         {
+            // Read everything from the profile up front: the build reloads assets, and afterwards this instance may be
+            // a dead object whose asset path is empty.
+            string game = profile.GameName;
             var target = Targets[platform];
             var group = BuildPipeline.GetBuildTargetGroup(target);
-            string output = $"Builds/{profile.GameName}-{platform}" + (onlyScene != null ? "-" + onlyScene : "") +
+            string output = $"Builds/{game}-{platform}" + (onlyScene != null ? "-" + onlyScene : "") +
                             (platform == "android" ? ".apk" : platform == "mac" ? ".app" : "");
-            var status = new JObject { ["game"] = profile.GameName, ["platform"] = platform, ["scenes"] = new JArray(scenes), ["output"] = output };
+            var status = new JObject { ["game"] = game, ["platform"] = platform, ["scenes"] = new JArray(scenes), ["output"] = output };
+            var previous = EditorUserBuildSettings.activeBuildTarget;
+            Action restorePlayerSettings = null;
             try
             {
-                if (EditorUserBuildSettings.activeBuildTarget != target)
+                if (previous != target)
                     EditorUserBuildSettings.SwitchActiveBuildTarget(group, target);
-                ApplyPlayerSettings(profile, target, group, status);
+                restorePlayerSettings = ApplyPlayerSettings(profile, target, group, status);
 
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
@@ -108,7 +121,7 @@ namespace Project.Editor.AITools
                     .Where(m => m.type == LogType.Error || m.type == LogType.Exception)
                     .Select(m => m.content).Distinct().Take(10));
                 if (target == BuildTarget.iOS) status["xcode_project"] = output + "/Unity-iPhone.xcodeproj";
-                AIToolsCommon.Log($"Build {profile.GameName} {platform}: {s.result} in {status["seconds"]} s -> {output}");
+                AIToolsCommon.Log($"Build {game} {platform}: {s.result} in {status["seconds"]} s -> {output}");
                 return report;
             }
             catch (Exception e)
@@ -121,13 +134,28 @@ namespace Project.Editor.AITools
             finally
             {
                 status["finished"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                // The game's identity is baked into the build output; the workshop (a template other games are copied
+                // from) keeps its own Player Settings.
+                restorePlayerSettings?.Invoke();
+                AssetDatabase.SaveAssets();
+                // Switch back: with iOS active the Test Runner finds no PlayMode tests (checked 2026-09-28), and the
+                // workshop's edit-test loop runs on the editor platform.
+                bool restore = EditorUserBuildSettings.activeBuildTarget != previous;
+                if (restore) status["restored_target"] = previous.ToString();
                 WriteStatus(status);
+                if (restore) EditorUserBuildSettings.SwitchActiveBuildTarget(BuildPipeline.GetBuildTargetGroup(previous), previous);
             }
         }
 
-        private static void ApplyPlayerSettings(GameProfile profile, BuildTarget target, BuildTargetGroup group, JObject status)
+        /// <summary>Applies the profile's identity to Player Settings and returns an action that puts the old values back.</summary>
+        private static Action ApplyPlayerSettings(GameProfile profile, BuildTarget target, BuildTargetGroup group, JObject status)
         {
             var named = NamedBuildTarget.FromBuildTargetGroup(group);
+            string oldName = PlayerSettings.productName, oldId = PlayerSettings.GetApplicationIdentifier(named);
+            var oldOrientation = PlayerSettings.defaultInterfaceOrientation;
+            string oldTeam = PlayerSettings.iOS.appleDeveloperTeamID;
+            int oldAutoSign = AutoSigningRaw; // three-state in the asset (0 = editor default), the bool API can't restore 0
+
             if (!string.IsNullOrEmpty(profile.ProductName)) PlayerSettings.productName = profile.ProductName;
             if (!string.IsNullOrEmpty(profile.BundleId)) PlayerSettings.SetApplicationIdentifier(named, profile.BundleId);
             PlayerSettings.defaultInterfaceOrientation = profile.Orientation;
@@ -138,7 +166,29 @@ namespace Project.Editor.AITools
             }
             status["product_name"] = PlayerSettings.productName;
             status["bundle_id"] = PlayerSettings.GetApplicationIdentifier(named);
+            return () =>
+            {
+                PlayerSettings.productName = oldName;
+                PlayerSettings.SetApplicationIdentifier(named, oldId);
+                PlayerSettings.defaultInterfaceOrientation = oldOrientation;
+                PlayerSettings.iOS.appleDeveloperTeamID = oldTeam;
+                AutoSigningRaw = oldAutoSign;
+            };
         }
+
+        private static int AutoSigningRaw
+        {
+            get => PlayerSettingsAsset().FindProperty("appleEnableAutomaticSigning").intValue;
+            set
+            {
+                var so = PlayerSettingsAsset();
+                so.FindProperty("appleEnableAutomaticSigning").intValue = value;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+
+        private static SerializedObject PlayerSettingsAsset() =>
+            new SerializedObject(Unsupported.GetSerializedAssetInterfaceSingleton("PlayerSettings"));
 
         private static void WriteStatus(JObject status)
         {

@@ -26,8 +26,15 @@ namespace Project.Editor
         [Tooltip("Scenes in build order; the first one opens when the app starts")]
         public SceneAsset[] Scenes = new SceneAsset[0];
 
-        public string Folder => Path.GetDirectoryName(AssetDatabase.GetAssetPath(this))?.Replace('\\', '/');
-        public string GameName => Path.GetFileName(Folder);
+        public string Folder
+        {
+            get
+            {
+                string path = AssetDatabase.GetAssetPath(this);
+                return string.IsNullOrEmpty(path) ? null : Path.GetDirectoryName(path)?.Replace('\\', '/');
+            }
+        }
+        public string GameName => Folder == null ? name : Path.GetFileName(Folder);
 
         public static GameProfile[] All() =>
             AssetDatabase.FindAssets("t:" + nameof(GameProfile))
@@ -37,7 +44,7 @@ namespace Project.Editor
 
         /// <summary>The profile of the game whose folder contains <paramref name="assetPath"/>, or null.</summary>
         public static GameProfile ForAsset(string assetPath) =>
-            string.IsNullOrEmpty(assetPath) ? null : All().FirstOrDefault(p => assetPath.StartsWith(p.Folder + "/"));
+            string.IsNullOrEmpty(assetPath) ? null : All().FirstOrDefault(p => p.Folder != null && assetPath.StartsWith(p.Folder + "/"));
 
         /// <summary>Looks a profile up by game name ("Pota") or asset path.</summary>
         public static GameProfile Find(string nameOrPath)
