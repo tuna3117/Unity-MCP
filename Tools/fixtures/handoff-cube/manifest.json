@@ -1,0 +1,42 @@
+{
+  "id": "handoff-cube",
+  "game": "_fixtures",
+  "kind": "prop",
+  "version": 1,
+  "files": {
+    "glb": "handoff-cube.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 12,
+    "materials": 1,
+    "textures": [],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      1.0,
+      1.0,
+      1.0
+    ]
+  },
+  "source": {
+    "recipe": "recipes/handoff_cube.py",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-09-28T22:15:51Z"
+}
