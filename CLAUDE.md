@@ -10,6 +10,8 @@ Kullanıcı yazılımcı değil, ürünü yöneten kişi. Ona teknik karar sorma
 
 **Bu projenin rolü: atölye + şablon.** Ortak araçlar (köprü yaması, AI araçları, efekt seti, juice bileşenleri, karakter hattı) burada gelişir, yeni oyun fikirleri ilk denemelerini burada yapar. Yayına gidecek her oyun kendi Unity projesinde yaşar, çünkü bir Unity projesinden tek bir uygulama çıkar (tek ikon, bundle id, build). Örnek: `~/projects/Kaptan` bu projeden kopyalandı. Yeni oyun projesi açarken bu projeyi kopyala, `Assets/_Project/Experiments/` ile o oyuna ait olmayan `Games/*` klasörlerini sil (bkz. §7).
 
+**Stüdyo haritası** (copy → Blender → Unity/three.js, teslim sözleşmesi, yol haritası): `~/projects/Blender MCP/docs/studyo.md`. 3B model/iskelet/animasyon/efekt dokusu Blender atölyesinde (`~/projects/Blender MCP`) yapılır, buraya `ai_import_asset` ile gelir.
+
 ## 2. Ortam
 
 - macOS, Apple Silicon (Metal). Unity 6, URP. Kesin sürümü `ProjectSettings/ProjectVersion.txt` dosyasından oku, ezberden varsayma.
@@ -169,6 +171,7 @@ _Son güncelleme: 2026-09-28 (Core / Games / Experiments; oyun profilleri, cihaz
   - `ai_vfx_create_starters` — başlangıç efekt setini üretir
   - `ai_anim_contact_sheet` — model + klip → tek PNG + kemik yükseklik tablosu (klipleri sayıyla değerlendir)
   - `ai_move_assets` — asset/klasör taşıma ve yeniden adlandırma (GUID korunur; `dry_run`, boş klasör temizliği, Build Settings sahne yollarını eşitler)
+  - `ai_import_asset` — Blender atölyesi teslimini (`manifest.json` + glb/fbx) `Games/<Oyun>/Art/<Tür>/<id>/`e alır (`{"manifest":"<mutlak yol>"}`); aynı id tekrar gelince GUID korunur; Unity'nin ölçtüğü üçgen/kemik/klip sayısını manifest'le karşılaştırır (`matches`). Test fikstürü `Tools/fixtures/handoff-cube/`.
   - `ai_build` — oyunun `GameProfile`'ından cihaz derlemesi: `{"action":"start","game":"Pota","platform":"ios"|"android"|"mac","scene"?:"ColorHunt","development"?:true}` → `Builds/<Oyun>-<platform>` (iOS'ta Xcode projesi). Derleme editörü dakikalarca meşgul eder; sonuç `{"action":"status"}` ya da `Temp/ai_build_status.json`. Profilin ürün adı/bundle id/yön/takımı yalnız derleme süresince Player Settings'e yazılır; bitince atölyenin kendi ayarları ve editörün önceki platformu geri gelir (ProjectSettings değişmeden kalır). Derleme URP asset'lerindeki shader ön-eleme alanlarını Unity'nin kendisi günceller, normal. Development derlemelerinde `DevSceneSwitcher` üstte "→ sonraki sahne" düğmesi koyar; tek kurulumla oyunun tüm sahneleri denenir.
   - Ekran görüntüsü için köprünün `manage_camera` aracı yeterli olduğundan ayrı araç yazılmadı.
   - Oyuna özel araçlar oyunun README'sinde (Pota: `ai_basket_*`, `ai_colorhunt_*`, `ai_character_setup`).
@@ -191,4 +194,4 @@ _Son güncelleme: 2026-09-28 (Core / Games / Experiments; oyun profilleri, cihaz
 - **Oyunlar:**
   - **Pota** (`Assets/_Project/Games/Pota/`, notlar `Games/Pota/README.md`; Pota üzerinde çalışırken önce onu oku): Basket turu bitti, animasyonlu oyuncu eklendi; Renk Avı denemesi Tuna'nın bakışını bekliyor (patlama/efekt hissi, tahta boyu, HUD). Asıl oyun three.js'te (`~/projects/Pota`). Pota'nın Unity'ye geçip geçmeyeceğine Tuna karar verecek; geçerse bu klasör yeni bir Pota Unity projesine taşınır.
   - **Kaptan** (`~/projects/Kaptan`): bu şablondan kopyalanmış ayrı Unity projesi. Ortak araçların orada ayrı bir kopyası var; burada düzeltilen ortak kod oraya kendiliğinden gitmez. Üçüncü Unity oyunu gelince `Core/`u iki projenin de bağlandığı yerel bir pakete çevir.
-- **Aktif oyun / mevcut aşama:** Pota denemeleri Tuna'nın bakışını bekliyor; atölye yeni oyun fikrine hazır.
+- **Aktif oyun / mevcut aşama:** Pota denemeleri Tuna'nın bakışını bekliyor. Stüdyo hattı: Blender atölyesi kuruldu (2026-09-29, ilk teslim `Games/Pota/Art/Props/pota-hoop-stylized`); sıradaki alt proje karakter model hattı (`~/projects/Blender MCP/docs/studyo.md`).
