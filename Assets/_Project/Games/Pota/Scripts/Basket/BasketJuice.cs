@@ -23,7 +23,7 @@ namespace Project.Basket
 
         private void Start()
         {
-            if (Round == null) Round = FindFirstObjectByType<BasketRound>();
+            if (Round == null) Round = FindAnyObjectByType<BasketRound>();
             if (Round == null) return;
             if (S == null) S = Round.Settings;
             if (Shake == null && Camera.main != null) Shake = Camera.main.GetComponent<CameraShake>();

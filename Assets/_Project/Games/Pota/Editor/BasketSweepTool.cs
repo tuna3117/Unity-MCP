@@ -55,7 +55,7 @@ namespace Project.Editor.AITools
         {
             if (!EditorApplication.isPlaying) return new ErrorResponse("Enter Play Mode first (manage_editor play), then start the sweep.");
             if (_running) return new ErrorResponse("A sweep is already running; poll with action='status' or cancel it.");
-            var round = UnityEngine.Object.FindFirstObjectByType<BasketRound>();
+            var round = UnityEngine.Object.FindAnyObjectByType<BasketRound>();
             if (round == null) return new ErrorResponse("No BasketRound in the running scene (open Basket.unity).");
 
             _level = AIToolsCommon.GetInt(p, "level", 1);
@@ -84,7 +84,7 @@ namespace Project.Editor.AITools
         {
             if (!_running) { EditorApplication.update -= Tick; return; }
             if (!EditorApplication.isPlaying) { Stop(); return; }
-            var round = UnityEngine.Object.FindFirstObjectByType<BasketRound>();
+            var round = UnityEngine.Object.FindAnyObjectByType<BasketRound>();
             if (round == null) { Stop(); return; }
             if (_index >= Shots.Count) { Stop(); AIToolsCommon.Log("Sweep finished: " + Summary()); return; }
 

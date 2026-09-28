@@ -117,7 +117,9 @@ public static class HeroAnimationAuthor
     public static void BuildAndExport(){
         Build();var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"-potaExport");
         if(at<0||at+1>=args.Length)throw new Exception("-potaExport destination required");
+#pragma warning disable CS0618 // archived experiment, kept as it was
         AssetDatabase.ExportPackage(Folder,args[at+1],ExportPackageOptions.Recurse);
+#pragma warning restore CS0618
     }
     [MenuItem("Pota/Character/Build and bake animations")]
     public static void Build(){

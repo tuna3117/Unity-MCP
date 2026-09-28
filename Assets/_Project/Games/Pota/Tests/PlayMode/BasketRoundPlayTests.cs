@@ -14,9 +14,9 @@ namespace Project.Tests
             SceneManager.LoadScene("Basket");
             yield return null;
             yield return null;
-            var round = Object.FindFirstObjectByType<BasketRound>();
+            var round = Object.FindAnyObjectByType<BasketRound>();
             Assert.IsNotNull(round, "BasketRound not found in Basket scene");
-            var input = Object.FindFirstObjectByType<ShotInput>();
+            var input = Object.FindAnyObjectByType<ShotInput>();
             if (input != null) input.InputEnabled = false;
             ready(round);
         }

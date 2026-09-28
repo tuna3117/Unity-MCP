@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75dcb28957ebf4d1e824e25e06a6fbf0, type: 3}
+  m_Name: PotaProfile
+  m_EditorClassIdentifier: Project.Editor::Project.Editor.GameProfile
+  GameViewResolution: {x: 1170, y: 2532}
+  ProductName: Pota Unity
+  BundleId: com.tunaaltin.pota.unity
+  AppleTeamId: BJPL5XNDLV
+  Orientation: 0
+  Scenes:
+  - {fileID: 102900000, guid: 09e715ac37c3e4c2cb7d9938e6ecb36d, type: 3}
+  - {fileID: 102900000, guid: 5a4c62b85fac44017ae4a9cdb0a9197b, type: 3}

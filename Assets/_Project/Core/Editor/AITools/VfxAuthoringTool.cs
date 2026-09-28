@@ -388,7 +388,7 @@ namespace Project.Editor.AITools
 
         public static VfxService EnsureServiceInScene(VfxLibrary library, List<string> report)
         {
-            var service = Object.FindFirstObjectByType<VfxService>();
+            var service = Object.FindAnyObjectByType<VfxService>();
             if (service == null)
             {
                 var go = new GameObject("VfxService");

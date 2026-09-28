@@ -32,7 +32,7 @@ namespace Project.Basket
         {
             if (_round == null)
             {
-                var round = FindFirstObjectByType<BasketRound>();
+                var round = FindAnyObjectByType<BasketRound>();
                 if (round != null) Bind(round);
             }
         }

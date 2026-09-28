@@ -22,7 +22,7 @@ namespace Project.Basket
 
         private void Start()
         {
-            if (Round == null) Round = FindFirstObjectByType<BasketRound>();
+            if (Round == null) Round = FindAnyObjectByType<BasketRound>();
             if (S == null && Round != null) S = Round.Settings;
         }
 
