@@ -9,10 +9,10 @@ namespace Project.Editor.AITools
 {
     /// <summary>Generates an equirectangular basketball texture (orange with dark seams) and a URP material.</summary>
     [McpForUnityTool("ai_basket_ball_texture", Description =
-        "Generate Assets/_Project/Art/Generated/Basketball.png (equirect 1024x512, orange with seams) and Basketball.mat (URP Lit). overwrite=true regenerates.")]
+        "Generate Assets/_Project/Games/Pota/Art/Generated/Basketball.png (equirect 1024x512, orange with seams) and Basketball.mat (URP Lit). overwrite=true regenerates.")]
     public static class BasketballTextureTool
     {
-        public const string Folder = "Assets/_Project/Art/Generated";
+        public const string Folder = "Assets/_Project/Games/Pota/Art/Generated";
         public const string TexturePath = Folder + "/Basketball.png";
         public const string MaterialPath = Folder + "/Basketball.mat";
 

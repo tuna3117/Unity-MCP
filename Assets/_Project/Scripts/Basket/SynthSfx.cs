@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Project.Basket
+namespace Project.Juice
 {
     /// <summary>Procedural sound effects generated at start (no audio files), with per-id rate limits.</summary>
     [RequireComponent(typeof(AudioSource))]

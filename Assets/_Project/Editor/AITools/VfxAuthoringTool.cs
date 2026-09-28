@@ -14,12 +14,12 @@ namespace Project.Editor.AITools
     /// VfxDefinition assets, the VfxLibrary and a VfxService in the active scene.
     /// </summary>
     [McpForUnityTool("ai_vfx_create_starters", Description =
-        "Create the starter VFX set (hit, explosion, pickup) as Particle System prefabs under Assets/_Project/VFX, " +
+        "Create the starter VFX set (hit, explosion, pickup) as Particle System prefabs under Assets/_Project/Core/VFX, " +
         "their VfxDefinition assets, the VfxLibrary asset and a VfxService object in the active scene. " +
         "overwrite=true rebuilds prefabs/materials/definitions that already exist.")]
     public static class VfxAuthoringTool
     {
-        public const string VfxFolder = "Assets/_Project/VFX";
+        public const string VfxFolder = "Assets/_Project/Core/VFX";
         public const string MaterialsFolder = VfxFolder + "/Materials";
         public const string PrefabsFolder = VfxFolder + "/Prefabs";
         public const string DefinitionsFolder = VfxFolder + "/Definitions";

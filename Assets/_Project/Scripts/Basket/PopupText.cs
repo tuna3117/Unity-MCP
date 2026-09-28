@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Project.Basket
+namespace Project.Juice
 {
     /// <summary>World-anchored score popups on an overlay canvas: rise 60 px and fade over their life.</summary>
     public class PopupText : MonoBehaviour

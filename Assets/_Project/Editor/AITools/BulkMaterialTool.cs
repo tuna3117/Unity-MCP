@@ -19,7 +19,7 @@ namespace Project.Editor.AITools
     {
         public class Parameters
         {
-            [ToolParameter("Material asset path, e.g. 'Assets/_Project/Materials/Red.mat'")]
+            [ToolParameter("Material asset path, e.g. 'Assets/_Project/Games/<Game>/Materials/Red.mat'")]
             public string material_path { get; set; }
 
             [ToolParameter("Explicit targets: names, hierarchy paths or instance ids", Required = false)]

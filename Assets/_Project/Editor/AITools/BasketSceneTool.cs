@@ -3,6 +3,7 @@ using MCPForUnity.Editor.Helpers;
 using MCPForUnity.Editor.Tools;
 using Newtonsoft.Json.Linq;
 using Project.Basket;
+using Project.Juice;
 using Project.VFX;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -15,13 +16,13 @@ namespace Project.Editor.AITools
 {
     /// <summary>Creates (or rebuilds) the Basket scene, its settings asset, physics materials and layers.</summary>
     [McpForUnityTool("ai_basket_build_scene", Description =
-        "Create or rebuild Assets/_Project/Scenes/Basket.unity: layers (BallFlight, BallDrop, Hoop, Slab), " +
+        "Create or rebuild Assets/_Project/Games/Pota/Scenes/Basket.unity: layers (BallFlight, BallDrop, Hoop, Slab), " +
         "BasketSettings asset + physics materials, camera, light, volume, Round (BasketRound/BallPool/ShotInput/AimPreview), HUD, EventSystem, VfxService. " +
         "level = level to preselect (default 1). The hoop column itself is built at runtime.")]
     public static class BasketSceneTool
     {
-        public const string ScenePath = "Assets/_Project/Scenes/Basket.unity";
-        public const string SettingsFolder = "Assets/_Project/Settings";
+        public const string ScenePath = "Assets/_Project/Games/Pota/Scenes/Basket.unity";
+        public const string SettingsFolder = "Assets/_Project/Games/Pota/Settings";
         public const string SettingsPath = SettingsFolder + "/BasketSettings.asset";
         public const string VolumeProfilePath = "Assets/Settings/SampleSceneProfile.asset";
 
@@ -128,7 +129,7 @@ namespace Project.Editor.AITools
             RenderSettings.ambientEquatorColor = new Color(0.72f, 0.72f, 0.7f);
             RenderSettings.ambientGroundColor = new Color(0.54f, 0.48f, 0.4f);
 
-            AIToolsCommon.EnsureFolder("Assets/_Project/Scenes");
+            AIToolsCommon.EnsureFolder("Assets/_Project/Games/Pota/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
             report.Add($"saved {ScenePath}");
 
@@ -154,7 +155,7 @@ namespace Project.Editor.AITools
             settings.WallMaterial = EnsurePhysicsMaterial("Basket_Wall", 0.6f, 0.3f, report);
             settings.CageMaterial = EnsurePhysicsMaterial("Basket_Cage", 0.12f, 0.5f, report);
 
-            const string art = "Assets/_Project/Art/Pota/";
+            const string art = "Assets/_Project/Games/Pota/Art/";
             settings.FacadeTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "kule-cam.jpg");
             settings.WingTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "kule-renkli.jpg");
             settings.CityTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "cephe.jpg");

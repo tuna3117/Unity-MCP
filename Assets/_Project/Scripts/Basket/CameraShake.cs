@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Project.Basket
+namespace Project.Juice
 {
     /// <summary>Positional camera noise with exponential decay (real time, unaffected by slow-mo).</summary>
     public class CameraShake : MonoBehaviour

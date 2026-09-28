@@ -4,6 +4,7 @@ using MCPForUnity.Editor.Tools;
 using Newtonsoft.Json.Linq;
 using Project.Basket;
 using Project.ColorHunt;
+using Project.Juice;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -15,17 +16,17 @@ namespace Project.Editor.AITools
 {
     /// <summary>Creates (or rebuilds) the Color Hunt scene and its settings asset.</summary>
     [McpForUnityTool("ai_colorhunt_build_scene", Description =
-        "Create or rebuild Assets/_Project/Scenes/ColorHunt.unity: ColorHuntSettings asset (block face, font, arrow icon, ball material), " +
+        "Create or rebuild Assets/_Project/Games/Pota/Scenes/ColorHunt.unity: ColorHuntSettings asset (block face, font, arrow icon, ball material), " +
         "camera (fit-to-board + shake), light, volume, Game (rules/animation), Fx, Salvo, Juice, HUD, EventSystem. The board itself is built at runtime.")]
     public static class ColorHuntSceneTool
     {
-        public const string ScenePath = "Assets/_Project/Scenes/ColorHunt.unity";
-        public const string SettingsPath = "Assets/_Project/Settings/ColorHuntSettings.asset";
+        public const string ScenePath = "Assets/_Project/Games/Pota/Scenes/ColorHunt.unity";
+        public const string SettingsPath = "Assets/_Project/Games/Pota/Settings/ColorHuntSettings.asset";
         public const string VolumeProfilePath = "Assets/Settings/SampleSceneProfile.asset";
-        public const string BlockFacePath = "Assets/_Project/Art/Pota/blok-a.jpg";
-        public const string ArrowPath = "Assets/_Project/Art/Pota/ok-a.png";
-        public const string FontPath = "Assets/_Project/Art/Fonts/ArialRoundedBold.ttf";
-        public const string BallMaterialPath = "Assets/_Project/Art/Generated/Basketball.mat";
+        public const string BlockFacePath = "Assets/_Project/Games/Pota/Art/blok-a.jpg";
+        public const string ArrowPath = "Assets/_Project/Games/Pota/Art/ok-a.png";
+        public const string FontPath = "Assets/_Project/Games/Pota/Art/Fonts/ArialRoundedBold.ttf";
+        public const string BallMaterialPath = "Assets/_Project/Games/Pota/Art/Generated/Basketball.mat";
         public static readonly string[] ItemNames = { "forma", "ayakkabi", "sapka", "corap", "bileklik" };
 
         public class Parameters { }
@@ -123,7 +124,7 @@ namespace Project.Editor.AITools
             RenderSettings.ambientGroundColor = new Color(0.45f, 0.42f, 0.40f);
             RenderSettings.fog = false;
 
-            AIToolsCommon.EnsureFolder("Assets/_Project/Scenes");
+            AIToolsCommon.EnsureFolder("Assets/_Project/Games/Pota/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
             report.Add($"saved {ScenePath}");
 
@@ -137,7 +138,7 @@ namespace Project.Editor.AITools
 
         private static ColorHuntSettings EnsureSettings(List<string> report)
         {
-            AIToolsCommon.EnsureFolder("Assets/_Project/Settings");
+            AIToolsCommon.EnsureFolder("Assets/_Project/Games/Pota/Settings");
             var s = AssetDatabase.LoadAssetAtPath<ColorHuntSettings>(SettingsPath);
             if (s == null)
             {
@@ -152,7 +153,7 @@ namespace Project.Editor.AITools
             if (s.ItemIcons == null || s.ItemIcons.Length != ItemNames.Length || System.Array.Exists(s.ItemIcons, t => t == null))
             {
                 s.ItemIcons = new Texture2D[ItemNames.Length];
-                for (int i = 0; i < ItemNames.Length; i++) s.ItemIcons[i] = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/_Project/Art/Pota/esya-{ItemNames[i]}.png");
+                for (int i = 0; i < ItemNames.Length; i++) s.ItemIcons[i] = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/_Project/Games/Pota/Art/esya-{ItemNames[i]}.png");
             }
             EditorUtility.SetDirty(s);
             report.Add($"settings: face={(s.BlockFace != null)} arrow={(s.ArrowIcon != null)} font={(s.Font != null)} ball={(s.BallMaterial != null)} items={System.Array.FindAll(s.ItemIcons, t => t != null).Length}/{ItemNames.Length}");

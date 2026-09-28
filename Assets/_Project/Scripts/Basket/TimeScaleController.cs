@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Project.Basket
+namespace Project.Juice
 {
     /// <summary>Slow-motion and hit-stop by scaling Time.timeScale (and fixedDeltaTime with it).</summary>
     public class TimeScaleController : MonoBehaviour

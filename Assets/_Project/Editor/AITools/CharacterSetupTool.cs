@@ -18,8 +18,8 @@ namespace Project.Editor.AITools
     /// </summary>
     [McpForUnityTool("ai_character_setup", Description =
         "Build a Humanoid player prefab from a rigged model (Mixamo bone names) and a folder of Humanoid clips. " +
-        "model_path: rigged glb/fbx; anim_folder (default Assets/_Project/Art/Pota/Anim); clips: map state->clip asset name " +
-        "(default Idle=player_idle2, Run=player_run, Shoot=player_shoot2, Dunk=player_dunk2); prefab_path (default Assets/_Project/Prefabs/PlayerCharacter.prefab); " +
+        "model_path: rigged glb/fbx; anim_folder (default Assets/_Project/Games/Pota/Art/Anim); clips: map state->clip asset name " +
+        "(default Idle=player_idle2, Run=player_run, Shoot=player_shoot2, Dunk=player_dunk2); prefab_path (default Assets/_Project/Games/Pota/Prefabs/PlayerCharacter.prefab); " +
         "assign_settings=true also sets BasketSettings.PlayerPrefab.")]
     public static class CharacterSetupTool
     {
@@ -32,9 +32,9 @@ namespace Project.Editor.AITools
             [ToolParameter("Also assign BasketSettings.PlayerPrefab (default true)", Required = false)] public bool? assign_settings { get; set; }
         }
 
-        public const string DefaultAnimFolder = "Assets/_Project/Art/Pota/Anim";
-        public const string DefaultPrefabPath = "Assets/_Project/Prefabs/PlayerCharacter.prefab";
-        public const string ControllerFolder = "Assets/_Project/Anim";
+        public const string DefaultAnimFolder = "Assets/_Project/Games/Pota/Art/Anim";
+        public const string DefaultPrefabPath = "Assets/_Project/Games/Pota/Prefabs/PlayerCharacter.prefab";
+        public const string ControllerFolder = "Assets/_Project/Games/Pota/Anim";
 
         private static readonly Dictionary<string, string> DefaultClips = new Dictionary<string, string>
         {

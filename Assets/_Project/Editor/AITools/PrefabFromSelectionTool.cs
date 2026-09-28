@@ -12,17 +12,17 @@ namespace Project.Editor.AITools
     /// </summary>
     [McpForUnityTool("ai_create_prefab", Description =
         "Save a scene object (target = name/path/id) as a prefab asset and connect the scene instance to it. " +
-        "Default prefab_path is Assets/_Project/Prefabs/<name>.prefab. Set overwrite=true to replace an existing asset.")]
+        "Default prefab_path is Assets/_Project/Experiments/Prefabs/<name>.prefab (pass the game folder, e.g. Assets/_Project/Games/<Game>/Prefabs/...). Set overwrite=true to replace an existing asset.")]
     public static class PrefabFromSelectionTool
     {
-        public const string DefaultFolder = "Assets/_Project/Prefabs";
+        public const string DefaultFolder = "Assets/_Project/Experiments/Prefabs";
 
         public class Parameters
         {
             [ToolParameter("Scene object to turn into a prefab (name, hierarchy path or instance id)")]
             public string target { get; set; }
 
-            [ToolParameter("Prefab asset path, e.g. 'Assets/_Project/Prefabs/Enemy.prefab'", Required = false)]
+            [ToolParameter("Prefab asset path, e.g. 'Assets/_Project/Games/<Game>/Prefabs/Enemy.prefab'", Required = false)]
             public string prefab_path { get; set; }
 
             [ToolParameter("Overwrite an existing prefab at prefab_path (default false)", Required = false)]
