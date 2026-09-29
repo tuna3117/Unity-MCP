@@ -66,6 +66,7 @@ def wait_idle(timeout=240):
     """Waits until Unity is not compiling and the bridge is ready ("Refresh requested" returns before the compile ends)."""
     time.sleep(3)
     end = time.time() + timeout
+    quiet = 0
     while time.time() < end:
         p = subprocess.run([UV, "run", "-q", "Tools/mcp_call.py", "read", "mcpforunity://editor/state"],
                            cwd=ROOT, capture_output=True, text=True, timeout=120)
@@ -73,8 +74,13 @@ def wait_idle(timeout=240):
         if i >= 0:
             try:
                 state = json.JSONDecoder().raw_decode(p.stdout[i:])[0]
-                if find_key(state, "is_compiling") is False and find_key(state, "ready_for_tools") is True:
-                    return
+                # ready_for_tools also goes false on compile errors or a "stale_status" while Unity is unfocused.
+                if find_key(state, "is_compiling") is False:
+                    quiet += 1
+                    if quiet >= 2:
+                        return
+                else:
+                    quiet = 0
             except json.JSONDecodeError:
                 pass
         time.sleep(3)

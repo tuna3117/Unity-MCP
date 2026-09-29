@@ -5,9 +5,9 @@ namespace Project.Basket.Visual
     /// <summary>Rings plus twisted strings hanging from the rim, all under one root for the wobble animation.</summary>
     public static class NetBuilder
     {
-        public static void Build(Transform netRoot, float rimRadius, Material mat, int rings = 5, int strings = 12)
+        public static void Build(Transform netRoot, float rimRadius, Material mat, int rings = 5, int strings = 12,
+            float drop = 0.11f, float thickness = 0.012f, float ringTube = 0.01f)
         {
-            float drop = 0.11f;
             float[] radii = new float[rings + 1];
             float[] ys = new float[rings + 1];
             for (int k = 0; k <= rings; k++)
@@ -17,7 +17,7 @@ namespace Project.Basket.Visual
             }
             for (int k = 1; k <= rings; k++)
             {
-                var ring = RimMeshBuilder.MeshObject($"Ring{k}", netRoot, RimMeshBuilder.Torus(radii[k], 0.01f, 24, 6), mat);
+                var ring = RimMeshBuilder.MeshObject($"Ring{k}", netRoot, RimMeshBuilder.Torus(radii[k], ringTube, 24, 6), mat);
                 ring.transform.localPosition = new Vector3(0f, ys[k], 0f);
             }
             var cyl = Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
@@ -34,7 +34,7 @@ namespace Project.Basket.Visual
                     var dir = p1 - p0;
                     seg.transform.localPosition = mid;
                     seg.transform.localRotation = Quaternion.FromToRotation(Vector3.up, dir.normalized);
-                    seg.transform.localScale = new Vector3(0.012f, dir.magnitude * 0.5f, 0.012f);
+                    seg.transform.localScale = new Vector3(thickness, dir.magnitude * 0.5f, thickness);
                 }
             }
         }
