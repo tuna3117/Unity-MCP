@@ -70,6 +70,20 @@ namespace Project.Editor.AITools
             if (animator == null) animator = inst.AddComponent<Animator>();
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            // Skinning normally updates in the player loop, which does not run between graph.Evaluate and cam.Render
+            // here: the sheet showed only the root bone's motion (arms stayed down during a shot). Draw CPU-baked
+            // copies of the skinned meshes instead (forceMatrixRecalculationPerRender did not help).
+            var proxies = new List<(SkinnedMeshRenderer skinned, Transform proxy, Mesh mesh)>();
+            foreach (var skinned in inst.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                var proxyGo = new GameObject("__contact_baked_" + skinned.name) { hideFlags = HideFlags.HideAndDontSave };
+                proxyGo.transform.SetParent(root.transform, false);
+                var mesh = new Mesh { hideFlags = HideFlags.HideAndDontSave };
+                proxyGo.AddComponent<MeshFilter>().sharedMesh = mesh;
+                proxyGo.AddComponent<MeshRenderer>().sharedMaterials = skinned.sharedMaterials;
+                skinned.enabled = false;
+                proxies.Add((skinned, proxyGo.transform, mesh));
+            }
 
             var lightGo = new GameObject("__contact_light");
             lightGo.transform.SetParent(root.transform, false);
@@ -100,9 +114,29 @@ namespace Project.Editor.AITools
             output.SetSourcePlayable(playable);
             try
             {
-                // Frame the character: bounds at t=0 in bind pose, then keep the same framing for every frame.
-                playable.SetTime(0); graph.Evaluate(0f);
-                var b = Bounds(inst);
+                // Frame the character over every sampled pose (a jump shot's raised hands left the frame when only
+                // t=0 was used), then keep that framing for all frames.
+                float len = Mathf.Max(clip.length, 0.001f);
+                Bounds b = default;
+                for (int i = 0; i < frames; i++)
+                {
+                    inst.transform.localPosition = Vector3.zero; inst.transform.localRotation = Quaternion.identity;
+                    playable.SetTime(frames == 1 ? 0f : len * i / (frames - 1));
+                    graph.Evaluate(0f);
+                    foreach (var (skinned, proxy, mesh) in proxies)
+                    {
+                        skinned.BakeMesh(mesh, true);
+                        mesh.RecalculateBounds();
+                        proxy.SetPositionAndRotation(skinned.transform.position, skinned.transform.rotation);
+                    }
+                    var pose = Bounds(inst);
+                    if (proxies.Count > 0)
+                    {
+                        pose = proxies[0].proxy.GetComponent<MeshRenderer>().bounds;
+                        foreach (var (_, proxy, _) in proxies) pose.Encapsulate(proxy.GetComponent<MeshRenderer>().bounds);
+                    }
+                    if (i == 0) b = pose; else b.Encapsulate(pose);
+                }
                 float radius = Mathf.Max(b.extents.magnitude, 0.5f);
                 Vector3 look = b.center;
                 float dist = radius / Mathf.Sin(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 0.95f;
@@ -110,7 +144,6 @@ namespace Project.Editor.AITools
                 camGo.transform.position = look + dir * dist;
                 camGo.transform.LookAt(look);
 
-                float len = Mathf.Max(clip.length, 0.001f);
                 var table = new System.Text.StringBuilder("t | hips_y | head_y | lhand_y | rhand_y | lfoot_y\n");
                 for (int i = 0; i < frames; i++)
                 {
@@ -121,6 +154,12 @@ namespace Project.Editor.AITools
                     if (animator.isHuman)
                         table.Append(t.ToString("0.00")).Append(" | ").Append(H(animator, HumanBodyBones.Hips)).Append(" | ").Append(H(animator, HumanBodyBones.Head)).Append(" | ")
                              .Append(H(animator, HumanBodyBones.LeftHand)).Append(" | ").Append(H(animator, HumanBodyBones.RightHand)).Append(" | ").Append(H(animator, HumanBodyBones.LeftFoot)).Append("\n");
+                    foreach (var (skinned, proxy, mesh) in proxies)
+                    {
+                        skinned.BakeMesh(mesh, true);
+                        mesh.RecalculateBounds();
+                        proxy.SetPositionAndRotation(skinned.transform.position, skinned.transform.rotation);
+                    }
                     cam.Render();
                     RenderTexture.active = rt;
                     sheet.ReadPixels(new Rect(0, 0, size, size), size * i, 0);
@@ -138,6 +177,7 @@ namespace Project.Editor.AITools
                 cam.targetTexture = null;
                 Object.DestroyImmediate(rt);
                 Object.DestroyImmediate(sheet);
+                foreach (var (_, _, mesh) in proxies) Object.DestroyImmediate(mesh);
                 Object.DestroyImmediate(root);
             }
         }
