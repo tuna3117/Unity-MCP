@@ -48,7 +48,31 @@
     "ngons": 0,
     "uv_missing": [],
     "transforms_unapplied": [],
-    "passed": true
+    "passed": true,
+    "character": {
+      "open_edges": {
+        "value": 0,
+        "max": 0,
+        "pass": true
+      },
+      "silhouette_iou": {
+        "value": 0.9282,
+        "min": 0.85,
+        "pass": true
+      },
+      "quads_vs_target": {
+        "value": 4200,
+        "target": 4000,
+        "tolerance": 0.2,
+        "pass": true
+      },
+      "texture_filled": {
+        "value": 0.482,
+        "min": 0.3,
+        "pass": true
+      },
+      "passed": true
+    }
   },
-  "made": "2026-09-29T11:33:36Z"
+  "made": "2026-09-29T12:22:14Z"
 }
