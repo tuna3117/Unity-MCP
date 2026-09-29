@@ -40,8 +40,7 @@ namespace Project.Editor.AITools
         private static string _result = "";
         private static int _width = 540;
         private static float _startGameTime;
-        private static RenderTexture _rt;
-        private static Texture2D _tex;
+        private static FrameRecorder _recorder;
         private static int _lastGameFrame;
 
         public static object HandleCommand(JObject p)
@@ -77,7 +76,7 @@ namespace Project.Editor.AITools
             // The editor only steps the player loop while a Game view repaints; with the main window on a sleeping
             // display or behind other apps nothing advances (seen: Time.frameCount stuck at 1). So: a small floating
             // Game view on the main display + pause/Step: every editor tick runs exactly one player frame.
-            OpenFloatingGameView();
+            _floating = FrameRecorder.OpenFloatingGameView(new Rect(1040f, 70f, 380f, 700f));
             EditorApplication.isPaused = true;
             _running = true;
             EditorApplication.update -= Tick;
@@ -92,58 +91,13 @@ namespace Project.Editor.AITools
             EditorApplication.update -= Tick;
             Time.captureDeltaTime = 0f;
             EditorApplication.isPaused = false;
-            CloseFloatingGameView();
-            if (_rt != null) { _rt.Release(); UnityEngine.Object.DestroyImmediate(_rt); _rt = null; }
-            if (_tex != null) { UnityEngine.Object.DestroyImmediate(_tex); _tex = null; }
+            FrameRecorder.CloseFloatingGameView(_floating);
+            _floating = null;
+            _recorder?.Dispose();
+            _recorder = null;
         }
 
         private static EditorWindow _floating;
-
-        private static void OpenFloatingGameView()
-        {
-            try
-            {
-                var type = Type.GetType("UnityEditor.GameView,UnityEditor");
-                if (type == null) return;
-                _floating = ScriptableObject.CreateInstance(type) as EditorWindow;
-                if (_floating == null) return;
-                _floating.titleContent = new GUIContent("Game (record)");
-                _floating.ShowUtility();
-                _floating.position = new Rect(1040f, 70f, 380f, 700f);
-                _floating.Repaint();
-            }
-            catch (Exception e) { Debug.LogWarning("[AI Tools] floating game view: " + e.Message); }
-        }
-
-        private static void CloseFloatingGameView()
-        {
-            try { if (_floating != null) { _floating.Close(); _floating = null; } }
-            catch (Exception e) { Debug.LogWarning("[AI Tools] close floating game view: " + e.Message); }
-        }
-
-        /// <summary>Render the main camera into an offscreen texture and write a PNG — no Game view focus needed.</summary>
-        private static void Capture(string path)
-        {
-            var cam = Camera.main;
-            if (cam == null) return;
-            int w = _width, h = Mathf.RoundToInt(_width / Mathf.Max(0.1f, cam.aspect));
-            if (_rt == null || _rt.width != w || _rt.height != h)
-            {
-                if (_rt != null) { _rt.Release(); UnityEngine.Object.DestroyImmediate(_rt); }
-                _rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
-                _tex = new Texture2D(w, h, TextureFormat.RGB24, false);
-            }
-            var prev = cam.targetTexture;
-            cam.targetTexture = _rt;
-            cam.Render();
-            cam.targetTexture = prev;
-            var active = RenderTexture.active;
-            RenderTexture.active = _rt;
-            _tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
-            _tex.Apply(false);
-            RenderTexture.active = active;
-            File.WriteAllBytes(path, _tex.EncodeToPNG());
-        }
 
         private static void Tick()
         {
@@ -168,7 +122,9 @@ namespace Project.Editor.AITools
                         // Physics time: in pause/Step mode Time.time barely advances (~4 ms per step), round.Elapsed is the real clock.
                         float t = round.Elapsed;
                         string path = Path.Combine(_dir, $"f_{_captured:0000}_t{t:0.000}_b{round.BasketCount}.png");
-                        Capture(path);
+                        if (_recorder == null && Camera.main != null)
+                            _recorder = new FrameRecorder(Camera.main, _width, Camera.main.aspect, false);
+                        _recorder?.Capture(path);
                         _captured++;
                     }
                     _frame++;
