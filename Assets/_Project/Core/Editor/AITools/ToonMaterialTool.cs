@@ -56,15 +56,19 @@ namespace Project.Editor.AITools
             materialPath = string.IsNullOrEmpty(materialPath)
                 ? Path.ChangeExtension(prefabPath, null).Replace('\\', '/') + "_Toon.mat"
                 : materialPath;
+            // Set everything before the material reaches the disk: saving the prefab can reload a just-created
+            // material from its file, and a base map set only in memory was lost on every second reuse of a path.
             var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (material == null)
-            {
-                material = new Material(shader);
-                AssetDatabase.CreateAsset(material, materialPath);
-            }
+            bool created = material == null;
+            if (created) material = new Material(shader);
             else material.shader = shader;
             if (baseMap != null) material.SetTexture("_BaseMap", baseMap);
-            EditorUtility.SetDirty(material);
+            if (created) AssetDatabase.CreateAsset(material, materialPath);
+            else
+            {
+                EditorUtility.SetDirty(material);
+                AssetDatabase.SaveAssetIfDirty(material);
+            }
 
             var root = PrefabUtility.LoadPrefabContents(prefabPath);
             try
