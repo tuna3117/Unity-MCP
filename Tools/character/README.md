@@ -1,5 +1,7 @@
 # Character pipeline (image → mesh → rig → animation → Unity)
 
+> **Since 2026-09-29 steps 1–2 live in copy** (`~/projects/copy`: `cli/gorunum.ts` for front/side/back views, `cli/mesh.ts --model trellis|hunyuan|rodin` for image-to-3D, both with the spend ledger `cikti/harcama.jsonl` and `--tavan`), and clean-up/retopo/texture in the Blender workshop (`character_model`, see its `CLAUDE.md` §5b). Rig (step 3/3b) and motion (step 4) stay here until the rig + animation sub-project. Run `fix_rig_glb.py` with `~/.local/bin/uv run --with numpy python fix_rig_glb.py …` (system Python has no numpy). First hero through the new line: `Assets/_Project/Games/Pota/Prefabs/PotaHeroToon.prefab`.
+
 Scripts that turn a single reference image into an animated Humanoid character for Unity, using Replicate models.
 Paid outputs land in `out/` (git-ignored, keep them) with a `<name>.koken.json` provenance file each (tracked).
 Token: `REPLICATE_API_TOKEN` env or `~/projects/copy/.env`.

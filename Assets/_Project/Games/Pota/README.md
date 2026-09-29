@@ -9,7 +9,7 @@ Pota üzerinde çalışırken bu dosyayı oku ve güncel tut. Genel kurallar ve 
 - `Scripts/` → `Pota.Runtime` (`Project.Runtime`'a bağlı; ad alanları `Project.Basket`, `Project.Basket.Visual`, `Project.ColorHunt`)
 - `Editor/` → `Pota.Editor` (sahne kurma, tarama, kayıt, doku, karakter araçları; ad alanı `Project.Editor.AITools`)
 - `Tests/EditMode` → `Pota.Tests.EditMode`, `Tests/PlayMode` → `Pota.Tests.PlayMode`
-- `Scenes/` (Basket, ColorHunt: ikisi de Build Settings'te), `Settings/` (ayar asset'leri + fizik malzemeleri), `Art/` (Pota'dan kopyalanan görseller, `Art/Generated` üretilmiş basketbol dokusu, `Art/Fonts`, `Art/Mesh`, `Art/Anim`), `Prefabs/` (PlayerCharacter), `Anim/` (AnimatorController), `Shaders/` (`Project/TextDepth`)
+- `Scenes/` (Basket, ColorHunt: ikisi de Build Settings'te), `Settings/` (ayar asset'leri + fizik malzemeleri), `Art/` (Pota'dan kopyalanan görseller, `Art/Generated` üretilmiş basketbol dokusu, `Art/Fonts`, `Art/Mesh`, `Art/Anim`), `Prefabs/` (PlayerCharacter, PotaHeroToon), `Art/Characters/` (Blender teslimleri), `Anim/` (AnimatorController), `Shaders/` (`Project/TextDepth`)
 - Ortak juice bileşenleri (`CameraShake`, `TimeScaleController`, `PopupText`, `SynthSfx`) artık Core'da, ad alanı `Project.Juice`. VFX: `Project.VFX.VfxService` (Core). Kod içinden tip adı: `"Project.Basket.BasketRound, Pota.Runtime"`.
 - Oyun profili: `PotaProfile.asset` (Game view 1170×2532 = yeni iPhone oranı; ürün adı "Pota Unity", bundle id `com.tunaaltin.pota.unity`, yani gerçek Pota'dan (`com.tunaaltin.pota`) ayrı bir uygulama; Apple takımı `BJPL5XNDLV` (Pota'nın Xcode projesinden); sahneler Basket, ColorHunt).
 - Testler: EditMode kurallar (`AimMapper`, `TrajectorySolver`, `LevelRules`, `RoundRules`, `ColorHuntRules`); PlayMode `BasketRoundPlayTests` (2 atış), `ColorHuntPlayTests` (3 dokunuş: animasyon biter, cephane düşer, HUD yetişir, hedef azalır). Core'daki `SceneBootTests` iki sahneyi de açıp 3 sn hatasız çalıştırır.
@@ -37,6 +37,12 @@ Sahne `Scenes/ColorHunt.unity`, kod `Scripts/ColorHunt/` (saf kural `ColorHuntRu
 
 Karakter hattının kendisi atölyenin parçası (`Tools/character/README.md`, özet `docs/2026-09-25-character-pipeline.md`). Pota'daki sonuç: `Prefabs/PlayerCharacter.prefab` (rig `Art/Mesh/player_rig_a.glb` + `.avatar.asset`, controller `Anim/PlayerCharacter.controller`), klipler `Art/Anim/player_*.fbx`. `BasketSettings.PlayerPrefab` buna bağlı, `PlayerActor` Shoot'u `PlayerShootClipStart`'tan oynatır. Koşu/smaç klipleri controller'da var, oyun tetiklemiyor.
 
+### Yeni toon kahraman (2026-09-29, karşılaştırma için)
+
+`Prefabs/PotaHeroToon.prefab` (+ `PotaHeroToon_Toon.mat`, controller `Anim/PotaHeroToon.controller`, rig `Art/Characters/pota-hero/pota-hero_rig.glb` + `.avatar.asset`). Nasıl yapıldı: aynı `apose2` ön görselinden Rodin Gen-2 modeli → Blender `character_model` (8400 üçgen, kapalı mesh, 12 renkli doku; teslim `Art/Characters/pota-hero/`) → Uthana otomatik iskelet → `ai_character_setup` → `ai_toon_material` (Core `Project/Toon`: iki tonlu gölge, kenar parlaması, dış hat). Aynı `player_*` kliplerini oynar; kemik yükseklikleri eski oyuncuyla ±2 cm. Karşılaştırma görüntüleri `docs/screenshots/2026-09-29-pota-hero-toon{,-close}.jpg`, model raporu `~/projects/Blender MCP/docs/reports/character-model-comparison.md`.
+
+- **Oyundaki oyuncunun yerine geçmedi.** Değiştirmek Tuna'nın kararı: `BasketSettings.PlayerPrefab`'i `PotaHeroToon` yapmak yeterli (ölçek ve klip başlangıcı aynı).
+- Bilinen kusurlar: saçta iki tonlu yama (Blender backlog B10), parmaklarda koyu dış hat çizgileri.
 - `ai_character_setup` (`Editor/CharacterSetupTool.cs`) varsayılanları Pota'ya göre (klip adları `player_*`, `BasketSettings.PlayerPrefab` ataması), o yüzden burada duruyor. İkinci bir oyun karakter isterse varsayılanları parametreye çevirip Core'a taşı.
 
 ## Telefonda deneme (iPhone)
