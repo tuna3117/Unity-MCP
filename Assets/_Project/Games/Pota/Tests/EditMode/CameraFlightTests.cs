@@ -8,7 +8,7 @@ namespace Project.Tests
     {
         // Level 20, 9:16: basket end pose over the cage, side vista, board fit at BoardAnchor (0, 8.5, 30).
         private static readonly CamPose End = new CamPose(new Vector3(0f, -21.78f, 13.5f), new Vector3(0f, -23.18f, 0f), 60f);
-        private static readonly CamPose Mid = new CamPose(new Vector3(9.5f, 2.6f, 9f), new Vector3(0f, 1.6f, 6.6f), 46f);   // vista on the hero
+        private static readonly CamPose Mid = new CamPose(new Vector3(8.5f, 4f, 4.5f), new Vector3(0.7f, 1f, 7.15f), 46f);   // vista on the hero and his basket
         private static readonly CamPose Board = new CamPose(new Vector3(0f, 8.35f, 5.15f), new Vector3(0f, 8.35f, 30f), 34f);
         private static readonly CamPose Aim = new CamPose(new Vector3(0f, 2.6f, 11f), new Vector3(0f, 3f, 0f), 60f);
         // PotaFlowSettings defaults: court 15 × 28 m from z 8.4, top at y 0, 0.4 m thick; +0.5 m margin all round.
@@ -77,6 +77,20 @@ namespace Project.Tests
                 Assert.IsFalse(Court.Contains(CameraFlight.Evaluate(End, Mid, Board, i / 400f).Pos), $"forward u={i / 400f}");
                 Assert.IsFalse(Court.Contains(CameraFlight.Evaluate(Board, Mid, Aim, i / 400f).Pos), $"return u={i / 400f}");
             }
+        }
+
+        [Test]
+        public void LookLead_TurnsTowardTheBoardEarly_WithoutMovingTheEnds()
+        {
+            float split = CameraFlight.Split(End, Mid, Board);
+            AssertSame(Board, CameraFlight.Evaluate(End, Mid, Board, 1f, 1f));
+            AssertSame(Mid, CameraFlight.Evaluate(End, Mid, Board, split, 1f));
+            float u = split + (1f - split) * 0.4f;
+            var plain = CameraFlight.Evaluate(End, Mid, Board, u);
+            var lead = CameraFlight.Evaluate(End, Mid, Board, u, 1f);
+            Assert.Less(Vector3.Distance(plain.Pos, lead.Pos), 1e-4f, "only the look leads");
+            Assert.Less(Mathf.Abs(Mathf.DeltaAngle(lead.Yaw, Board.Yaw)), Mathf.Abs(Mathf.DeltaAngle(plain.Yaw, Board.Yaw)) - 5f,
+                "with a lead the camera already faces the board more");
         }
 
         [Test]

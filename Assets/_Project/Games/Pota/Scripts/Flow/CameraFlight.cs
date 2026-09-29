@@ -36,13 +36,23 @@ namespace Project.Flow
     /// </summary>
     public static class CameraFlight
     {
-        public static CamPose Evaluate(CamPose a, CamPose mid, CamPose b, float u)
+        /// <param name="lookLead">
+        /// After mid, the look point runs ahead of the eye (ease-out with this exponent): the camera turns toward b early
+        /// instead of sweeping empty sky. 0 = look and eye move together.
+        /// </param>
+        public static CamPose Evaluate(CamPose a, CamPose mid, CamPose b, float u, float lookLead = 0f)
         {
             if (u <= 0f) return a;
             if (u >= 1f) return b;
             float split = Split(a, mid, b);
             var pos = Through(a.Pos, mid.Pos, b.Pos, u, split);
-            var look = Through(a.Look, mid.Look, b.Look, u, split);
+            float uLook = u;
+            if (lookLead > 0f && u > split)
+            {
+                float s2 = (u - split) / (1f - split);
+                uLook = split + (1f - split) * (1f - Mathf.Pow(1f - s2, 1f + lookLead));
+            }
+            var look = Through(a.Look, mid.Look, b.Look, uLook, split);
             float fov = u < split
                 ? Mathf.Lerp(a.Fov, mid.Fov, Smooth(u / split))
                 : Mathf.Lerp(mid.Fov, b.Fov, Smooth((u - split) / (1f - split)));

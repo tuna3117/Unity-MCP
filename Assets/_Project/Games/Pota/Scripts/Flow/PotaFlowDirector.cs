@@ -102,6 +102,7 @@ namespace Project.Flow
             Stream.BallRadius = S.BallRadius;
             Stream.ApexAbove = S.ApexAbove;
             Stream.LaunchKick = S.LaunchKick;
+            Stream.EndLean = S.BinEndLean;
             Stream.Prewarm(S.Timing.MaxVisible);
             Stream.Launched += OnLaunched;
             Stream.Landed += OnLanded;
@@ -247,7 +248,7 @@ namespace Project.Flow
 
             var p2 = BoardPose();
             _camU = tl.CameraProgress(t, CameraFlight.Split(_p0, _p1, p2));
-            var pose = CameraFlight.Evaluate(_p0, _p1, p2, _camU);
+            var pose = CameraFlight.Evaluate(_p0, _p1, p2, _camU, S.LookLead);
             float settle = tl.SettleAt(t);
             if (settle >= 0f) pose = CameraFlight.Settle(p2, settle, S.SettleAmount);
             if (t < T.HighlightEnd) pose.Fov -= S.FovPunch * Mathf.Sin(Mathf.PI * t / T.HighlightEnd);

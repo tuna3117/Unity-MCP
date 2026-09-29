@@ -11,7 +11,7 @@ namespace Project.Tests
     {
         // Level 20 cage mouth front; basket beside the hero (hero at (0, 0, 6.8), terrace rail at z 6.05, y 0.9).
         private static readonly Vector3 Mouth = new Vector3(0f, -20.65f, 1.6f);
-        private static readonly Vector3 BinPos = new Vector3(1.5f, 0f, 7.0f);
+        private static readonly Vector3 BinPos = new Vector3(1.4f, 0f, 7.5f);
         private GameObject _root;
 
         [TearDown]
@@ -69,14 +69,17 @@ namespace Project.Tests
                     float apex = Mathf.Max(Mouth.y, entry.y) + s.ApexAbove;
                     for (int k = 0; k <= 400; k++)
                     {
-                        var p = BallStream.PathPoint(Mouth, entry, apex, s.LaunchKick, k / 400f);
+                        var p = BallStream.PathPoint(Mouth, entry, apex, s.LaunchKick, k / 400f, s.BinEndLean);
                         if (p.z >= 5.8f && p.z <= 6.3f && Mathf.Abs(p.x) < 3.6f) Assert.Greater(p.y, 1.2f, $"ball {i} hits the rail");
                         float toHero = new Vector2(p.x, p.z - 6.8f).magnitude;
                         if (toHero < 0.6f) Assert.Greater(p.y, 2.2f, $"ball {i} goes through the hero");
                         if (p.y < 0f) Assert.Less(p.z, 5.8f, $"ball {i} under the terrace");
                     }
-                    var d = (entry - BallStream.PathPoint(Mouth, entry, apex, s.LaunchKick, 0.97f)).normalized;
-                    Assert.Less(d.y, -0.9f, $"ball {i} must drop into the basket from above");
+                    var d = (entry - BallStream.PathPoint(Mouth, entry, apex, s.LaunchKick, 0.97f, s.BinEndLean)).normalized;
+                    Assert.Less(d.y, -0.85f, $"ball {i} must drop into the basket from above");
+                    var dir = new Vector2(entry.x - Mouth.x, entry.z - Mouth.z).normalized;
+                    Assert.Greater(new Vector2(d.x, d.z).magnitude, 0.2f, $"ball {i} must come in on a slant, not stack in a vertical column");
+                    Assert.Greater(Vector2.Dot(new Vector2(d.x, d.z).normalized, dir), 0.5f, $"ball {i} slants the wrong way");
                     Assert.IsTrue(bin.InnerBounds.Contains(entry - Vector3.up * 0.3f), $"ball {i} entry not over the basket");
                 }
             }

@@ -20,6 +20,8 @@ namespace Project.Flow
         [Tooltip("Extra apex per ball, 0..this (never lower: lower paths graze the hero).")]
         public float ApexJitter = 1.2f;
         public Vector3 LaunchKick = new Vector3(0f, 0f, 0.8f);
+        [Tooltip("Pulls the arc's last control point back along the flight: > 0 comes in on a slant instead of straight down.")]
+        public float EndLean;
         public float DropTime = 0.15f;
         [Tooltip("Source spread across the cage mouth (x ± this, z ± half of it).")]
         public float Spread = 0.6f;
@@ -118,7 +120,7 @@ namespace Project.Flow
                 if (t < land)
                 {
                     float u = (t - launch) / (land - launch);
-                    ball.position = PathPoint(_from[i], _entry[i], _apex[i], LaunchKick, u);
+                    ball.position = PathPoint(_from[i], _entry[i], _apex[i], LaunchKick, u, EndLean);
                     _trails[i].emitting = true;
                 }
                 else
@@ -146,12 +148,17 @@ namespace Project.Flow
             }
         }
 
-        /// <summary>Cubic Bézier with vertical end tangents: leaves a upward (plus kick), comes down into b; top ≈ apexY.</summary>
-        public static Vector3 PathPoint(Vector3 a, Vector3 b, float apexY, Vector3 kick, float u)
+        /// <summary>
+        /// Cubic Bézier leaving a upward (plus kick) and coming down into b — straight down when <paramref name="endLean"/>
+        /// is 0, on a slant along the flight when it is larger; top ≈ apexY.
+        /// </summary>
+        public static Vector3 PathPoint(Vector3 a, Vector3 b, float apexY, Vector3 kick, float u, float endLean = 0f)
         {
             u = Mathf.Clamp01(u);
             var p1 = a + new Vector3(0f, (apexY - a.y) * 4f / 3f, 0f) + kick;
             var p2 = b + new Vector3(0f, (apexY - b.y) * 4f / 3f, 0f);
+            var flat = new Vector3(b.x - a.x, 0f, b.z - a.z);
+            if (endLean > 0f && flat.sqrMagnitude > 1e-4f) p2 -= flat.normalized * endLean;
             float v = 1f - u;
             return v * v * v * a + 3f * v * v * u * p1 + 3f * v * u * u * p2 + u * u * u * b;
         }

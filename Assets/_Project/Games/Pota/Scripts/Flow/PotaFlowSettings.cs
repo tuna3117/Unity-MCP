@@ -23,9 +23,11 @@ namespace Project.Flow
         [Header("Camera")]
         public float BoardFov = 34f;
         [Tooltip("Vista at the end of the first camera beat: beside the roof, on the hero with the balls rising behind him.")]
-        public Vector3 MidPos = new Vector3(9.5f, 2.6f, 9f);
-        public Vector3 MidLook = new Vector3(0f, 1.6f, 6.6f);
+        public Vector3 MidPos = new Vector3(8.5f, 4f, 4.5f);
+        public Vector3 MidLook = new Vector3(0.7f, 1f, 7.15f);
         public float MidFov = 46f;
+        [Tooltip("After the vista the camera turns toward the board ahead of its move (0 = together).")]
+        public float LookLead = 1f;
         public float FovPunch = 3f;
         public float SettleAmount = 0.35f;
         public float BoardFogStart = 60f;
@@ -36,7 +38,9 @@ namespace Project.Flow
         [Tooltip("Arc top above the higher end (cage mouth or basket).")]
         public float ApexAbove = 5f;
         [Tooltip("The hero's basket on the terrace (floor centre), beside him on the camera side.")]
-        public Vector3 BinPosition = new Vector3(1.5f, 0f, 7.0f);
+        public Vector3 BinPosition = new Vector3(1.4f, 0f, 7.5f);
+        [Tooltip("Balls come into the basket on this much of a slant (0 = straight down, a stacked column).")]
+        public float BinEndLean = 2.5f;
         public Vector3 LaunchKick = new Vector3(0f, 0f, 0.8f);
 
     }
