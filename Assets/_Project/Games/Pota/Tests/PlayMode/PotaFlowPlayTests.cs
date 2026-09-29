@@ -241,6 +241,24 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator AmmoPanel_CountsWhileBallsLand_BeforeTheBoardArrives()
+        {
+            PotaFlowDirector d = null;
+            yield return Load(x => d = x);
+            var ammo = (RectTransform)d.Hud.transform.Find("AmmoPanel");
+            var targets = (RectTransform)d.Hud.transform.Find("TargetPanel");
+            d.Hud.SetIntro(1f);
+            Vector2 ammoHome = ammo.anchoredPosition, targetsHome = targets.anchoredPosition;
+            d.BeginTransition(158);
+            d.Advance(1.40f);
+            Assert.Less(Vector2.Distance(ammo.anchoredPosition, ammoHome), 1f, "ammo panel is in while balls land");
+            Assert.Greater(targets.anchoredPosition.y, targetsHome.y + 100f, "targets wait for the board");
+            Assert.That(d.Game.DisplayedAmmo, Is.InRange(1, 157), "the count is running");
+            RunTransition(d);
+            Assert.AreEqual(0f, d.Hud.transform.Find("Hint").GetComponent<Text>().color.a, 1e-4f, "hint hidden in PotaFlow");
+        }
+
+        [UnityTest]
         public IEnumerator Transition_AllocatesAlmostNothingPerFrame()
         {
             PotaFlowDirector d = null;

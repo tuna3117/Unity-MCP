@@ -74,18 +74,28 @@ namespace Project.ColorHunt
         private Color _hintHome;
         private bool _introCached;
 
+        [Tooltip("Show the how-to-play hint (PotaFlow hides it: the giant hoop's net sits there).")]
+        public bool ShowHint = true;
+
         /// <summary>Slides the HUD in (PotaFlow): p = 0 panels off-screen and hint hidden, p = 1 exactly home. Ease-out.</summary>
-        public void SetIntro(float p)
+        public void SetIntro(float p) => SetIntro(p, p);
+
+        /// <summary>Slides the ammo panel by <paramref name="ammo"/> and the rest (targets, arrows, hint) by <paramref name="rest"/>.</summary>
+        public void SetIntro(float ammo, float rest)
         {
             if (!_introCached) CacheIntro();
+            float ea = EaseOut(ammo), er = EaseOut(rest);
+            if (_introAmmo != null) _introAmmo.anchoredPosition = _homeAmmo + new Vector2(-420f * (1f - ea), 0f);
+            if (_introTargets != null) _introTargets.anchoredPosition = _homeTargets + new Vector2(0f, 320f * (1f - er));
+            if (_introLeft != null) _introLeft.anchoredPosition = _homeLeft + new Vector2(0f, -340f * (1f - er));
+            if (_introRight != null) _introRight.anchoredPosition = _homeRight + new Vector2(0f, -340f * (1f - er));
+            if (_hint != null) { var c = _hintHome; c.a *= ShowHint ? er : 0f; _hint.color = c; }
+        }
+
+        private static float EaseOut(float p)
+        {
             p = Mathf.Clamp01(p);
-            float e = 1f - (1f - p) * (1f - p) * (1f - p);
-            float away = 1f - e;
-            if (_introAmmo != null) _introAmmo.anchoredPosition = _homeAmmo + new Vector2(-420f * away, 0f);
-            if (_introTargets != null) _introTargets.anchoredPosition = _homeTargets + new Vector2(0f, 320f * away);
-            if (_introLeft != null) _introLeft.anchoredPosition = _homeLeft + new Vector2(0f, -340f * away);
-            if (_introRight != null) _introRight.anchoredPosition = _homeRight + new Vector2(0f, -340f * away);
-            if (_hint != null) { var c = _hintHome; c.a *= e; _hint.color = c; }
+            return 1f - (1f - p) * (1f - p) * (1f - p);
         }
 
         private void CacheIntro()

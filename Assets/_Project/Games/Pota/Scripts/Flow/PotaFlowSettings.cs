@@ -22,9 +22,10 @@ namespace Project.Flow
 
         [Header("Camera")]
         public float BoardFov = 34f;
-        public Vector3 MidPos = new Vector3(13f, 7f, 17f);
-        public Vector3 MidLook = new Vector3(0f, 8f, 15f);
-        public float MidFov = 52f;
+        [Tooltip("Vista at the end of the first camera beat: beside the roof, on the hero with the balls rising behind him.")]
+        public Vector3 MidPos = new Vector3(10f, 3.5f, 12f);
+        public Vector3 MidLook = new Vector3(0f, 2.2f, 6.2f);
+        public float MidFov = 50f;
         public float FovPunch = 3f;
         public float SettleAmount = 0.35f;
         public float BoardFogStart = 60f;

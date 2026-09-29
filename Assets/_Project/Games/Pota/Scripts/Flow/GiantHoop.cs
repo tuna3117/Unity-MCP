@@ -118,7 +118,7 @@ namespace Project.Flow
         /// <summary>Frame and rim glow 0 → 1 (HDR emission: blooms at the top).</summary>
         public void SetGlow(float g)
         {
-            var c = FrameColor * (0.15f + 2.4f * Mathf.Clamp01(g));
+            var c = FrameColor * (0.15f + 1.2f * Mathf.Clamp01(g));
             _frameMat.SetColor("_EmissionColor", c);
             _rimMat.SetColor("_EmissionColor", c);
         }

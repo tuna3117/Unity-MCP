@@ -16,25 +16,32 @@ MonoBehaviour:
   Timing:
     HighlightEnd: 0.3
     LaunchStart: 0.25
-    LaunchInterval: 0.035
+    LaunchInterval: 0.025
     MaxVisible: 25
-    FirstLand: 1.15
-    LastLand: 2.2
+    FirstLand: 1.05
+    LastLand: 1.7
     CameraStart: 0.3
+    CameraMid: 1.1
+    CameraResume: 1.2
     CameraEnd: 1.9
     SettleTime: 0.12
-    HeroStart: 0.4
-    HeroEnd: 0.9
+    HeroStart: 0.95
+    HeroEnd: 1.35
     RevealStart: 1.75
     RingInterval: 0.07
     PopTime: 0.28
     FrameGlowTime: 0.4
+    AmmoStart: 0.95
+    AmmoTime: 0.3
     HudStart: 1.9
     HudTime: 0.35
+    CountStart: 0.95
     CountEnd: 2.2
     BadgeDockEnd: 0.8
-    BadgeFlyStart: 1.95
-    BadgeFlyEnd: 2.3
+    BadgeFlyStart: 1
+    BadgeFlyEnd: 1.25
+    BadgeFlyStartSimple: 1.95
+    BadgeFlyEndSimple: 2.3
     Ready: 2.5
     MinSkipSpeed: 6
     MaxSkipSeconds: 0.35
@@ -46,9 +53,9 @@ MonoBehaviour:
   CourtColor: {r: 0.851, g: 0.467, b: 0.227, a: 1}
   CourtLineColor: {r: 1, g: 1, b: 1, a: 1}
   BoardFov: 34
-  MidPos: {x: 13, y: 7, z: 17}
-  MidLook: {x: 0, y: 8, z: 15}
-  MidFov: 52
+  MidPos: {x: 10, y: 3.5, z: 12}
+  MidLook: {x: 0, y: 2.2, z: 6.2}
+  MidFov: 50
   FovPunch: 3
   SettleAmount: 0.35
   BoardFogStart: 60

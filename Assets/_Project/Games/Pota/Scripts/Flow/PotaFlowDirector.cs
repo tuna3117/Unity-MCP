@@ -61,7 +61,7 @@ namespace Project.Flow
         private CamPose _p0, _p1, _back;
         private Vector3 _source;
         private Vector2 _cageViewport;
-        private float _fogStart0, _fogEnd0, _skipSpeed, _lastT;
+        private float _fogStart0, _fogEnd0, _skipSpeed, _lastT, _camU;
         private bool _skipping, _heroShown, _badgeMerged, _revealSounded, _built;
         private Quaternion _heroRot0 = Quaternion.identity;
         private int _shownCount;
@@ -76,6 +76,7 @@ namespace Project.Flow
             if (BasketHud != null) BasketHud.ShowResultPanel = false;
             Hud.RetryOverride = () => ReturnToBasket();
             Hud.SetRetryLabel("Tekrar at");
+            Hud.ShowHint = false;          // the giant hoop's net sits where the how-to hint goes
             Hud.SetIntro(0f);
 
             CourtBuilder.Build(transform, S);
@@ -218,13 +219,14 @@ namespace Project.Flow
             var T = S.Timing;
 
             var p2 = BoardPose();
-            var pose = CameraFlight.Evaluate(_p0, _p1, p2, tl.CameraProgress(t));
+            _camU = tl.CameraProgress(t, CameraFlight.Split(_p0, _p1, p2));
+            var pose = CameraFlight.Evaluate(_p0, _p1, p2, _camU);
             float settle = tl.SettleAt(t);
             if (settle >= 0f) pose = CameraFlight.Settle(p2, settle, S.SettleAmount);
             if (t < T.HighlightEnd) pose.Fov -= S.FovPunch * Mathf.Sin(Mathf.PI * t / T.HighlightEnd);
             ApplyPose(pose);
 
-            float f = tl.CameraProgress(t);
+            float f = _camU;
             RenderSettings.fogStartDistance = Mathf.Lerp(_fogStart0, S.BoardFogStart, f);
             RenderSettings.fogEndDistance = Mathf.Lerp(_fogEnd0, S.BoardFogEnd, f);
             if (_basketCanvas != null) _basketCanvas.enabled = t < T.CameraStart;
@@ -248,7 +250,7 @@ namespace Project.Flow
             Hoop.SetGlow(glow);
             GlowBoardFrame(glow);
             if (!_revealSounded && t >= T.RevealStart) { _revealSounded = true; Sfx?.Play("multiply"); }
-            Hud.SetIntro(tl.HudProgress(t));
+            Hud.SetIntro(tl.AmmoProgress(t), tl.HudProgress(t));
         }
 
         private void PlaceBadge(float t)
@@ -259,7 +261,7 @@ namespace Project.Flow
             float dock = tl.BadgeDock(t), fly = tl.BadgeFly(t);
             var dockPt = new Vector2(0.5f, stream ? 0.84f : 0.62f);
             var p = Vector2.Lerp(Vector2.Lerp(_cageViewport, dockPt, dock), Hud.AmmoViewportPoint, fly);
-            float flying = stream ? 0.72f : 1.15f + 0.12f * Mathf.Sin(Mathf.PI * tl.CameraProgress(t));
+            float flying = stream ? 0.72f : 1.15f + 0.12f * Mathf.Sin(Mathf.PI * _camU);
             float scale = t < S.Timing.HighlightEnd ? tl.HighlightScale(t) : Mathf.Lerp(1f, flying, dock) * Mathf.Lerp(1f, 0.45f, fly);
             float alpha = 1f - Mathf.Clamp01((fly - 0.7f) / 0.3f);
             Badge.Place(p, scale, alpha);
@@ -351,7 +353,7 @@ namespace Project.Flow
                 _boardFrameMat = r.sharedMaterial;          // runtime material shared by the four frame bars
                 _boardFrameMat.EnableKeyword("_EMISSION");
             }
-            _boardFrameMat.SetColor("_EmissionColor", Game.S.FrameColor * (1.8f * g));
+            _boardFrameMat.SetColor("_EmissionColor", Game.S.FrameColor * (0.9f * g));
         }
 
         private void OnLaunched(int i)

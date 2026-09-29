@@ -59,11 +59,11 @@ namespace Project.Tests
             var tl = new FlowTimeline(T, 158, FlowCandidate.Stream);
             Assert.AreEqual(25, tl.Visible);
             Assert.AreEqual(0.25f, tl.LaunchTime(0), 1e-5f);
-            Assert.LessOrEqual(tl.LaunchTime(24), 1.10f + 1e-4f);
-            Assert.AreEqual(1.15f, tl.LandTime(0), 1e-5f);
-            Assert.AreEqual(2.20f, tl.LandTime(24), 1e-4f);
+            Assert.LessOrEqual(tl.LaunchTime(24), 0.85f + 1e-4f);
+            Assert.AreEqual(1.05f, tl.LandTime(0), 1e-5f);
+            Assert.AreEqual(1.70f, tl.LandTime(24), 1e-4f);
             for (int i = 0; i < 25; i++)
-                Assert.Greater(tl.LandTime(i) - tl.LaunchTime(i), 0.85f, $"ball {i} flight too short");
+                Assert.Greater(tl.LandTime(i) - tl.LaunchTime(i), 0.75f, $"ball {i} flight too short");
             Assert.AreEqual(3, new FlowTimeline(T, 3, FlowCandidate.Stream).Visible);
             Assert.AreEqual(0, new FlowTimeline(T, 158, FlowCandidate.Simple).Visible, "B has no ball stream");
             Assert.AreEqual(0, new FlowTimeline(T, 0, FlowCandidate.Stream).Visible);
@@ -78,18 +78,50 @@ namespace Project.Tests
         }
 
         [Test]
-        public void Camera_StartsAfterTheHighlight_AndArrivesAt190()
+        public void Camera_RisesToTheVista_Pauses_ThenFliesToTheBoard()
         {
             var tl = new FlowTimeline(T, 158, FlowCandidate.Stream);
-            Assert.AreEqual(0f, tl.CameraProgress(0.30f), 1e-6f);
-            Assert.AreEqual(1f, tl.CameraProgress(1.90f), 1e-6f);
+            const float split = 0.68f;
+            Assert.AreEqual(0f, tl.CameraProgress(0.30f, split), 1e-6f);
+            Assert.AreEqual(split, tl.CameraProgress(T.CameraMid, split), 1e-5f, "first beat ends on the vista");
+            Assert.AreEqual(split, tl.CameraProgress((T.CameraMid + T.CameraResume) * 0.5f, split), 1e-5f, "short hold on the vista");
+            Assert.AreEqual(1f, tl.CameraProgress(1.90f, split), 1e-6f);
             float prev = 0f;
             for (float t = 0f; t <= 2.5f; t += 0.01f)
             {
-                float u = tl.CameraProgress(t);
+                float u = tl.CameraProgress(t, split);
                 Assert.GreaterOrEqual(u, prev - 1e-6f);
                 prev = u;
             }
+        }
+
+        [Test]
+        public void Landings_FinishBeforeTheBoardAppears()
+        {
+            var tl = new FlowTimeline(T, 158, FlowCandidate.Stream);
+            Assert.LessOrEqual(tl.LandTime(tl.Visible - 1), T.RevealStart, "falling balls would hide the board's entrance");
+        }
+
+        [Test]
+        public void AmmoPanel_IsInBeforeTheCountRuns_TheRestComesWithTheBoard()
+        {
+            var tl = new FlowTimeline(T, 158, FlowCandidate.Stream);
+            Assert.LessOrEqual(T.AmmoStart, T.FirstLand, "the count must be readable while balls land");
+            Assert.AreEqual(1f, tl.AmmoProgress(T.AmmoStart + T.AmmoTime), 1e-5f);
+            Assert.AreEqual(0f, tl.HudProgress(T.AmmoStart + T.AmmoTime), 1e-5f, "targets and arrows wait for the board");
+            var b = new FlowTimeline(T, 158, FlowCandidate.Simple);
+            Assert.AreEqual(0, b.CountAt(T.CountStart));
+            Assert.Greater(b.CountAt(T.AmmoStart + T.AmmoTime), 0, "B counts while the panel is in");
+        }
+
+        [Test]
+        public void Badge_FliesEarlyInA_AtArrivalInB()
+        {
+            var a = new FlowTimeline(T, 158, FlowCandidate.Stream);
+            var b = new FlowTimeline(T, 158, FlowCandidate.Simple);
+            Assert.AreEqual(1f, a.BadgeFly(T.BadgeFlyEnd), 1e-5f);
+            Assert.AreEqual(0f, b.BadgeFly(T.BadgeFlyEnd), 1e-5f);
+            Assert.AreEqual(1f, b.BadgeFly(T.BadgeFlyEndSimple), 1e-5f);
         }
 
         [Test]

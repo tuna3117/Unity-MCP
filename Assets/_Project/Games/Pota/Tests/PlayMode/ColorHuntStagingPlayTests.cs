@@ -102,6 +102,28 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator SetIntro_CanBringTheAmmoPanelFirst_AndHideTheHint()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return LoadPlaying((g, h) => { game = g; hud = h; });
+            var ammo = (RectTransform)hud.transform.Find("AmmoPanel");
+            var targets = (RectTransform)hud.transform.Find("TargetPanel");
+            var hint = hud.transform.Find("Hint").GetComponent<Text>();
+            Vector2 ammoHome = ammo.anchoredPosition, targetsHome = targets.anchoredPosition;
+            hud.SetIntro(1f, 0f);
+            Assert.AreEqual(ammoHome, ammo.anchoredPosition, "ammo panel in");
+            Assert.Greater(targets.anchoredPosition.y, targetsHome.y + 250f, "targets still out");
+            Assert.AreEqual(0f, hint.color.a, 1e-4f);
+            hud.ShowHint = false;
+            hud.SetIntro(1f, 1f);
+            Assert.AreEqual(targetsHome, targets.anchoredPosition);
+            Assert.AreEqual(0f, hint.color.a, 1e-4f, "PotaFlow hides the hint (the net sits there)");
+            hud.ShowHint = true;
+            hud.SetIntro(1f);
+            Assert.Greater(hint.color.a, 0.5f);
+        }
+
+        [UnityTest]
         public IEnumerator CameraFit_FollowsTheAnchor()
         {
             ColorHuntGame game = null; ColorHuntHud hud = null;

@@ -23,7 +23,7 @@ namespace Project.Flow
         public float DropTime = 0.15f;
         [Tooltip("Source spread across the cage mouth (x ± this, z ± half of it).")]
         public float Spread = 0.6f;
-        public Color TrailColor = new Color(1f, 0.62f, 0.25f, 0.8f);
+        public Color TrailColor = new Color(1f, 0.62f, 0.25f, 0.45f);
 
         public event Action<int> Launched;
         public event Action<int> Landed;
@@ -61,7 +61,7 @@ namespace Project.Flow
                 trail.sharedMaterial = trailMat;
                 trail.time = 0.12f;
                 trail.minVertexDistance = 0.05f;
-                trail.widthMultiplier = BallRadius * 1.4f;
+                trail.widthMultiplier = BallRadius * 0.9f;
                 trail.widthCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
                 trail.startColor = TrailColor;
                 trail.endColor = new Color(TrailColor.r, TrailColor.g, TrailColor.b, 0f);

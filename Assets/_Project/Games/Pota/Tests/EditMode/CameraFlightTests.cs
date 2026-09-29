@@ -8,7 +8,7 @@ namespace Project.Tests
     {
         // Level 20, 9:16: basket end pose over the cage, side vista, board fit at BoardAnchor (0, 8.5, 30).
         private static readonly CamPose End = new CamPose(new Vector3(0f, -21.78f, 13.5f), new Vector3(0f, -23.18f, 0f), 60f);
-        private static readonly CamPose Mid = new CamPose(new Vector3(13f, 7f, 17f), new Vector3(0f, 8f, 15f), 52f);
+        private static readonly CamPose Mid = new CamPose(new Vector3(10f, 3.5f, 12f), new Vector3(0f, 2.2f, 6.2f), 50f);   // vista on the hero
         private static readonly CamPose Board = new CamPose(new Vector3(0f, 8.35f, 5.15f), new Vector3(0f, 8.35f, 30f), 34f);
         private static readonly CamPose Aim = new CamPose(new Vector3(0f, 2.6f, 11f), new Vector3(0f, 3f, 0f), 60f);
         // PotaFlowSettings defaults: court 15 × 28 m from z 8.4, top at y 0, 0.4 m thick; +0.5 m margin all round.
@@ -65,7 +65,7 @@ namespace Project.Tests
             for (int i = 0; i <= 200; i++)
             {
                 float fov = CameraFlight.Evaluate(End, Mid, Board, i / 200f).Fov;
-                Assert.That(fov, Is.InRange(34f - 1e-3f, 60f + 1e-3f));
+                Assert.That(fov, Is.InRange(34f - 1e-3f, 60f + 1e-3f));   // 60 → 50 → 34
             }
         }
 

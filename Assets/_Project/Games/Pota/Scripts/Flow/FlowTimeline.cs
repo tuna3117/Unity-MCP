@@ -6,7 +6,12 @@ namespace Project.Flow
     /// <summary>Which transition plays (spec §4): A "Akan toplar" (balls stream into the giant hoop) or B "Sade".</summary>
     public enum FlowCandidate { Stream, Simple }
 
-    /// <summary>Every time in the basket → board transition, in real (unscaled) seconds from the basket round's end.</summary>
+    /// <summary>
+    /// Every time in the basket → board transition, in real (unscaled) seconds from the basket round's end. Tuned from the
+    /// spec §4 table after the first recordings (2026-09-30): the balls land by 1.70 so they do not fall in front of the
+    /// board's entrance, the camera settles on the hero before flying to the board, and the ammo panel comes in first so
+    /// the count is readable while the balls land.
+    /// </summary>
     [Serializable]
     public class FlowTiming
     {
@@ -14,31 +19,44 @@ namespace Project.Flow
         public float HighlightEnd = 0.30f;
         [Header("Balls (A)")]
         public float LaunchStart = 0.25f;
-        public float LaunchInterval = 0.035f;
+        public float LaunchInterval = 0.025f;
         public int MaxVisible = 25;
-        public float FirstLand = 1.15f;
-        public float LastLand = 2.20f;
+        public float FirstLand = 1.05f;
+        public float LastLand = 1.70f;
         [Header("Camera")]
         public float CameraStart = 0.30f;
+        [Tooltip("First beat (rise to the vista on the hero) ends here.")]
+        public float CameraMid = 1.10f;
+        [Tooltip("Second beat (turn and fly to the board) starts here.")]
+        public float CameraResume = 1.20f;
         public float CameraEnd = 1.90f;
         public float SettleTime = 0.12f;
         [Header("Hero")]
-        public float HeroStart = 0.40f;
-        public float HeroEnd = 0.90f;
+        public float HeroStart = 0.95f;
+        public float HeroEnd = 1.35f;
         [Header("Board")]
         public float RevealStart = 1.75f;
         public float RingInterval = 0.07f;
         public float PopTime = 0.28f;
         public float FrameGlowTime = 0.40f;
         [Header("HUD")]
+        [Tooltip("Ammo panel slides in before the landings so the count is readable.")]
+        public float AmmoStart = 0.95f;
+        public float AmmoTime = 0.30f;
+        [Tooltip("Target panel, arrows and hint come with the board.")]
         public float HudStart = 1.90f;
         public float HudTime = 0.35f;
         [Header("Count (B)")]
+        public float CountStart = 0.95f;
         public float CountEnd = 2.20f;
         [Header("Badge")]
         public float BadgeDockEnd = 0.80f;
-        public float BadgeFlyStart = 1.95f;
-        public float BadgeFlyEnd = 2.30f;
+        [Tooltip("A: the badge flies into the ammo panel as it arrives, then the landings count up.")]
+        public float BadgeFlyStart = 1.00f;
+        public float BadgeFlyEnd = 1.25f;
+        [Tooltip("B: the badge rides with the camera and flies into the panel on arrival.")]
+        public float BadgeFlyStartSimple = 1.95f;
+        public float BadgeFlyEndSimple = 2.30f;
         [Header("End")]
         public float Ready = 2.50f;
         public float MinSkipSpeed = 6f;
@@ -93,7 +111,7 @@ namespace Project.Flow
         {
             if (Count == 0) return 0;
             if (Candidate == FlowCandidate.Stream) return (int)((long)LandedAt(t) * Count / Visible);
-            float u = Mathf.Clamp01((t - T.CameraStart) / (T.CountEnd - T.CameraStart));
+            float u = Mathf.Clamp01((t - T.CountStart) / (T.CountEnd - T.CountStart));
             return Mathf.RoundToInt(Count * u * u * (3f - 2f * u));
         }
 
@@ -107,8 +125,19 @@ namespace Project.Flow
             return Mathf.Lerp(1.25f, 1f, (u - 0.6f) / 0.4f);
         }
 
-        /// <summary>0 → 1 along the camera path, eased in and out, between CameraStart and CameraEnd.</summary>
-        public float CameraProgress(float t) => Smoother(Mathf.Clamp01((t - T.CameraStart) / (T.CameraEnd - T.CameraStart)));
+        /// <summary>
+        /// 0 → 1 along the camera path in two eased beats: 0 → <paramref name="split"/> (the vista) between CameraStart and
+        /// CameraMid, a short hold, then → 1 between CameraResume and CameraEnd. <paramref name="split"/> is the path's u at
+        /// the vista (<see cref="CameraFlight.Split"/>).
+        /// </summary>
+        public float CameraProgress(float t, float split)
+        {
+            if (t <= T.CameraStart) return 0f;
+            if (t < T.CameraMid) return split * Smoother((t - T.CameraStart) / (T.CameraMid - T.CameraStart));
+            if (t <= T.CameraResume) return split;
+            if (t >= T.CameraEnd) return 1f;
+            return split + (1f - split) * Smoother((t - T.CameraResume) / (T.CameraEnd - T.CameraResume));
+        }
 
         /// <summary>0 → 1 through the short push-and-settle after arrival; −1 outside it.</summary>
         public float SettleAt(float t) =>
@@ -138,11 +167,18 @@ namespace Project.Flow
 
         public float HudProgress(float t) => Mathf.Clamp01((t - T.HudStart) / T.HudTime);
 
+        public float AmmoProgress(float t) => Mathf.Clamp01((t - T.AmmoStart) / T.AmmoTime);
+
         /// <summary>Badge moving from the cage to its flight spot (0 → 1).</summary>
         public float BadgeDock(float t) => Smoother(Mathf.Clamp01((t - T.HighlightEnd) / (T.BadgeDockEnd - T.HighlightEnd)));
 
-        /// <summary>Badge flying into the ammo panel (0 → 1).</summary>
-        public float BadgeFly(float t) => Smoother(Mathf.Clamp01((t - T.BadgeFlyStart) / (T.BadgeFlyEnd - T.BadgeFlyStart)));
+        /// <summary>Badge flying into the ammo panel (0 → 1): early in A, on arrival in B.</summary>
+        public float BadgeFly(float t)
+        {
+            float a = Candidate == FlowCandidate.Stream ? T.BadgeFlyStart : T.BadgeFlyStartSimple;
+            float b = Candidate == FlowCandidate.Stream ? T.BadgeFlyEnd : T.BadgeFlyEndSimple;
+            return Smoother(Mathf.Clamp01((t - a) / (b - a)));
+        }
 
         /// <summary>Speed after a tap: at least MinSkipSpeed and fast enough to finish within MaxSkipSeconds.</summary>
         public float SkipSpeed(float t) => Mathf.Max(T.MinSkipSpeed, (T.Ready - t) / T.MaxSkipSeconds);
