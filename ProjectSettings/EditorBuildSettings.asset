@@ -11,5 +11,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Games/Pota/Scenes/ColorHunt.unity
     guid: 5a4c62b85fac44017ae4a9cdb0a9197b
+  - enabled: 1
+    path: Assets/_Project/Games/Pota/Scenes/PotaFlow.unity
+    guid: 40952cc6fed5943029ae8c42caf06d0b
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
