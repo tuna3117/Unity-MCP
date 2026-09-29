@@ -20,7 +20,7 @@ namespace Project.Flow
         [Header("Balls (A)")]
         public float LaunchStart = 0.25f;
         public float LaunchInterval = 0.025f;
-        public int MaxVisible = 25;
+        [Min(1)] public int MaxVisible = 25;
         public float FirstLand = 1.05f;
         public float LastLand = 1.70f;
         [Header("Camera")]
@@ -110,8 +110,8 @@ namespace Project.Flow
         public int CountAt(float t)
         {
             if (Count == 0) return 0;
-            if (Candidate == FlowCandidate.Stream) return (int)((long)LandedAt(t) * Count / Visible);
-            float u = Mathf.Clamp01((t - T.CountStart) / (T.CountEnd - T.CountStart));
+            if (Candidate == FlowCandidate.Stream && Visible > 0) return (int)((long)LandedAt(t) * Count / Visible);
+            float u = Ramp(t, T.CountStart, T.CountEnd);     // B, or A with no visible balls
             return Mathf.RoundToInt(Count * u * u * (3f - 2f * u));
         }
 
@@ -133,23 +133,24 @@ namespace Project.Flow
         public float CameraProgress(float t, float split)
         {
             if (t <= T.CameraStart) return 0f;
-            if (t < T.CameraMid) return split * Smoother((t - T.CameraStart) / (T.CameraMid - T.CameraStart));
+            if (t < T.CameraMid) return split * Smoother(Ramp(t, T.CameraStart, T.CameraMid));
             if (t <= T.CameraResume) return split;
             if (t >= T.CameraEnd) return 1f;
-            return split + (1f - split) * Smoother((t - T.CameraResume) / (T.CameraEnd - T.CameraResume));
+            return split + (1f - split) * Smoother(Ramp(t, T.CameraResume, T.CameraEnd));
         }
 
         /// <summary>0 → 1 through the short push-and-settle after arrival; −1 outside it.</summary>
         public float SettleAt(float t) =>
             t <= T.CameraEnd || t >= T.CameraEnd + T.SettleTime ? -1f : (t - T.CameraEnd) / T.SettleTime;
 
-        public float HeroTurn(float t) => Smoother(Mathf.Clamp01((t - T.HeroStart) / (T.HeroEnd - T.HeroStart)));
+        public float HeroTurn(float t) => Smoother(Ramp(t, T.HeroStart, T.HeroEnd));
 
         public float RingStart(int ring) => T.RevealStart + ring * T.RingInterval;
 
         /// <summary>Block scale of a ring: 0 before its start, overshoot to ~1.12, settle at 1 (ease-out-back, s = 1.9).</summary>
         public float RevealScale(float t, int ring)
         {
+            if (T.PopTime <= 0f) return t >= RingStart(ring) ? 1f : 0f;
             float u = (t - RingStart(ring)) / T.PopTime;
             if (u <= 0f) return 0f;
             if (u >= 1f) return 1f;
@@ -161,28 +162,32 @@ namespace Project.Flow
         /// <summary>Frame glow 0 → 1 → 0 starting with the reveal.</summary>
         public float FrameGlow(float t)
         {
+            if (T.FrameGlowTime <= 0f) return 0f;
             float u = (t - T.RevealStart) / T.FrameGlowTime;
             return u <= 0f || u >= 1f ? 0f : Mathf.Sin(u * Mathf.PI);
         }
 
-        public float HudProgress(float t) => Mathf.Clamp01((t - T.HudStart) / T.HudTime);
+        public float HudProgress(float t) => Ramp(t, T.HudStart, T.HudStart + T.HudTime);
 
-        public float AmmoProgress(float t) => Mathf.Clamp01((t - T.AmmoStart) / T.AmmoTime);
+        public float AmmoProgress(float t) => Ramp(t, T.AmmoStart, T.AmmoStart + T.AmmoTime);
 
         /// <summary>Badge moving from the cage to its flight spot (0 → 1).</summary>
-        public float BadgeDock(float t) => Smoother(Mathf.Clamp01((t - T.HighlightEnd) / (T.BadgeDockEnd - T.HighlightEnd)));
+        public float BadgeDock(float t) => Smoother(Ramp(t, T.HighlightEnd, T.BadgeDockEnd));
 
         /// <summary>Badge flying into the ammo panel (0 → 1): early in A, on arrival in B.</summary>
         public float BadgeFly(float t)
         {
             float a = Candidate == FlowCandidate.Stream ? T.BadgeFlyStart : T.BadgeFlyStartSimple;
             float b = Candidate == FlowCandidate.Stream ? T.BadgeFlyEnd : T.BadgeFlyEndSimple;
-            return Smoother(Mathf.Clamp01((t - a) / (b - a)));
+            return Smoother(Ramp(t, a, b));
         }
 
         /// <summary>Speed after a tap: at least MinSkipSpeed and fast enough to finish within MaxSkipSeconds.</summary>
-        public float SkipSpeed(float t) => Mathf.Max(T.MinSkipSpeed, (T.Ready - t) / T.MaxSkipSeconds);
+        public float SkipSpeed(float t) => Mathf.Max(T.MinSkipSpeed, (T.Ready - t) / Mathf.Max(0.01f, T.MaxSkipSeconds));
 
         public static float Smoother(float u) => u * u * u * (u * (u * 6f - 15f) + 10f);
+
+        /// <summary>0 → 1 as t goes a → b; a zero-length window (settings typed in the Inspector) is a step, never NaN.</summary>
+        public static float Ramp(float t, float a, float b) => b > a ? Mathf.Clamp01((t - a) / (b - a)) : (t >= a ? 1f : 0f);
     }
 }

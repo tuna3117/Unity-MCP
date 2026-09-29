@@ -259,6 +259,19 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator FirstTransition_BuildsNoBlocks_OnItsFirstFrame()
+        {
+            PotaFlowDirector d = null;
+            yield return Load(x => d = x);
+            yield return null;
+            yield return null;
+            int before = d.Game.GetComponentsInChildren<BlockView>(true).Length;
+            Assert.GreaterOrEqual(before, d.Game.S.Size * d.Game.S.Size, "block views are prewarmed during the basket round");
+            d.BeginTransition(158);
+            Assert.AreEqual(before, d.Game.GetComponentsInChildren<BlockView>(true).Length, "the transition's first frame created blocks");
+        }
+
+        [UnityTest]
         public IEnumerator Transition_AllocatesAlmostNothingPerFrame()
         {
             PotaFlowDirector d = null;

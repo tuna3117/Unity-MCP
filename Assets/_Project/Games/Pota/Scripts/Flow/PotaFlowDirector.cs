@@ -62,7 +62,7 @@ namespace Project.Flow
         private Vector3 _source;
         private Vector2 _cageViewport;
         private float _fogStart0, _fogEnd0, _skipSpeed, _lastT, _camU;
-        private bool _skipping, _heroShown, _badgeMerged, _revealSounded, _built;
+        private bool _skipping, _heroShown, _badgeMerged, _revealSounded, _built, _prewarmed;
         private Quaternion _heroRot0 = Quaternion.identity;
         private int _shownCount;
         private Canvas _basketCanvas, _boardCanvas;
@@ -126,6 +126,7 @@ namespace Project.Flow
         {
             if (!_built || Current != Phase.Basket || Round.Column == null) return false;
             if (Game.BoardRoot == null) { Debug.LogWarning("[PotaFlow] board not built yet"); return false; }
+            Prewarm();
             Count = Mathf.Max(0, count);
             TimeCtl?.Clear();
             Timeline = new FlowTimeline(S.Timing, Count, ActiveCandidate);
@@ -185,9 +186,20 @@ namespace Project.Flow
             return true;
         }
 
+        // The first Prepare builds every block view (GameObject, mesh, labels, collider): doing it on the transition's first
+        // frame hitches. Stage one board once, out of sight, during the basket round; later Prepares reuse the pooled views.
+        private void Prewarm()
+        {
+            if (_prewarmed || Game.BoardRoot == null) return;
+            _prewarmed = true;
+            Game.Prepare(Mathf.Max(1, Game.S.Ammo));
+            BoardReveal.Apply(Game, new FlowTimeline(S.Timing, 1, FlowCandidate.Simple), 0f);
+        }
+
         private void LateUpdate()
         {
             if (!_built) return;
+            if (!_prewarmed) Prewarm();
             if (Current == Phase.Transition && PointerPressedThisFrame()) Skip();
             Advance(FixedStep > 0f ? FixedStep : Mathf.Min(Time.unscaledDeltaTime, 0.25f));
         }

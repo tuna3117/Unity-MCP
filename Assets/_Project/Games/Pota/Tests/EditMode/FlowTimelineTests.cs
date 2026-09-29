@@ -181,6 +181,26 @@ namespace Project.Tests
         }
 
         [Test]
+        public void DegenerateSettings_NeverDivideByZero()
+        {
+            // Values someone may type into PotaFlowSettings: no balls, zero-length windows.
+            var t = new FlowTiming { MaxVisible = 0, HeroEnd = 0.95f, HeroStart = 0.95f, CountStart = 1f, CountEnd = 1f, PopTime = 0f,
+                FrameGlowTime = 0f, AmmoTime = 0f, HudTime = 0f, CameraMid = 0.30f, CameraResume = 1.9f, MaxSkipSeconds = 0f };
+            foreach (var c in new[] { FlowCandidate.Stream, FlowCandidate.Simple })
+            {
+                var tl = new FlowTimeline(t, 158, c);
+                for (float x = 0f; x <= 3f; x += 0.05f)
+                {
+                    foreach (float v in new[] { tl.CameraProgress(x, 0.6f), tl.HeroTurn(x), tl.RevealScale(x, 1), tl.FrameGlow(x),
+                                 tl.AmmoProgress(x), tl.HudProgress(x), tl.BadgeDock(x), tl.BadgeFly(x), tl.SkipSpeed(x) })
+                        Assert.IsFalse(float.IsNaN(v) || float.IsInfinity(v), $"{c} t={x}");
+                    Assert.DoesNotThrow(() => tl.CountAt(x));
+                }
+                Assert.AreEqual(158, tl.CountAt(t.Ready), $"{c} still ends at N");
+            }
+        }
+
+        [Test]
         public void FrameGlow_PulsesWithTheReveal()
         {
             var tl = new FlowTimeline(T, 10, FlowCandidate.Stream);

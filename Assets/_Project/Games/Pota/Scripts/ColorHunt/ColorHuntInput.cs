@@ -11,6 +11,14 @@ namespace Project.ColorHunt
 
         private bool _down;
 
+        // PotaFlow switches this input off between phases: forget a press that began before, or its release (seen once the
+        // input is back) would tap whatever block is under the last pointer position.
+        private void OnDisable()
+        {
+            _down = false;
+            if (Game != null) Game.Select(-1);
+        }
+
         private void Update()
         {
             if (Game == null || Cam == null) return;
