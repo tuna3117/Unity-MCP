@@ -30,8 +30,11 @@ namespace Project.Tests
                 badge.Show(158);
                 Assert.IsTrue(badge.Visible);
                 Assert.AreEqual("158 TOP", badge.Label);
-                badge.Place(new Vector2(100f, 200f), 1.2f, 0.5f);
-                var label = badge.transform.Find("Label");
+                badge.Place(new Vector2(0.25f, 0.75f), 1.2f, 0.5f);
+                var label = (RectTransform)badge.transform.Find("Label");
+                Assert.AreEqual(new Vector2(0.25f, 0.75f), label.anchorMin, "placed by viewport anchors, whatever the canvas mode");
+                Assert.AreEqual(label.anchorMin, label.anchorMax);
+                Assert.AreEqual(Vector2.zero, label.anchoredPosition);
                 Assert.AreEqual(1.2f, label.localScale.x, 1e-5f);
                 Assert.AreEqual(0.5f, label.GetComponent<UnityEngine.UI.Text>().color.a, 1e-3f);
                 badge.Hide();

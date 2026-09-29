@@ -102,15 +102,19 @@ namespace Project.ColorHunt
             if (_hint != null) _hintHome = _hint.color;
         }
 
-        /// <summary>Screen pixels of the ammo number (overlay or camera canvas), for the transition badge to fly into.</summary>
-        public Vector2 AmmoScreenPoint
+        /// <summary>
+        /// The ammo number's position as a 0..1 fraction of the HUD canvas (bottom-left origin), for the transition badge to
+        /// fly into. Measured inside the canvas, so it holds in overlay and camera mode and before the canvas is laid out.
+        /// </summary>
+        public Vector2 AmmoViewportPoint
         {
             get
             {
-                if (_ammo == null) return Vector2.zero;
-                var canvas = GetComponent<Canvas>();
-                var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
-                return RectTransformUtility.WorldToScreenPoint(cam, _ammo.rectTransform.position);
+                if (_ammo == null) return new Vector2(0.15f, 0.93f);
+                var canvasRt = (RectTransform)transform;
+                Vector2 local = canvasRt.InverseTransformPoint(_ammo.rectTransform.position);
+                var r = canvasRt.rect;
+                return new Vector2((local.x - r.xMin) / r.width, (local.y - r.yMin) / r.height);
             }
         }
 

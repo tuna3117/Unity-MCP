@@ -88,9 +88,13 @@ namespace Project.Tests
             Assert.AreEqual(targetsHome, targets.anchoredPosition);
             Assert.AreEqual(rightHome, right.anchoredPosition);
 
-            Vector2 screen = hud.AmmoScreenPoint;
-            Assert.That(screen.x, Is.InRange(0f, Screen.width / 2f), "ammo number sits on the left half");
-            Assert.That(screen.y, Is.InRange(Screen.height / 2f, (float)Screen.height), "and on the upper half");
+            Vector2 vp = hud.AmmoViewportPoint;
+            Assert.That(vp.x, Is.InRange(0f, 0.5f), "ammo number sits on the left half");
+            Assert.That(vp.y, Is.InRange(0.5f, 1f), "and on the upper half");
+            hud.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceCamera;       // recording mode
+            hud.GetComponent<Canvas>().worldCamera = Camera.main;
+            Assert.Less(Vector2.Distance(hud.AmmoViewportPoint, vp), 0.02f, "same point in camera-canvas mode");
+            hud.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
 
             hud.PopAmmo();
             yield return null;

@@ -37,6 +37,29 @@ namespace Project.Tests
         }
 
         [Test]
+        public void WithUi_AlsoMovesCanvasesThatAreDisabledForNow()
+        {
+            // PotaFlow's "N TOP" badge canvas is disabled until the transition starts, after the recorder was created.
+            var camGo = new GameObject("RecCam");
+            var cam = camGo.AddComponent<Camera>();
+            var canvasGo = new GameObject("Badge", typeof(Canvas));
+            var canvas = canvasGo.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.enabled = false;
+            try
+            {
+                using (new FrameRecorder(cam, 64, 1f, true))
+                    Assert.AreEqual(RenderMode.ScreenSpaceCamera, canvas.renderMode, "a disabled overlay canvas must be moved too");
+                Assert.AreEqual(RenderMode.ScreenSpaceOverlay, canvas.renderMode);
+            }
+            finally
+            {
+                Object.DestroyImmediate(canvasGo);
+                Object.DestroyImmediate(camGo);
+            }
+        }
+
+        [Test]
         public void WithUi_MovesOverlayCanvasesOntoTheCamera_AndBack()
         {
             var camGo = new GameObject("RecCam");

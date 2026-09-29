@@ -60,7 +60,7 @@ namespace Project.Flow
 
         private CamPose _p0, _p1, _back;
         private Vector3 _source;
-        private Vector2 _cageScreen;
+        private Vector2 _cageViewport;
         private float _fogStart0, _fogEnd0, _skipSpeed, _lastT;
         private bool _skipping, _heroShown, _badgeMerged, _revealSounded, _built;
         private Quaternion _heroRot0 = Quaternion.identity;
@@ -133,7 +133,8 @@ namespace Project.Flow
             _p1 = new CamPose(S.MidPos, S.MidLook, S.MidFov);
             var cage = Round.Column.Cage;
             _source = new Vector3(0f, cage.TopY + 0.3f, cage.Depth * 0.5f + 0.6f);
-            _cageScreen = Cam.WorldToScreenPoint(_source + Vector3.up * 1.2f);
+            var cv = Cam.WorldToViewportPoint(_source + Vector3.up * 1.2f);   // off-screen (e.g. from the aim pose): start mid-low
+            _cageViewport = cv.z > 0f ? new Vector2(Mathf.Clamp01(cv.x), Mathf.Clamp(cv.y, 0.1f, 0.9f)) : new Vector2(0.5f, 0.35f);
 
             Game.Prepare(Count);
             Game.ShowAmmo(0);
@@ -256,8 +257,8 @@ namespace Project.Flow
             var tl = Timeline;
             bool stream = ActiveCandidate == FlowCandidate.Stream;
             float dock = tl.BadgeDock(t), fly = tl.BadgeFly(t);
-            var dockPt = new Vector2(Cam.pixelWidth * 0.5f, Cam.pixelHeight * (stream ? 0.84f : 0.62f));
-            var p = Vector2.Lerp(Vector2.Lerp(_cageScreen, dockPt, dock), Hud.AmmoScreenPoint, fly);
+            var dockPt = new Vector2(0.5f, stream ? 0.84f : 0.62f);
+            var p = Vector2.Lerp(Vector2.Lerp(_cageViewport, dockPt, dock), Hud.AmmoViewportPoint, fly);
             float flying = stream ? 0.72f : 1.15f + 0.12f * Mathf.Sin(Mathf.PI * tl.CameraProgress(t));
             float scale = t < S.Timing.HighlightEnd ? tl.HighlightScale(t) : Mathf.Lerp(1f, flying, dock) * Mathf.Lerp(1f, 0.45f, fly);
             float alpha = 1f - Mathf.Clamp01((fly - 0.7f) / 0.3f);

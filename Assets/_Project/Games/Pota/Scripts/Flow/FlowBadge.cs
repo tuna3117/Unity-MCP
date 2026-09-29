@@ -10,7 +10,7 @@ namespace Project.Flow
     public class FlowBadge : MonoBehaviour
     {
         private Canvas _canvas;
-        private RectTransform _canvasRt, _rt;
+        private RectTransform _rt;
         private Text _text;
         private Color _color;
 
@@ -34,6 +34,7 @@ namespace Project.Flow
             label.transform.SetParent(go.transform, false);
             var rt = label.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = new Vector2(900f, 200f);
             var text = label.GetComponent<Text>();
             text.font = font != null ? font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -50,7 +51,6 @@ namespace Project.Flow
 
             var badge = go.AddComponent<FlowBadge>();
             badge._canvas = canvas;
-            badge._canvasRt = (RectTransform)go.transform;
             badge._rt = rt;
             badge._text = text;
             badge._color = color;
@@ -66,12 +66,14 @@ namespace Project.Flow
 
         public void Hide() => _canvas.enabled = false;
 
-        /// <summary>Screen pixels (bottom-left origin), uniform scale, alpha 0..1.</summary>
-        public void Place(Vector2 screen, float scale, float alpha)
+        /// <summary>
+        /// Viewport position (0..1, bottom-left origin), uniform scale, alpha 0..1. Placed by anchors, not by converting screen
+        /// pixels through the canvas transform: that transform is stale while a recording moves the canvas onto a camera.
+        /// </summary>
+        public void Place(Vector2 viewport, float scale, float alpha)
         {
-            var cam = _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera;
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRt, screen, cam, out var local))
-                _rt.anchoredPosition = local;
+            _rt.anchorMin = _rt.anchorMax = viewport;
+            _rt.anchoredPosition = Vector2.zero;
             _rt.localScale = Vector3.one * scale;
             var c = _color;
             c.a = _color.a * Mathf.Clamp01(alpha);
