@@ -53,9 +53,9 @@ MonoBehaviour:
   CourtColor: {r: 0.851, g: 0.467, b: 0.227, a: 1}
   CourtLineColor: {r: 1, g: 1, b: 1, a: 1}
   BoardFov: 34
-  MidPos: {x: 10, y: 3.5, z: 12}
-  MidLook: {x: 0, y: 2.2, z: 6.2}
-  MidFov: 50
+  MidPos: {x: 9.5, y: 2.6, z: 9}
+  MidLook: {x: 0, y: 1.6, z: 6.6}
+  MidFov: 46
   FovPunch: 3
   SettleAmount: 0.35
   BoardFogStart: 60

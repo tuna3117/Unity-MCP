@@ -53,7 +53,7 @@ namespace Project.Tests
                 Assert.AreEqual(20, s.BasketLevel);
                 Assert.AreEqual(new Vector3(0f, 8.5f, 30f), s.BoardAnchor);
                 Assert.AreEqual(34f, s.BoardFov);
-                Assert.AreEqual(50f, s.MidFov);
+                Assert.AreEqual(46f, s.MidFov);
                 Assert.AreEqual(60f, s.BoardFogStart);
                 Assert.AreEqual(220f, s.BoardFogEnd);
                 Assert.AreEqual(2.5f, s.Timing.Ready);

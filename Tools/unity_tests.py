@@ -11,10 +11,12 @@ import os
 import subprocess
 import sys
 import time
+import functools
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UV = os.path.expanduser("~/.local/bin/uv")
 UNITY_APP = "/Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app"
+print = functools.partial(print, flush=True)   # progress shows up even when the output is redirected
 
 
 def call(tool, args, tries=6):
@@ -146,9 +148,20 @@ def main(argv):
 
 
 def run_job(req):
-    job = (call("run_tests", req).get("data") or {}).get("job_id")
+    job = None
+    for attempt in range(8):
+        reply = call("run_tests", req)
+        job = (reply.get("data") or {}).get("job_id")
+        if job:
+            break
+        if attempt == 4:
+            # A job left "running" after an unfocused/cancelled run blocks new ones until the next domain reload.
+            print("[unity_tests] bridge still busy with an old job: requesting a script reload", flush=True)
+            call("execute_code", {"action": "execute", "code": "UnityEditor.EditorUtility.RequestScriptReload(); return 1;"})
+            wait_idle()
+        time.sleep(10)
     if not job:
-        sys.exit("[unity_tests] run_tests returned no job id")
+        sys.exit(f"[unity_tests] run_tests returned no job id: {reply}")
     data = {}
     for _ in range(40):
         data = call("get_test_job", {"job_id": job, "wait_timeout": 60, "include_failed_tests": True}).get("data") or {}
