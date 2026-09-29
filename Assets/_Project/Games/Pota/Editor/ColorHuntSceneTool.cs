@@ -42,6 +42,86 @@ namespace Project.Editor.AITools
         [MenuItem("AI Tools/Color Hunt/Build Scene")]
         public static void BuildMenu() => AIToolsCommon.Log(string.Join(" | ", Build()));
 
+        public sealed class GameParts
+        {
+            public ColorHuntGame Game;
+            public ColorHuntInput Input;
+            public ColorHuntHud Hud;
+            public ColorHuntJuice Juice;
+        }
+
+        public static Light CreateSun()
+        {
+            var lightGo = new GameObject("Directional Light");
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.color = new Color(1f, 0.96f, 0.9f);
+            light.intensity = 1.5f;
+            light.shadows = LightShadows.Soft;
+            light.shadowStrength = 0.6f;
+            lightGo.transform.rotation = Quaternion.Euler(38f, -22f, 0f);
+            return light;
+        }
+
+        public static Light CreateFill()
+        {
+            var fillGo = new GameObject("Fill Light");
+            var fill = fillGo.AddComponent<Light>();
+            fill.type = LightType.Directional;
+            fill.color = new Color(0.75f, 0.85f, 1f);
+            fill.intensity = 0.35f;
+            fill.shadows = LightShadows.None;
+            fillGo.transform.rotation = Quaternion.Euler(-20f, 160f, 0f);
+            return fill;
+        }
+
+        /// <summary>
+        /// Game root (rules/animation, Fx, salvo, input) and the HUD (+ binder) under <paramref name="uiRoot"/>.
+        /// <paramref name="juice"/> null: a private Juice child with its own set (the Color Hunt scene); else the scene's shared set.
+        /// </summary>
+        public static GameParts BuildGame(ColorHuntSettings settings, Camera cam, CameraShake shake, JuiceSet juice, Transform uiRoot)
+        {
+            var gameGo = new GameObject("Game");
+            var game = gameGo.AddComponent<ColorHuntGame>();
+            game.S = settings;
+            var fxGo = new GameObject("Effects");
+            fxGo.transform.SetParent(gameGo.transform, false);
+            var fx = fxGo.AddComponent<ColorHuntFx>();
+            fx.S = settings;
+            var salvoGo = new GameObject("Balls");
+            salvoGo.transform.SetParent(gameGo.transform, false);
+            var salvo = salvoGo.AddComponent<BallSalvo>();
+            salvo.S = settings;
+            salvo.BallMaterial = settings.BallMaterial;
+            if (juice == null)
+            {
+                var juiceGo = new GameObject("Juice");
+                juiceGo.transform.SetParent(gameGo.transform, false);
+                juice = JuiceSet.Create(juiceGo, cam, shake, settings.Font);
+            }
+            var chJuice = juice.Host.AddComponent<ColorHuntJuice>();
+            chJuice.S = settings; chJuice.Shake = juice.Shake; chJuice.TimeCtl = juice.TimeCtl; chJuice.Popups = juice.Popups; chJuice.Sfx = juice.Sfx;
+            game.Fx = fx; game.Salvo = salvo; game.Juice = chJuice;
+            var input = gameGo.AddComponent<ColorHuntInput>();
+            input.Game = game; input.Cam = cam;
+
+            var hud = ColorHuntHud.Create(uiRoot, settings);
+            hud.Game = game;
+            game.Hud = hud;
+            game.Cam = cam;
+            // HUD subscribes at runtime through a small bootstrap so the serialized reference is enough.
+            uiRoot.gameObject.AddComponent<ColorHuntHudBinder>().Hud = hud;
+            return new GameParts { Game = game, Input = input, Hud = hud, Juice = chJuice };
+        }
+
+        public static void ApplyAmbient()
+        {
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.80f, 0.90f, 1f);
+            RenderSettings.ambientEquatorColor = new Color(0.70f, 0.72f, 0.76f);
+            RenderSettings.ambientGroundColor = new Color(0.45f, 0.42f, 0.40f);
+        }
+
         public static List<string> Build()
         {
             var report = new List<string>();
@@ -62,81 +142,27 @@ namespace Project.Editor.AITools
             var fit = camGo.AddComponent<ColorHuntCamera>();
             fit.S = settings;
 
-            var lightGo = new GameObject("Directional Light");
-            var light = lightGo.AddComponent<Light>();
-            light.type = LightType.Directional;
-            light.color = new Color(1f, 0.96f, 0.9f);
-            light.intensity = 1.5f;
-            light.shadows = LightShadows.Soft;
-            light.shadowStrength = 0.6f;
-            lightGo.transform.rotation = Quaternion.Euler(38f, -22f, 0f);
-            var fillGo = new GameObject("Fill Light");
-            var fill = fillGo.AddComponent<Light>();
-            fill.type = LightType.Directional;
-            fill.color = new Color(0.75f, 0.85f, 1f);
-            fill.intensity = 0.35f;
-            fill.shadows = LightShadows.None;
-            fillGo.transform.rotation = Quaternion.Euler(-20f, 160f, 0f);
-
-            var volGo = new GameObject("Global Volume");
-            var vol = volGo.AddComponent<Volume>();
-            vol.isGlobal = true;
-            vol.sharedProfile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(VolumeProfilePath);
-
-            var gameGo = new GameObject("Game");
-            var game = gameGo.AddComponent<ColorHuntGame>();
-            game.S = settings;
-            var fxGo = new GameObject("Effects");
-            fxGo.transform.SetParent(gameGo.transform, false);
-            var fx = fxGo.AddComponent<ColorHuntFx>();
-            fx.S = settings;
-            var salvoGo = new GameObject("Balls");
-            salvoGo.transform.SetParent(gameGo.transform, false);
-            var salvo = salvoGo.AddComponent<BallSalvo>();
-            salvo.S = settings;
-            salvo.BallMaterial = settings.BallMaterial;
-            var juiceGo = new GameObject("Juice");
-            juiceGo.transform.SetParent(gameGo.transform, false);
-            var timeCtl = juiceGo.AddComponent<TimeScaleController>();
-            var popups = juiceGo.AddComponent<PopupText>();
-            popups.Cam = cam;
-            popups.Font = settings.Font;
-            var sfx = juiceGo.AddComponent<SynthSfx>();
-            var juice = juiceGo.AddComponent<ColorHuntJuice>();
-            juice.S = settings; juice.Shake = shake; juice.TimeCtl = timeCtl; juice.Popups = popups; juice.Sfx = sfx;
-            game.Fx = fx; game.Salvo = salvo; game.Juice = juice;
-            var input = gameGo.AddComponent<ColorHuntInput>();
-            input.Game = game; input.Cam = cam;
+            CreateSun();
+            CreateFill();
+            SceneParts.CreateGlobalVolume(VolumeProfilePath);
 
             var uiRoot = new GameObject("UI");
-            var hud = ColorHuntHud.Create(uiRoot.transform, settings);
-            hud.Game = game;
-            game.Hud = hud;
-            game.Cam = cam;
-            var es = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-            es.transform.SetParent(uiRoot.transform, false);
-            // HUD subscribes at runtime through a small bootstrap so the serialized reference is enough.
-            uiRoot.AddComponent<ColorHuntHudBinder>().Hud = hud;
+            BuildGame(settings, cam, shake, null, uiRoot.transform);
+            SceneParts.CreateEventSystem(uiRoot.transform);
 
-            RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.80f, 0.90f, 1f);
-            RenderSettings.ambientEquatorColor = new Color(0.70f, 0.72f, 0.76f);
-            RenderSettings.ambientGroundColor = new Color(0.45f, 0.42f, 0.40f);
+            ApplyAmbient();
             RenderSettings.fog = false;
 
             AIToolsCommon.EnsureFolder("Assets/_Project/Games/Pota/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
             report.Add($"saved {ScenePath}");
-
-            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-            if (!scenes.Exists(s => s.path == ScenePath)) scenes.Add(new EditorBuildSettingsScene(ScenePath, true));
-            EditorBuildSettings.scenes = scenes.ToArray();
+            SceneParts.AddToBuildSettings(ScenePath);
             AssetDatabase.SaveAssets();
             report.Add(GameViewPortrait.Apply(1080, 1920));
             return report;
         }
 
-        private static ColorHuntSettings EnsureSettings(List<string> report)
+        public static ColorHuntSettings EnsureSettings(List<string> report)
         {
             AIToolsCommon.EnsureFolder("Assets/_Project/Games/Pota/Settings");
             var s = AssetDatabase.LoadAssetAtPath<ColorHuntSettings>(SettingsPath);

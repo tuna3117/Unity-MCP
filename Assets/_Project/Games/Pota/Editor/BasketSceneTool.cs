@@ -44,16 +44,24 @@ namespace Project.Editor.AITools
         [MenuItem("AI Tools/Basket/Build Basket Scene")]
         public static void BuildMenu() => AIToolsCommon.Log(string.Join(" | ", Build(1)));
 
-        public static List<string> Build(int level)
+        public sealed class RoundParts
         {
-            var report = new List<string>();
+            public BasketRound Round;
+            public ShotInput Input;
+            public BasketJuice Juice;
+        }
+
+        /// <summary>Layers, settings asset and physics materials (idempotent).</summary>
+        public static BasketSettings PrepareAssets(List<string> report)
+        {
             foreach (var name in new[] { "BallFlight", "BallDrop", "Hoop", "Slab" })
                 if (EnsureLayer(name)) report.Add($"layer {name} created");
+            return EnsureSettings(report);
+        }
 
-            var settings = EnsureSettings(report);
-
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
+        /// <summary>Main Camera at the aim pose with AudioListener, CameraShake and RoundCamera.</summary>
+        public static Camera CreateCamera(BasketSettings settings)
+        {
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
@@ -67,7 +75,12 @@ namespace Project.Editor.AITools
             camGo.AddComponent<AudioListener>();
             camGo.AddComponent<CameraShake>();
             var roundCam = camGo.AddComponent<RoundCamera>();
+            roundCam.S = settings;
+            return cam;
+        }
 
+        public static Light CreateSun()
+        {
             var lightGo = new GameObject("Directional Light");
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Directional;
@@ -75,12 +88,12 @@ namespace Project.Editor.AITools
             light.intensity = 1.6f;
             light.shadows = LightShadows.Soft;
             lightGo.transform.rotation = Quaternion.Euler(48f, -28f, 0f);
+            return light;
+        }
 
-            var volGo = new GameObject("Global Volume");
-            var vol = volGo.AddComponent<Volume>();
-            vol.isGlobal = true;
-            vol.sharedProfile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(VolumeProfilePath);
-
+        /// <summary>Round (pool, round, aim preview, shot input) and its BasketJuice on the scene's juice host.</summary>
+        public static RoundParts BuildRound(BasketSettings settings, int level, RoundCamera roundCam, JuiceSet juice)
+        {
             var roundGo = new GameObject("Round");
             var pool = roundGo.AddComponent<BallPool>();
             pool.Settings = settings;
@@ -97,28 +110,18 @@ namespace Project.Editor.AITools
             roundCam.Round = round;
             roundCam.S = settings;
 
-            var juiceGo = new GameObject("Juice");
-            var timeCtl = juiceGo.AddComponent<TimeScaleController>();
-            var popups = juiceGo.AddComponent<PopupText>();
-            popups.Cam = cam;
-            var sfx = juiceGo.AddComponent<SynthSfx>();
-            var juice = juiceGo.AddComponent<BasketJuice>();
-            juice.Round = round;
-            juice.S = settings;
-            juice.Shake = camGo.GetComponent<CameraShake>();
-            juice.TimeCtl = timeCtl;
-            juice.Popups = popups;
-            juice.Sfx = sfx;
+            var bj = juice.Host.AddComponent<BasketJuice>();
+            bj.Round = round;
+            bj.S = settings;
+            bj.Shake = juice.Shake;
+            bj.TimeCtl = juice.TimeCtl;
+            bj.Popups = juice.Popups;
+            bj.Sfx = juice.Sfx;
+            return new RoundParts { Round = round, Input = input, Juice = bj };
+        }
 
-            var uiRoot = new GameObject("UI");
-            BasketHud.Create(uiRoot.transform);
-            var es = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-            es.transform.SetParent(uiRoot.transform, false);
-
-            var library = AssetDatabase.LoadAssetAtPath<VfxLibrary>(VfxAuthoringTool.LibraryPath);
-            if (library != null) VfxAuthoringTool.EnsureServiceInScene(library, report);
-            else report.Add("VfxLibrary missing (run AI Tools/VFX/Create Starter Effects first)");
-
+        public static void ApplyRenderSettings(BasketSettings settings)
+        {
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = settings.FogColor;
@@ -128,13 +131,36 @@ namespace Project.Editor.AITools
             RenderSettings.ambientSkyColor = new Color(0.86f, 0.94f, 1f);
             RenderSettings.ambientEquatorColor = new Color(0.72f, 0.72f, 0.7f);
             RenderSettings.ambientGroundColor = new Color(0.54f, 0.48f, 0.4f);
+        }
+
+        public static List<string> Build(int level)
+        {
+            var report = new List<string>();
+            var settings = PrepareAssets(report);
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            var cam = CreateCamera(settings);
+            CreateSun();
+            SceneParts.CreateGlobalVolume(VolumeProfilePath);
+            var juiceGo = new GameObject("Juice");
+            var juice = JuiceSet.Create(juiceGo, cam, cam.GetComponent<CameraShake>());
+            BuildRound(settings, level, cam.GetComponent<RoundCamera>(), juice);
+
+            var uiRoot = new GameObject("UI");
+            BasketHud.Create(uiRoot.transform);
+            SceneParts.CreateEventSystem(uiRoot.transform);
+
+            var library = AssetDatabase.LoadAssetAtPath<VfxLibrary>(VfxAuthoringTool.LibraryPath);
+            if (library != null) VfxAuthoringTool.EnsureServiceInScene(library, report);
+            else report.Add("VfxLibrary missing (run AI Tools/VFX/Create Starter Effects first)");
+
+            ApplyRenderSettings(settings);
 
             AIToolsCommon.EnsureFolder("Assets/_Project/Games/Pota/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
             report.Add($"saved {ScenePath}");
-
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
-            report.Add("build settings updated");
+            SceneParts.AddToBuildSettings(ScenePath);
+            report.Add("build settings: scene present");
             AssetDatabase.SaveAssets();
             return report;
         }
