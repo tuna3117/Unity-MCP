@@ -12,6 +12,8 @@ namespace Project.ColorHunt
     {
         public ColorHuntGame Game;
         public ColorHuntSettings S;
+        /// <summary>When set, the result panel's button calls this instead of dealing a new board (PotaFlow flies back to the basket).</summary>
+        public System.Action RetryOverride;
 
         // Serialized: the HUD is built once by the scene tool in Edit Mode and must survive scene load / Play Mode.
         [SerializeField] private Text _ammo;
@@ -30,6 +32,47 @@ namespace Project.ColorHunt
             game.TargetsChanged += OnTargets;
             game.RoundEnded += OnEnded;
             game.RoundStarted += OnStarted;
+            WireButtons();
+        }
+
+        // Listeners added while the scene tool builds the HUD in Edit Mode are not saved with the scene: wire them here.
+        private void WireButtons()
+        {
+            Wire("RotateLeft", () => { if (Game != null) Game.Rotate(Rotation.Counter); });
+            Wire("RotateRight", () => { if (Game != null) Game.Rotate(Rotation.Clockwise); });
+            Wire("ResultPanel/Card/Retry", Retry);
+        }
+
+        private void Wire(string path, UnityEngine.Events.UnityAction action)
+        {
+            var t = transform.Find(path);
+            var button = t != null ? t.GetComponent<Button>() : null;
+            if (button == null) { Debug.LogWarning($"[ColorHuntHud] no button at {path}"); return; }
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(action);
+        }
+
+        private void Retry()
+        {
+            if (RetryOverride != null) { RetryOverride(); return; }
+            if (Game != null) Game.NewRound();
+        }
+
+        public void SetRetryLabel(string text)
+        {
+            var t = transform.Find("ResultPanel/Card/Retry/Label");
+            if (t != null) t.GetComponent<Text>().text = text;
+        }
+
+        public void HideResult()
+        {
+            if (_resultPanel != null) _resultPanel.SetActive(false);
+        }
+
+        /// <summary>Short scale pop on the ammo number (transition arrival).</summary>
+        public void PopAmmo()
+        {
+            if (_ammo != null) _pops[_ammo] = 1f;
         }
 
         private void Start()
@@ -231,7 +274,6 @@ namespace Project.ColorHunt
             rimg.sprite = RoundedRect(96, 30, s.GoldColor, new Color(0.85f, 0.6f, 0.12f), 6); rimg.type = Image.Type.Sliced;
             var rtext = hud.MakeText(retry.transform, "Label", 46, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(380f, 110f), TextAnchor.MiddleCenter, s.NavyColor);
             rtext.text = "Yeni tahta";
-            retry.GetComponent<Button>().onClick.AddListener(() => { if (hud.Game != null) hud.Game.NewRound(); });
             hud._resultPanel = overlay;
             overlay.SetActive(false);
             return hud;
@@ -256,7 +298,6 @@ namespace Project.ColorHunt
             else { iimg.enabled = false; var t = MakeText(go.transform, "Glyph", 70, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150f, 150f), TextAnchor.MiddleCenter, s.GoldColor); t.text = left ? "↺" : "↻"; }
             var button = go.GetComponent<Button>();
             var colors = button.colors; colors.pressedColor = new Color(1f, 0.75f, 0.45f); colors.fadeDuration = 0.05f; button.colors = colors;
-            button.onClick.AddListener(() => { if (Game != null) Game.Rotate(left ? Rotation.Counter : Rotation.Clockwise); });
         }
 
         private static GameObject Panel(Transform parent, string name, Sprite sprite, Vector2 anchor, Vector2 pos, Vector2 size)

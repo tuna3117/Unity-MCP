@@ -4,6 +4,7 @@
     "references": [
         "Pota.Runtime",
         "Project.Runtime",
+        "UnityEngine.UI",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
