@@ -16,9 +16,19 @@ namespace Project.Basket
         private CameraShake _shake;
         private float _camY = float.MaxValue;
         private Vector3 _pos, _look;
-        private bool _initialized;
 
         private void Awake() => _shake = GetComponent<CameraShake>();
+
+        /// <summary>The smoothed look-at point (PotaFlow starts its flight from here).</summary>
+        public Vector3 LookPoint => _look;
+
+        // Resume from wherever the camera is now (PotaFlow flies it back to the aim pose): no jump to a stale pose.
+        private void OnEnable()
+        {
+            _pos = transform.position;
+            _look = transform.position + transform.forward * 10f;
+            _camY = float.MaxValue;
+        }
 
         private void Start()
         {
@@ -76,12 +86,6 @@ namespace Project.Basket
                 }
             }
 
-            if (!_initialized)
-            {
-                _pos = targetPos;
-                _look = targetLook;
-                _initialized = true;
-            }
             float a = 1f - Mathf.Exp(-k * Time.unscaledDeltaTime);
             _pos = Vector3.Lerp(_pos, targetPos, a);
             _look = Vector3.Lerp(_look, targetLook, a);

@@ -13,6 +13,8 @@ namespace Project.Basket
         public Text ResultText;
         public GameObject ResultPanel;
         public Button RetryButton;
+        [Tooltip("Open the result panel when the round ends (off in PotaFlow: the director flies on to the board).")]
+        public bool ShowResultPanel = true;
 
         private BasketRound _round;
         private int _lastBasket;
@@ -48,7 +50,7 @@ namespace Project.Basket
         private void OnEnded(int count)
         {
             if (ResultText != null) ResultText.text = $"Sepet doldu!\n{count} top";
-            if (ResultPanel != null) ResultPanel.SetActive(true);
+            if (ResultPanel != null && ShowResultPanel) ResultPanel.SetActive(true);
         }
 
         private void Update()

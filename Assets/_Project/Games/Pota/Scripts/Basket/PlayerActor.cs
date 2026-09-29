@@ -52,14 +52,17 @@ namespace Project.Basket
         private void OnState(BasketRound.State s)
         {
             if (this == null) return;
-            if (s == BasketRound.State.Aim)
-            {
-                Show(true);
-                transform.localScale = _baseScale;
-                transform.position = _basePos;
-                _hideAt = -1f;
-                if (_animator != null) _animator.Play(IdleState, 0, 0f);
-            }
+            if (s == BasketRound.State.Aim) Reveal();
+        }
+
+        /// <summary>Shows the player and its stage pieces at the base pose, idling (aim start; PotaFlow's transition).</summary>
+        public void Reveal()
+        {
+            Show(true);
+            transform.localScale = _baseScale;
+            transform.position = _basePos;
+            _hideAt = -1f;
+            if (_animator != null) _animator.Play(IdleState, 0, 0f);
         }
 
         private void OnShot(AimPoint aim)
