@@ -25,6 +25,16 @@ namespace Project.Juice
             Apply();
         }
 
+        /// <summary>Cancels any slow motion or hit-stop and restores normal time now (phase changes, e.g. PotaFlow's transition).</summary>
+        public void Clear()
+        {
+            _slowUntil = -1f;
+            _stopUntil = -1f;
+            _slowScale = 1f;
+            Time.timeScale = 1f;
+            if (_baseFixed > 0f) Time.fixedDeltaTime = _baseFixed;
+        }
+
         public void HitStop(float seconds)
         {
             _stopUntil = Mathf.Max(_stopUntil, Time.unscaledTime + seconds);

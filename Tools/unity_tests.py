@@ -46,9 +46,44 @@ def strings(node):
             yield from strings(v)
 
 
+def find_key(node, key):
+    if isinstance(node, dict):
+        if key in node:
+            return node[key]
+        for v in node.values():
+            found = find_key(v, key)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for v in node:
+            found = find_key(v, key)
+            if found is not None:
+                return found
+    return None
+
+
+def wait_idle(timeout=240):
+    """Waits until Unity is not compiling and the bridge is ready ("Refresh requested" returns before the compile ends)."""
+    time.sleep(3)
+    end = time.time() + timeout
+    while time.time() < end:
+        p = subprocess.run([UV, "run", "-q", "Tools/mcp_call.py", "read", "mcpforunity://editor/state"],
+                           cwd=ROOT, capture_output=True, text=True, timeout=120)
+        i = p.stdout.find("{")
+        if i >= 0:
+            try:
+                state = json.JSONDecoder().raw_decode(p.stdout[i:])[0]
+                if find_key(state, "is_compiling") is False and find_key(state, "ready_for_tools") is True:
+                    return
+            except json.JSONDecodeError:
+                pass
+        time.sleep(3)
+    print("[unity_tests] warning: editor still busy after the wait")
+
+
 def compile_errors():
     call("refresh_unity", {"mode": "force", "scope": "all", "compile": "request", "wait_for_ready": True})
-    time.sleep(2)
+    wait_idle()
     reply = call("read_console", {"types": ["error"], "filter_text": "error CS"})
     return sorted({s.strip() for s in strings(reply) if "error CS" in s})
 
@@ -91,7 +126,7 @@ def main(argv):
         if summary.get("total", 0) == 0 and attempt == 0:
             # Stale test list (seen after imports): refresh once and run again.
             call("refresh_unity", {"mode": "force", "scope": "all", "compile": "request", "wait_for_ready": True})
-            time.sleep(3)
+            wait_idle()
             continue
         break
     passed, failed = summary.get("passed", 0), summary.get("failed", 0)

@@ -2,6 +2,7 @@
     "name": "Project.Tests.PlayMode",
     "rootNamespace": "Project.Tests",
     "references": [
+        "Project.Runtime",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
