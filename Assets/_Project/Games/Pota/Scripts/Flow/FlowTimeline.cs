@@ -21,19 +21,22 @@ namespace Project.Flow
         public float LaunchStart = 0.25f;
         public float LaunchInterval = 0.025f;
         [Min(1)] public int MaxVisible = 25;
-        public float FirstLand = 1.05f;
-        public float LastLand = 1.70f;
+        public float FirstLand = 0.95f;
+        public float LastLand = 1.45f;
         [Header("Camera")]
         public float CameraStart = 0.30f;
         [Tooltip("First beat (rise to the vista on the hero) ends here.")]
         public float CameraMid = 1.10f;
         [Tooltip("Second beat (turn and fly to the board) starts here.")]
-        public float CameraResume = 1.20f;
-        public float CameraEnd = 1.90f;
+        public float CameraResume = 1.35f;
+        public float CameraEnd = 1.95f;
         public float SettleTime = 0.12f;
         [Header("Hero")]
-        public float HeroStart = 0.95f;
-        public float HeroEnd = 1.35f;
+        [Tooltip("Hero, terrace and his basket reappear (hidden since the shot) before the camera reaches the roof.")]
+        public float HeroRevealAt = 0.60f;
+        [Tooltip("The hero turns to watch his basket fill.")]
+        public float HeroStart = 0.90f;
+        public float HeroEnd = 1.25f;
         [Header("Board")]
         public float RevealStart = 1.75f;
         public float RingInterval = 0.07f;
@@ -41,7 +44,7 @@ namespace Project.Flow
         public float FrameGlowTime = 0.40f;
         [Header("HUD")]
         [Tooltip("Ammo panel slides in before the landings so the count is readable.")]
-        public float AmmoStart = 0.95f;
+        public float AmmoStart = 0.90f;
         public float AmmoTime = 0.30f;
         [Tooltip("Target panel, arrows and hint come with the board.")]
         public float HudStart = 1.90f;
@@ -52,8 +55,8 @@ namespace Project.Flow
         [Header("Badge")]
         public float BadgeDockEnd = 0.80f;
         [Tooltip("A: the badge flies into the ammo panel as it arrives, then the landings count up.")]
-        public float BadgeFlyStart = 1.00f;
-        public float BadgeFlyEnd = 1.25f;
+        public float BadgeFlyStart = 0.92f;
+        public float BadgeFlyEnd = 1.15f;
         [Tooltip("B: the badge rides with the camera and flies into the panel on arrival.")]
         public float BadgeFlyStartSimple = 1.95f;
         public float BadgeFlyEndSimple = 2.30f;

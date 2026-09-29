@@ -54,6 +54,8 @@ namespace Project.Flow
         public bool Skipping => _skipping;
         public FlowTimeline Timeline { get; private set; }
         public GiantHoop Hoop { get; private set; }
+        /// <summary>The hero's basket on the terrace: candidate A's balls land here.</summary>
+        public BallBin Bin { get; private set; }
         public BallStream Stream { get; private set; }
         public FlowBadge Badge { get; private set; }
         public event Action<Phase> PhaseChanged;
@@ -85,6 +87,13 @@ namespace Project.Flow
             Hoop = hoopGo.AddComponent<GiantHoop>();
             Hoop.BallRadius = S.BallRadius;
             Hoop.Build(Game.S.Size);
+
+            var binGo = new GameObject("BallBin");
+            binGo.transform.SetParent(transform, false);
+            binGo.transform.position = S.BinPosition;
+            Bin = binGo.AddComponent<BallBin>();
+            Bin.BallRadius = S.BallRadius;
+            Bin.Build();
 
             var streamGo = new GameObject("BallStream");
             streamGo.transform.SetParent(transform, false);
@@ -144,7 +153,8 @@ namespace Project.Flow
             BoardReveal.Apply(Game, Timeline, 0f);
             Hoop.ClearPile();
             Hoop.SetGlow(0f);
-            if (Timeline.Visible > 0) Stream.Begin(Timeline, _source, Hoop);
+            Bin.Clear();
+            if (Timeline.Visible > 0) Stream.Begin(Timeline, _source, Bin);
             else Stream.Clear();
             Badge.Show(Count);
             Hud.HideResult();
@@ -180,6 +190,7 @@ namespace Project.Flow
             _back = new CamPose(Cam.transform.position, Cam.transform.position + Cam.transform.forward * 20f, Cam.fieldOfView);
             Stream.Clear();
             Hoop.ClearPile();
+            Bin.Clear();
             Badge.Hide();
             Clock = 0f;
             EnterPhase(Phase.Return);
@@ -200,6 +211,10 @@ namespace Project.Flow
         {
             if (!_built) return;
             if (!_prewarmed) Prewarm();
+            // The basket stands with the hero: hidden with him and the terrace while the camera dives past them.
+            var hero = Round.Column != null ? Round.Column.Player : null;
+            bool binShown = hero != null && hero.gameObject.activeInHierarchy;
+            if (Bin.gameObject.activeSelf != binShown) Bin.gameObject.SetActive(binShown);
             if (Current == Phase.Transition && PointerPressedThisFrame()) Skip();
             Advance(FixedStep > 0f ? FixedStep : Mathf.Min(Time.unscaledDeltaTime, 0.25f));
         }
@@ -246,12 +261,13 @@ namespace Project.Flow
             var player = Round.Column.Player;
             if (player != null)
             {
-                if (!_heroShown && t >= T.HeroStart) { _heroShown = true; player.Reveal(); }
-                if (_heroShown) player.transform.rotation = _heroRot0 * Quaternion.Euler(0f, S.HeroTurnDegrees * tl.HeroTurn(t), 0f);
+                if (!_heroShown && t >= T.HeroRevealAt) { _heroShown = true; player.Reveal(); }
+                if (_heroShown) player.transform.rotation = Quaternion.Slerp(_heroRot0, FacingBin(player.transform.position), tl.HeroTurn(t));
             }
 
             Stream.Tick(t);
             Hoop.Tick(Mathf.Max(0f, t - _lastT));
+            Bin.Tick(Mathf.Max(0f, t - _lastT));
             _lastT = t;
             int c = tl.CountAt(t);
             if (c != _shownCount) { _shownCount = c; Game.ShowAmmo(c); }
@@ -334,6 +350,13 @@ namespace Project.Flow
             if (_boardCanvas != null) _boardCanvas.enabled = !basket;
             if (basket) Badge.Hide();
             PhaseChanged?.Invoke(p);
+        }
+
+        private Quaternion FacingBin(Vector3 heroPos)
+        {
+            var d = Bin.transform.position - heroPos;
+            d.y = 0f;
+            return d.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(d, Vector3.up) : _heroRot0;
         }
 
         private CamPose BoardPose()

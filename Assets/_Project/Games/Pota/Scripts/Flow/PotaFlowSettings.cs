@@ -33,10 +33,11 @@ namespace Project.Flow
 
         [Header("Balls")]
         public float BallRadius = 0.24f;
-        public float ApexAbove = 9f;
+        [Tooltip("Arc top above the higher end (cage mouth or basket).")]
+        public float ApexAbove = 5f;
+        [Tooltip("The hero's basket on the terrace (floor centre), beside him on the camera side.")]
+        public Vector3 BinPosition = new Vector3(1.5f, 0f, 7.0f);
         public Vector3 LaunchKick = new Vector3(0f, 0f, 0.8f);
 
-        [Header("Hero")]
-        public float HeroTurnDegrees = 180f;
     }
 }

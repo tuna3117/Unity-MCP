@@ -35,7 +35,7 @@ namespace Project.Flow
         private Vector3[] _from = new Vector3[0], _entry = new Vector3[0], _axis = new Vector3[0];
         private float[] _apex = new float[0];
         private FlowTimeline _tl;
-        private GiantHoop _hoop;
+        private IBallReceiver _target;
         private float _lastT;
         private bool _running;
 
@@ -73,20 +73,18 @@ namespace Project.Flow
             }
         }
 
-        public void Begin(FlowTimeline tl, Vector3 source, GiantHoop hoop)
+        public void Begin(FlowTimeline tl, Vector3 source, IBallReceiver target)
         {
             Prewarm(tl.Visible);
             Clear();
             _tl = tl;
-            _hoop = hoop;
+            _target = target;
             _lastT = float.NegativeInfinity;
             _running = true;
-            var rim = hoop.RimCenter;
             for (int i = 0; i < tl.Visible; i++)
             {
                 _from[i] = source + new Vector3((Hash(i, 1) - 0.5f) * 2f * Spread, 0f, (Hash(i, 2) - 0.5f) * Spread);
-                float a = Hash(i, 3) * Mathf.PI * 2f, r = Hash(i, 4) * hoop.RimRadius * 0.35f;
-                _entry[i] = rim + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+                _entry[i] = target.EntryPoint(i);
                 _apex[i] = Mathf.Max(_from[i].y, _entry[i].y) + ApexAbove + Hash(i, 5) * ApexJitter;
                 var axis = new Vector3(Hash(i, 6) - 0.5f, Hash(i, 7) - 0.5f, Hash(i, 8) - 0.5f);
                 _axis[i] = axis.sqrMagnitude > 1e-4f ? axis.normalized : Vector3.up;
@@ -104,10 +102,10 @@ namespace Project.Flow
                 if (_lastT < launch && t >= launch) Launched?.Invoke(i);
                 if (_lastT < land && t >= land)
                 {
-                    _hoop.AddToPile();
+                    _target.AddBall();
                     Landed?.Invoke(i);
                 }
-                bool resting = i < GiantHoop.MaxPile;
+                bool resting = i < _target.RestingCapacity;
                 bool visible = t >= launch && (resting || t < land + DropTime);
                 var ball = _balls[i];
                 if (ball.gameObject.activeSelf != visible)
@@ -126,7 +124,7 @@ namespace Project.Flow
                 else
                 {
                     float d = Mathf.Clamp01((t - land) / DropTime);
-                    var target = resting ? _hoop.SlotPosition(i) : _hoop.RimCenter + Vector3.down * (_hoop.NetDepth + BallRadius);
+                    var target = resting ? _target.SlotPosition(i) : _target.SinkPoint;
                     ball.position = Vector3.Lerp(_entry[i], target, d * d);
                     _trails[i].emitting = false;
                 }
@@ -158,16 +156,6 @@ namespace Project.Flow
             return v * v * v * a + 3f * v * v * u * p1 + 3f * v * u * u * p2 + u * u * u * b;
         }
 
-        private static float Hash(int i, int k)
-        {
-            unchecked
-            {
-                uint h = (uint)(i * 73856093) ^ (uint)(k * 19349663);
-                h ^= h >> 13;
-                h *= 0x5bd1e995;
-                h ^= h >> 15;
-                return (h & 0xffffff) / 16777216f;
-            }
-        }
+        private static float Hash(int i, int k) => FlowHash.Get(i, k);
     }
 }

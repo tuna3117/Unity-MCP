@@ -65,7 +65,12 @@ namespace Project.Tests
             Assert.IsFalse(d.Shot.InputEnabled, "basket input off");
             Assert.IsFalse(d.RoundCam.enabled);
             Assert.IsTrue(d.BoardCam.enabled);
-            Assert.AreEqual(GiantHoop.MaxPile, d.Stream.ActiveCount, "ten balls rest in the net");
+            Assert.AreEqual(d.Bin.RestingCapacity, d.Stream.ActiveCount, "a basket full of balls beside the hero");
+            Assert.AreEqual(d.Bin.RestingCapacity, d.Bin.Pile);
+            Assert.AreEqual(0, d.Hoop.Pile, "the giant hoop's net stays empty");
+            var hero = d.Round.Column.Player.transform;
+            var toBin = d.Bin.transform.position - hero.position; toBin.y = 0f;
+            Assert.Less(Vector3.Angle(hero.forward, toBin), 20f, "the hero ends up facing his basket");
             Assert.IsFalse(d.Badge.Visible);
             for (int i = 0; i < d.Game.Board.Cells.Length; i++) Assert.AreEqual(1f, d.Game.ViewAt(i).Scale, 1e-5f, $"cell {i}");
             Assert.Less(Vector3.Distance(d.Cam.transform.position, d.BoardCam.FitFor(d.S.BoardFov, d.Cam.aspect)), 0.3f);

@@ -60,10 +60,10 @@ namespace Project.Tests
             Assert.AreEqual(25, tl.Visible);
             Assert.AreEqual(0.25f, tl.LaunchTime(0), 1e-5f);
             Assert.LessOrEqual(tl.LaunchTime(24), 0.85f + 1e-4f);
-            Assert.AreEqual(1.05f, tl.LandTime(0), 1e-5f);
-            Assert.AreEqual(1.70f, tl.LandTime(24), 1e-4f);
+            Assert.AreEqual(0.95f, tl.LandTime(0), 1e-5f, "balls land in the hero's basket while the camera shows him");
+            Assert.AreEqual(1.45f, tl.LandTime(24), 1e-4f);
             for (int i = 0; i < 25; i++)
-                Assert.Greater(tl.LandTime(i) - tl.LaunchTime(i), 0.75f, $"ball {i} flight too short");
+                Assert.Greater(tl.LandTime(i) - tl.LaunchTime(i), 0.55f, $"ball {i} flight too short");
             Assert.AreEqual(3, new FlowTimeline(T, 3, FlowCandidate.Stream).Visible);
             Assert.AreEqual(0, new FlowTimeline(T, 158, FlowCandidate.Simple).Visible, "B has no ball stream");
             Assert.AreEqual(0, new FlowTimeline(T, 0, FlowCandidate.Stream).Visible);
@@ -85,7 +85,7 @@ namespace Project.Tests
             Assert.AreEqual(0f, tl.CameraProgress(0.30f, split), 1e-6f);
             Assert.AreEqual(split, tl.CameraProgress(T.CameraMid, split), 1e-5f, "first beat ends on the vista");
             Assert.AreEqual(split, tl.CameraProgress((T.CameraMid + T.CameraResume) * 0.5f, split), 1e-5f, "short hold on the vista");
-            Assert.AreEqual(1f, tl.CameraProgress(1.90f, split), 1e-6f);
+            Assert.AreEqual(1f, tl.CameraProgress(T.CameraEnd, split), 1e-6f);
             float prev = 0f;
             for (float t = 0f; t <= 2.5f; t += 0.01f)
             {
@@ -93,6 +93,15 @@ namespace Project.Tests
                 Assert.GreaterOrEqual(u, prev - 1e-6f);
                 prev = u;
             }
+        }
+
+        [Test]
+        public void Landings_HappenWhileTheCameraIsOnTheHero()
+        {
+            var tl = new FlowTimeline(T, 158, FlowCandidate.Stream);
+            Assert.GreaterOrEqual(tl.LandTime(0), T.HeroRevealAt, "the basket must be visible before the first ball lands");
+            Assert.LessOrEqual(tl.LandTime(0), T.CameraMid, "first balls land as the camera settles on the hero");
+            Assert.LessOrEqual(tl.LandTime(tl.Visible - 1), T.CameraResume + 0.15f, "last balls land before the camera has turned away");
         }
 
         [Test]
@@ -128,9 +137,9 @@ namespace Project.Tests
         public void Settle_OnlyRightAfterArrival()
         {
             var tl = new FlowTimeline(T, 10, FlowCandidate.Stream);
-            Assert.AreEqual(-1f, tl.SettleAt(1.89f));
-            Assert.AreEqual(0.5f, tl.SettleAt(1.96f), 1e-3f);
-            Assert.AreEqual(-1f, tl.SettleAt(2.03f));
+            Assert.AreEqual(-1f, tl.SettleAt(T.CameraEnd - 0.01f));
+            Assert.AreEqual(0.5f, tl.SettleAt(T.CameraEnd + T.SettleTime * 0.5f), 1e-3f);
+            Assert.AreEqual(-1f, tl.SettleAt(T.CameraEnd + T.SettleTime + 0.01f));
         }
 
         [Test]

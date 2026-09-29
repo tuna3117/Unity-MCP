@@ -18,28 +18,29 @@ MonoBehaviour:
     LaunchStart: 0.25
     LaunchInterval: 0.025
     MaxVisible: 25
-    FirstLand: 1.05
-    LastLand: 1.7
+    FirstLand: 0.95
+    LastLand: 1.45
     CameraStart: 0.3
     CameraMid: 1.1
-    CameraResume: 1.2
-    CameraEnd: 1.9
+    CameraResume: 1.35
+    CameraEnd: 1.95
     SettleTime: 0.12
-    HeroStart: 0.95
-    HeroEnd: 1.35
+    HeroRevealAt: 0.6
+    HeroStart: 0.9
+    HeroEnd: 1.25
     RevealStart: 1.75
     RingInterval: 0.07
     PopTime: 0.28
     FrameGlowTime: 0.4
-    AmmoStart: 0.95
+    AmmoStart: 0.9
     AmmoTime: 0.3
     HudStart: 1.9
     HudTime: 0.35
     CountStart: 0.95
     CountEnd: 2.2
     BadgeDockEnd: 0.8
-    BadgeFlyStart: 1
-    BadgeFlyEnd: 1.25
+    BadgeFlyStart: 0.92
+    BadgeFlyEnd: 1.15
     BadgeFlyStartSimple: 1.95
     BadgeFlyEndSimple: 2.3
     Ready: 2.5
@@ -61,6 +62,6 @@ MonoBehaviour:
   BoardFogStart: 60
   BoardFogEnd: 220
   BallRadius: 0.24
-  ApexAbove: 9
+  ApexAbove: 5
+  BinPosition: {x: 1.5, y: 0, z: 7}
   LaunchKick: {x: 0, y: 0, z: 0.8}
-  HeroTurnDegrees: 180

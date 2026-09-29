@@ -11,7 +11,7 @@ namespace Project.Flow
     /// <see cref="MaxPile"/> balls rest in it, it bulges as they land) and a pole down to the rooftop (world y = 0).
     /// Built at runtime as a child of the board's game root; local space = board space (the board faces −z).
     /// </summary>
-    public class GiantHoop : MonoBehaviour
+    public class GiantHoop : MonoBehaviour, IBallReceiver
     {
         public const int MaxPile = 10;
 
@@ -92,6 +92,17 @@ namespace Project.Flow
             float a = (i - first) * Mathf.PI * 2f / count + layer * 0.6f;
             return Rim.TransformPoint(new Vector3(Mathf.Cos(a) * r, -depth, Mathf.Sin(a) * r));
         }
+
+        // IBallReceiver: balls drop through the rim into the net (kept for a net-filling variant; A uses the hero's basket).
+        public Vector3 EntryPoint(int i)
+        {
+            float a = FlowHash.Get(i, 3) * Mathf.PI * 2f, r = FlowHash.Get(i, 4) * RimRadius * 0.35f;
+            return RimCenter + new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+        }
+
+        public Vector3 SinkPoint => RimCenter + Vector3.down * (NetDepth + BallRadius);
+        public int RestingCapacity => MaxPile;
+        public void AddBall() => AddToPile();
 
         public void AddToPile()
         {

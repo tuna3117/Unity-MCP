@@ -6,12 +6,12 @@ namespace Project.Basket.Visual
     /// <summary>Wire-cage visual (bars every 0.5 m, orange rails) merged into two meshes.</summary>
     public static class CageMeshBuilder
     {
-        public static void Build(Transform parent, float width, float height, float depth, float floorY, Material wire, Material rail)
+        public static void Build(Transform parent, float width, float height, float depth, float floorY, Material wire, Material rail,
+            float step = 0.5f, float bar = 0.05f, float railSize = 0.18f, float feet = 0.6f)
         {
             var bars = new List<CombineInstance>();
             var rails = new List<CombineInstance>();
             var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-            float bar = 0.05f, step = 0.5f;
             float top = floorY + height;
             float hw = width * 0.5f, hd = depth * 0.5f;
 
@@ -36,7 +36,7 @@ namespace Project.Basket.Visual
             for (float y = floorY; y <= top + 0.001f; y += step)
             {
                 bool isRail = y >= top - 0.001f;
-                float t = isRail ? 0.18f : bar;
+                float t = isRail ? railSize : bar;
                 Bar(new Vector3(0f, y, hd), new Vector3(width + t, t, t), isRail);
                 Bar(new Vector3(0f, y, -hd), new Vector3(width + t, t, t), isRail);
                 Bar(new Vector3(hw, y, 0f), new Vector3(t, t, depth + t), isRail);
@@ -48,7 +48,8 @@ namespace Project.Basket.Visual
             // feet
             foreach (var sx in new[] { -1f, 1f })
                 foreach (var sz in new[] { -1f, 1f })
-                    Bar(new Vector3(sx * (hw - 0.2f), floorY - 0.3f, sz * (hd - 0.2f)), new Vector3(0.25f, 0.6f, 0.25f), true);
+                    Bar(new Vector3(sx * (hw - Mathf.Min(0.2f, hw * 0.3f)), floorY - feet * 0.5f, sz * (hd - Mathf.Min(0.2f, hd * 0.3f))),
+                        new Vector3(Mathf.Min(0.25f, width * 0.1f), feet, Mathf.Min(0.25f, depth * 0.1f)), true);
 
             Merge(parent, "CageWire", bars, wire);
             Merge(parent, "CageRails", rails, rail);
