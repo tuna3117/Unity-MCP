@@ -10,7 +10,7 @@ Kullanıcı yazılımcı değil, ürünü yöneten kişi. Ona teknik karar sorma
 
 **Bu projenin rolü: atölye + şablon.** Ortak araçlar (köprü yaması, AI araçları, efekt seti, juice bileşenleri, karakter hattı) burada gelişir, yeni oyun fikirleri ilk denemelerini burada yapar. Yayına gidecek her oyun kendi Unity projesinde yaşar, çünkü bir Unity projesinden tek bir uygulama çıkar (tek ikon, bundle id, build). Örnek: `~/projects/Kaptan` bu projeden kopyalandı. Yeni oyun projesi açarken bu projeyi kopyala, `Assets/_Project/Experiments/` ile o oyuna ait olmayan `Games/*` klasörlerini sil (bkz. §7).
 
-**Stüdyo haritası** (copy → Blender → Unity/three.js, teslim sözleşmesi, yol haritası): `~/projects/Blender MCP/docs/studyo.md`. 3B model/iskelet/animasyon/efekt dokusu Blender atölyesinde (`~/projects/Blender MCP`) yapılır, buraya `ai_import_asset` ile gelir. Ertelenen küçük işler (Unity tarafı dâhil, U1–U8): `~/projects/Blender MCP/docs/backlog.md`; Tuna en sonunda hepsinin düzeltilmesini bekliyor.
+**Stüdyo haritası** (copy → Blender → Unity/three.js, teslim sözleşmesi, yol haritası): `~/projects/Blender MCP/docs/studyo.md`. 3B model/iskelet/animasyon/efekt dokusu Blender atölyesinde (`~/projects/Blender MCP`) yapılır, buraya `ai_import_asset` ile gelir. Ertelenen küçük işler (Unity tarafı dâhil, U1–U10; copy C1): `~/projects/Blender MCP/docs/backlog.md`; Tuna en sonunda hepsinin düzeltilmesini bekliyor.
 
 ## 2. Ortam
 
