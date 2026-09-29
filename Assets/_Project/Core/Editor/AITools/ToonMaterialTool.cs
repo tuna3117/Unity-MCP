@@ -48,11 +48,13 @@ namespace Project.Editor.AITools
         {
             var shader = Shader.Find("Project/Toon") ?? throw new InvalidOperationException("Shader Project/Toon not found.");
             if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) == null) throw new ArgumentException("No prefab at " + prefabPath);
-            Texture baseMap = !string.IsNullOrEmpty(texturePath)
-                ? AssetDatabase.LoadAssetAtPath<Texture>(texturePath)
-                : !string.IsNullOrEmpty(modelPath)
-                    ? AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<Material>().Select(BaseTexture).FirstOrDefault(t => t != null)
-                    : null;
+            Texture baseMap = null;
+            if (!string.IsNullOrEmpty(texturePath))
+                baseMap = AssetDatabase.LoadAssetAtPath<Texture>(texturePath)
+                          ?? throw new ArgumentException("No texture at " + texturePath);
+            else if (!string.IsNullOrEmpty(modelPath))
+                baseMap = AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<Material>().Select(BaseTexture).FirstOrDefault(t => t != null)
+                          ?? throw new ArgumentException("No base-colour texture in " + modelPath);
             materialPath = string.IsNullOrEmpty(materialPath)
                 ? Path.ChangeExtension(prefabPath, null).Replace('\\', '/') + "_Toon.mat"
                 : materialPath;
@@ -73,7 +75,8 @@ namespace Project.Editor.AITools
             var root = PrefabUtility.LoadPrefabContents(prefabPath);
             try
             {
-                foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+                // the character's meshes only: particles, trails and lines keep their own materials
+                foreach (var renderer in root.GetComponentsInChildren<Renderer>(true).Where(r => r is MeshRenderer || r is SkinnedMeshRenderer))
                     renderer.sharedMaterials = Enumerable.Repeat(material, Math.Max(1, renderer.sharedMaterials.Length)).ToArray();
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             }

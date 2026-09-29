@@ -150,6 +150,21 @@ Shader "Project/Toon"
 
         Pass
         {
+            // URP's own depth-normals pass: puts the character into the depth-normals texture (SSAO, depth effects)
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            ZWrite On
+            HLSLPROGRAM
+            #pragma vertex DepthNormalsVertex
+            #pragma fragment DepthNormalsFragment
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthNormalsPass.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
             Name "DepthOnly"
             Tags { "LightMode" = "DepthOnly" }
             ZWrite On ColorMask R
