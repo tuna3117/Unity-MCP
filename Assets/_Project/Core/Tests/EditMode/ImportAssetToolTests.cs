@@ -15,6 +15,18 @@ namespace Project.Tests
         private static string Fixture => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Tools", "fixtures",
             "handoff-cube", "manifest.json"));
 
+        private static string RigFixture => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Tools", "fixtures",
+            "handoff-rig", "manifest.json"));
+
+        [Test]
+        public void RiggedFixture_BonesAndClipsMatch()
+        {
+            var r = ImportAssetTool.Import(RigFixture, Root + "/rig");
+            Assert.IsTrue(r.matches, string.Join("; ", r.differences));
+            Assert.AreEqual(3, r.unityBones);
+            Assert.AreEqual(1, r.unityClips.Count);
+        }
+
         [TearDown]
         public void TearDown() => AssetDatabase.DeleteAsset(Root);
 

@@ -1,0 +1,44 @@
+{
+  "id": "handoff-rig",
+  "game": "_fixtures",
+  "kind": "character",
+  "version": 1,
+  "files": {
+    "glb": "handoff-rig.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 164,
+    "materials": 0,
+    "textures": [],
+    "bones": 3,
+    "clips": [
+      "bend"
+    ],
+    "size_m": [
+      0.2,
+      0.2,
+      1.2
+    ]
+  },
+  "source": {
+    "recipe": "recipes/rig_fixture.py",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-09-29T10:35:10Z"
+}
