@@ -14,7 +14,7 @@ namespace Project.Flow
         public float Height = 0.95f;
         public float Depth = 1.1f;
         public float FloorY = 0.12f;
-        public float BallRadius = 0.24f;
+        public float BallRadius = 0.19f;
         public Color WireColor = new Color(0.1f, 0.1f, 0.11f);
         public Color RimColor = new Color(1f, 0.416f, 0.102f);   // BasketSettings.RimColor
 

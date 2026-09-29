@@ -76,9 +76,10 @@ namespace Project.Tests
             stream.Tick(0f);
             stream.Tick(0.5f);
             stream.Tick(2.5f);
-            CollectionAssert.AreEqual(Enumerable.Range(0, 25).ToList(), landed);
+            int v = new FlowTiming().MaxVisible;
+            CollectionAssert.AreEqual(Enumerable.Range(0, v).ToList(), landed);
             stream.Tick(2.6f);
-            Assert.AreEqual(25, landed.Count, "no landing raised twice");
+            Assert.AreEqual(v, landed.Count, "no landing raised twice");
             Assert.AreEqual(GiantHoop.MaxPile, hoop.Pile);
         }
 
@@ -103,8 +104,8 @@ namespace Project.Tests
             Assert.AreEqual(0, stream.ActiveCount);
             stream.Tick(0.26f);
             Assert.AreEqual(1, stream.ActiveCount);
-            stream.Tick(1.10f);
-            Assert.AreEqual(25, stream.ActiveCount);
+            stream.Tick(0.90f);
+            Assert.AreEqual(new FlowTiming().MaxVisible, stream.ActiveCount, "all launched, none landed yet");
         }
 
         [Test]

@@ -16,8 +16,8 @@ MonoBehaviour:
   Timing:
     HighlightEnd: 0.3
     LaunchStart: 0.25
-    LaunchInterval: 0.025
-    MaxVisible: 25
+    LaunchInterval: 0.04
+    MaxVisible: 14
     FirstLand: 0.95
     LastLand: 1.45
     CameraStart: 0.3
@@ -62,7 +62,7 @@ MonoBehaviour:
   SettleAmount: 0.35
   BoardFogStart: 60
   BoardFogEnd: 220
-  BallRadius: 0.24
+  BallRadius: 0.19
   ApexAbove: 5
   BinPosition: {x: 1.4, y: 0, z: 7.5}
   BinEndLean: 2.5

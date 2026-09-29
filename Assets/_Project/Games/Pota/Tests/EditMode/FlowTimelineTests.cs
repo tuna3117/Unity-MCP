@@ -57,12 +57,13 @@ namespace Project.Tests
         public void VisibleBalls_AreCappedAt25_AndLandInsideTheWindow()
         {
             var tl = new FlowTimeline(T, 158, FlowCandidate.Stream);
-            Assert.AreEqual(25, tl.Visible);
+            Assert.AreEqual(14, tl.Visible, "fewer, separate balls read better than a chain (spec cap 25)");
+            Assert.LessOrEqual(tl.Visible, 25);
             Assert.AreEqual(0.25f, tl.LaunchTime(0), 1e-5f);
-            Assert.LessOrEqual(tl.LaunchTime(24), 0.85f + 1e-4f);
+            Assert.LessOrEqual(tl.LaunchTime(tl.Visible - 1), 0.85f + 1e-4f);
             Assert.AreEqual(0.95f, tl.LandTime(0), 1e-5f, "balls land in the hero's basket while the camera shows him");
-            Assert.AreEqual(1.45f, tl.LandTime(24), 1e-4f);
-            for (int i = 0; i < 25; i++)
+            Assert.AreEqual(1.45f, tl.LandTime(tl.Visible - 1), 1e-4f);
+            for (int i = 0; i < tl.Visible; i++)
                 Assert.Greater(tl.LandTime(i) - tl.LaunchTime(i), 0.55f, $"ball {i} flight too short");
             Assert.AreEqual(3, new FlowTimeline(T, 3, FlowCandidate.Stream).Visible);
             Assert.AreEqual(0, new FlowTimeline(T, 158, FlowCandidate.Simple).Visible, "B has no ball stream");

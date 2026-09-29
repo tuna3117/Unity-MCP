@@ -18,7 +18,7 @@ namespace Project.Flow
         [Tooltip("Path top = the higher end + this (spec: 9 m).")]
         public float ApexAbove = 9f;
         [Tooltip("Extra apex per ball, 0..this (never lower: lower paths graze the hero).")]
-        public float ApexJitter = 1.2f;
+        public float ApexJitter = 1.6f;
         public Vector3 LaunchKick = new Vector3(0f, 0f, 0.8f);
         [Tooltip("Pulls the arc's last control point back along the flight: > 0 comes in on a slant instead of straight down.")]
         public float EndLean;

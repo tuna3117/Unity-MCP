@@ -98,7 +98,7 @@ namespace Project.Tests
             stream.Landed += landed.Add;
             stream.Tick(0f);
             stream.Tick(2.5f);
-            CollectionAssert.AreEqual(Enumerable.Range(0, 25).ToList(), landed);
+            CollectionAssert.AreEqual(Enumerable.Range(0, new FlowTiming().MaxVisible).ToList(), landed);
             Assert.AreEqual(bin.RestingCapacity, bin.Pile);
             Assert.AreEqual(bin.RestingCapacity, stream.ActiveCount, "the rest vanish into the pile");
         }

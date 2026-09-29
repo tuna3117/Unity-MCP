@@ -19,8 +19,8 @@ namespace Project.Flow
         public float HighlightEnd = 0.30f;
         [Header("Balls (A)")]
         public float LaunchStart = 0.25f;
-        public float LaunchInterval = 0.025f;
-        [Min(1)] public int MaxVisible = 25;
+        public float LaunchInterval = 0.04f;
+        [Min(1)] public int MaxVisible = 14;
         public float FirstLand = 0.95f;
         public float LastLand = 1.45f;
         [Header("Camera")]
