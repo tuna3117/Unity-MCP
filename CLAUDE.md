@@ -10,7 +10,7 @@ Kullanıcı yazılımcı değil, ürünü yöneten kişi. Ona teknik karar sorma
 
 **Bu projenin rolü: atölye + şablon.** Ortak araçlar (köprü yaması, AI araçları, efekt seti, juice bileşenleri, karakter hattı) burada gelişir, yeni oyun fikirleri ilk denemelerini burada yapar. Yayına gidecek her oyun kendi Unity projesinde yaşar, çünkü bir Unity projesinden tek bir uygulama çıkar (tek ikon, bundle id, build). Örnek: `~/projects/Kaptan` bu projeden kopyalandı. Yeni oyun projesi açarken bu projeyi kopyala, `Assets/_Project/Experiments/` ile o oyuna ait olmayan `Games/*` klasörlerini sil (bkz. §7).
 
-**Stüdyo haritası** (copy → Blender → Unity/three.js, teslim sözleşmesi, yol haritası): `~/projects/Blender MCP/docs/studyo.md`. 3B model/iskelet/animasyon/efekt dokusu Blender atölyesinde (`~/projects/Blender MCP`) yapılır, buraya `ai_import_asset` ile gelir. Ertelenen küçük işler (Unity tarafı dâhil, U1–U10; copy C1): `~/projects/Blender MCP/docs/backlog.md`; Tuna en sonunda hepsinin düzeltilmesini bekliyor.
+**Stüdyo haritası** (copy → Blender → Unity/three.js, teslim sözleşmesi, yol haritası): `~/projects/Blender MCP/docs/studyo.md`. 3B model/iskelet/animasyon/efekt dokusu Blender atölyesinde (`~/projects/Blender MCP`) yapılır, buraya `ai_import_asset` ile gelir. Ertelenen küçük işler (Unity tarafı dâhil; açık olanlar B1–B9, U1–U6): `~/projects/Blender MCP/docs/backlog.md`; Tuna en sonunda hepsinin düzeltilmesini bekliyor.
 
 ## 2. Ortam
 
@@ -140,7 +140,7 @@ Aşağıdakileri sırayla yap, bitenleri işaretle ve "Proje durumu"nu güncelle
 
 ## 12. Proje durumu (bunu sen güncel tut)
 
-_Son güncelleme: 2026-09-29 (karakter model hattı: toon shader, `ai_toon_material`, `PotaHeroToon`)._
+_Son güncelleme: 2026-09-29 akşam (toon kahraman oyunda; karakter hattı ikinci tur; backlog U7–U10 kapandı)._
 
 - **Unity sürümü:** 6000.6.2f1 (Unity 6.6), macOS 26.6 / Apple Silicon / Metal. Proje `urp-blank` şablonundan üretildi.
 - **URP sürümü:** 17.6.0. Render Graph aktif; `Assets/Settings/` altında PC/Mobile RP asset'leri şablondan geliyor.
@@ -170,7 +170,7 @@ _Son güncelleme: 2026-09-29 (karakter model hattı: toon shader, `ai_toon_mater
   - `ai_scan_missing` — eksik script + kopuk referans taraması (`fix_missing_scripts`; `scope: prefabs` tüm `_Project` prefab'larını tarar)
   - `ai_scan_pink_materials` — URP uyumsuz materyal taraması (`fix` = MaterialUpgrader ile dönüştür)
   - `ai_vfx_create_starters` — başlangıç efekt setini üretir
-  - `ai_anim_contact_sheet` — model + klip → tek PNG + kemik yükseklik tablosu (klipleri sayıyla değerlendir)
+  - `ai_anim_contact_sheet` — model + klip → tek PNG + kemik yükseklik tablosu. Deri her karede CPU'da pişirilip çizilir (eskiden yalnız kök kemiğin hareketi görünüyordu: şutta kollar kalçada kalıyordu), kadraj bütün pozları kapsar
   - `ai_move_assets` — asset/klasör taşıma ve yeniden adlandırma (GUID korunur; `dry_run`, boş klasör temizliği, Build Settings sahne yollarını eşitler)
   - `ai_import_asset` — Blender atölyesi teslimini (`manifest.json` + glb/fbx) `Games/<Oyun>/Art/<Tür>/<id>/`e alır (`{"manifest":"<mutlak yol>"}`); aynı id tekrar gelince GUID korunur; Unity'nin ölçtüğü üçgen/kemik/klip sayısını manifest'le karşılaştırır (`matches`). Test fikstürü `Tools/fixtures/handoff-cube/`.
   - `ai_toon_material` — prefabın her renderer'ına `Project/Toon` materyali: `{"prefab": "<yol>", "texture"?: "<doku>", "model"?: "<glb/fbx, ilk base-color dokusu>", "material"?: "<.mat>"}` (varsayılan `<prefab>_Toon.mat`). Ayarlar (gölge rengi/eşiği, kenar, dış hat kalınlığı) materyalde.
@@ -179,11 +179,12 @@ _Son güncelleme: 2026-09-29 (karakter model hattı: toon shader, `ai_toon_mater
   - Oyuna özel araçlar oyunun README'sinde (Pota: `ai_basket_*`, `ai_colorhunt_*`, `ai_character_setup`).
 - **Hazır efektler** (`Assets/_Project/Core/VFX/`, `VfxService.Play("hit"|"explosion"|"pickup"|"swish"|"multiply"|"add"|"rim_hit", pos, rot)`): prefab + `VfxDefinition` + `VfxLibrary.asset`, `UnityEngine.Pool` ile havuzlanır, sahneye `VfxService` objesi konur. Global Volume: Bloom 1.0 / eşik 0.9, Vignette 0.25, Color Adjustments (kontrast +10, doygunluk +8). Yeni efekt: prefab + `Project/VFX/VFX Definition` asset'i + kütüphaneye ekle.
 - **Juice bileşenleri** (Core, ad alanı `Project.Juice`): `CameraShake`, `TimeScaleController` (`Time.timeScale`'i doğrudan yazma, her karede geri alır; yavaş çekim/hit-stop için `SlowMo(scale, s)`), `PopupText` (Canvas/Font boşsa kendisi kurar), `SynthSfx` (sentez ses efektleri).
-- **Testler:** EditMode `Core/Tests/EditMode` + oyunların `Tests/EditMode`'u; PlayMode `Core/Tests/PlayMode` (`SceneBootTests`: Build Settings'teki her sahne diskten açılıp 3 sn hatasız çalışmalı) + oyunların `Tests/PlayMode`'u (`run_tests {"mode":"EditMode"|"PlayMode"}` → `get_test_job`). Sahne ya da sahne aracı değişince PlayMode'u da çalıştır. 2026-09-29: EditMode 42/42, PlayMode 5/5.
+- **Testler:** EditMode `Core/Tests/EditMode` + oyunların `Tests/EditMode`'u; PlayMode `Core/Tests/PlayMode` (`SceneBootTests`: Build Settings'teki her sahne diskten açılıp 3 sn hatasız çalışmalı) + oyunların `Tests/PlayMode`'u (`run_tests {"mode":"EditMode"|"PlayMode"}` → `get_test_job`). Sahne ya da sahne aracı değişince PlayMode'u da çalıştır. 2026-09-29: EditMode 49/49, PlayMode 5/5. Asset içe aktarımından hemen sonra PlayMode "0 test" dönebiliyor (liste bayat): `refresh_unity` (force, compile) sonra yeniden çalıştır.
 - **Genel dersler (oyunlardan çıkan):**
   - Play Mode içinde script derleme YAPMA: domain reload havuzu/abonelikleri bozuyor ve konsolun hata-duraklatması editörü "Pause"a alabiliyor (`EditorApplication.isPaused`). Önce `manage_editor stop`. Oturum başında Editor Play'de kalmış olabilir.
   - Araçla kurulan her referans `[SerializeField]` olmalı: Edit Mode'da atanan `private` alanlar serileştirilmez; aynı oturumda çalışır, editör yeniden açılınca null olur (Renk Avı "busy" kilidi, 2026-09-23). Olay dinleyicilerini sar ki UI hatası oyun akışını durdurmasın.
   - Editörün oyun döngüsü ancak bir Game view çizilirken ilerler; ana pencere arka plandayken `Time.frameCount` durur. Kare kare kayıt için kendi Game view'ını aç, Pause + `EditorApplication.Step()` (örnek: Pota `ai_basket_record`). Hızlı yol (2026-09-29): her `execute_code` çağrısında `EditorApplication.isPaused = true; EditorApplication.Step();` bir kare ilerletir (`open -a` odak veremedi). Aksi hâlde Play'de yeni eklenen Animator T-pozunda kalır.
+  - Edit Mode'da elle değerlendirilen PlayableGraph'tan sonra `Camera.Render()` bayat deri çizer (skinning oyuncu döngüsünde güncellenir); `forceMatrixRecalculationPerRender` yetmedi, `SkinnedMeshRenderer.BakeMesh` + MeshRenderer kopyası çiz.
   - `execute_code` içinde uzantı metotları (`SetTime`, `SetSourcePlayable`) `using` olmadan görünmez; statik çağır: `UnityEngine.Playables.PlayableExtensions.SetTime(p, t)`.
   - Yeni materyali diske (`CreateAsset`) ancak bütün ayarlarını yaptıktan sonra yaz; önce yazıp sonra bellekte doku atamak, prefab kaydında diskten yeniden yüklenip kaybolabiliyor (kararsız test, 2026-09-29).
   - TextMesh etiket + gölge aynı render kuyruğundaysa çizim sırası rastgele: etiket 3002, gölge 3001. Dinamik font atlası yeniden kurulunca TextMesh UV'leri bayatlıyor: `Font.textureRebuilt`te metni yeniden ata, karakterleri `RequestCharactersInTexture` ile önceden iste.
@@ -198,4 +199,4 @@ _Son güncelleme: 2026-09-29 (karakter model hattı: toon shader, `ai_toon_mater
 - **Oyunlar:**
   - **Pota** (`Assets/_Project/Games/Pota/`, notlar `Games/Pota/README.md`; Pota üzerinde çalışırken önce onu oku): Basket turu bitti, animasyonlu oyuncu eklendi; Renk Avı denemesi Tuna'nın bakışını bekliyor (patlama/efekt hissi, tahta boyu, HUD). Asıl oyun three.js'te (`~/projects/Pota`). Pota'nın Unity'ye geçip geçmeyeceğine Tuna karar verecek; geçerse bu klasör yeni bir Pota Unity projesine taşınır.
   - **Kaptan** (`~/projects/Kaptan`): bu şablondan kopyalanmış ayrı Unity projesi. Ortak araçların orada ayrı bir kopyası var; burada düzeltilen ortak kod oraya kendiliğinden gitmez. Üçüncü Unity oyunu gelince `Core/`u iki projenin de bağlandığı yerel bir pakete çevir.
-- **Aktif oyun / mevcut aşama:** Pota denemeleri Tuna'nın bakışını bekliyor. Stüdyo hattı: Blender atölyesi (2026-09-29) ve karakter model hattı (2026-09-29) bitti; yeni toon kahraman `Games/Pota/Prefabs/PotaHeroToon.prefab` oyundaki oyuncunun yerine geçmedi, değiştirmek Tuna'nın kararı. Sıradaki alt proje iskelet + animasyon (`~/projects/Blender MCP/docs/studyo.md`).
+- **Aktif oyun / mevcut aşama:** Pota: Basket turunun oyuncusu artık toon kahraman `Games/Pota/Prefabs/PotaHeroToon.prefab` (Tuna onayladı, 2026-09-29). Stüdyo hattı: Blender atölyesi ve karakter model hattı bitti (ikinci turda "ucuz diye kötü yapma" ilkesiyle yeniden oturtuldu). Sıradaki alt proje iskelet + animasyon (`~/projects/Blender MCP/docs/studyo.md`); yeni bütçe onayı gerekecek.
