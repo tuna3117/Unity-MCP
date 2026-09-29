@@ -5,6 +5,7 @@
         "Pota.Runtime",
         "Pota.Editor",
         "Project.Runtime",
+        "UnityEngine.UI",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
