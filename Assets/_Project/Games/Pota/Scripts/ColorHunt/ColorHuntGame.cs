@@ -20,6 +20,8 @@ namespace Project.ColorHunt
         public ColorHuntJuice Juice;
         public ColorHuntHud Hud;
         public Camera Cam;
+        [Tooltip("Deal a board on Start. PotaFlow turns this off and stages the board itself (Prepare → Begin).")]
+        public bool AutoStart = true;
 
         public State Current { get; private set; } = State.Idle;
         public Board Board { get; private set; }
@@ -66,6 +68,7 @@ namespace Project.ColorHunt
         private GameObject _selectionRing;
         private Vector3 _launcher;
         private float _resultTimer = -1f;
+        private bool _staged;
 
         // ---------- lifecycle ----------
 
@@ -109,17 +112,30 @@ namespace Project.ColorHunt
             _selectionRing.SetActive(false);
 
             if (Fx != null) Fx.Build(_shardMesh);
-            NewRound();
+            if (AutoStart) NewRound();
         }
 
-        public void NewRound()
+        public void NewRound() => NewRound(S.Ammo);
+
+        public void NewRound(int ammo)
+        {
+            Prepare(ammo);
+            Begin();
+        }
+
+        /// <summary>
+        /// Deals a board and builds its block views without starting play: views keep animating (PotaFlow scales them in),
+        /// taps and rotations stay locked until <see cref="Begin"/>.
+        /// </summary>
+        public void Prepare(int ammo)
         {
             ClearViews();
             Seed = S.Seed != 0 ? S.Seed : (uint)UnityEngine.Random.Range(1, int.MaxValue);
-            Board = ColorHuntRules.Create(S.ToDesign(), S.Ammo, Seed);
+            Board = ColorHuntRules.Create(S.ToDesign(), ammo, Seed);
             BuildViews(Board);
             DisplayedAmmo = Board.Ammo;
-            Current = State.Playing;
+            Current = State.Idle;
+            _staged = true;
             Won = false;
             Rotations = 0; LongestChain = 0;
             _checkNeeded = true;
@@ -130,7 +146,28 @@ namespace Project.ColorHunt
             Raise(TargetsChanged);
         }
 
+        /// <summary>Shows a different number on the ammo counter while the board is staged (transition count-up).</summary>
+        public void ShowAmmo(int value)
+        {
+            DisplayedAmmo = value;
+            Raise(AmmoChanged);
+        }
+
+        /// <summary>Starts play on the staged board; the counter snaps to the real ammo.</summary>
+        public void Begin()
+        {
+            if (Board == null) return;
+            _staged = false;
+            Current = State.Playing;
+            DisplayedAmmo = Board.Ammo;
+            Raise(AmmoChanged);
+        }
+
         // ---------- public actions ----------
+
+        /// <summary>Where the win confetti starts: above the board, relative to the game root (the board may sit anywhere).</summary>
+        public Vector3 ConfettiOrigin =>
+            transform.TransformPoint(new Vector3(0f, S.Size * 0.5f + BoardBuilder.Margin + 1.2f, -0.8f));
 
         public Vector3 CellWorld(int cell)
         {
@@ -189,7 +226,11 @@ namespace Project.ColorHunt
 
         private void Update()
         {
-            if (Current == State.Idle) return;
+            if (Current == State.Idle)
+            {
+                if (_staged) TickViews(Mathf.Min(Time.deltaTime, 0.05f));
+                return;
+            }
             float dt = Mathf.Min(Time.deltaTime, 0.05f);
             Salvo?.Tick(dt);
             AdvanceJobs(dt);
@@ -200,6 +241,11 @@ namespace Project.ColorHunt
                 _resultTimer -= Time.unscaledDeltaTime;
                 if (_resultTimer < 0f) { _resultTimer = -1f; RoundEnded?.Invoke(Won, _endReason); }
             }
+            TickViews(dt);
+        }
+
+        private void TickViews(float dt)
+        {
             float comp = -BoardRoot.localEulerAngles.z;
             foreach (var v in _views.Values) v.Tick(dt, comp);
         }
@@ -222,8 +268,7 @@ namespace Project.ColorHunt
             Juice?.Result(won);
             if (won && Fx != null)
             {
-                var top = new Vector3(0f, S.Size * 0.5f + BoardBuilder.Margin + 1.2f, -0.8f);
-                Fx.Confetti(top, S.Palette, 260);
+                Fx.Confetti(ConfettiOrigin, S.Palette, 260);
             }
             _resultTimer = won ? S.WinWait : S.LoseWait;
         }

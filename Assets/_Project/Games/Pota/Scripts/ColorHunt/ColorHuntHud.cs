@@ -69,6 +69,51 @@ namespace Project.ColorHunt
             if (_resultPanel != null) _resultPanel.SetActive(false);
         }
 
+        private RectTransform _introAmmo, _introTargets, _introLeft, _introRight;
+        private Vector2 _homeAmmo, _homeTargets, _homeLeft, _homeRight;
+        private Color _hintHome;
+        private bool _introCached;
+
+        /// <summary>Slides the HUD in (PotaFlow): p = 0 panels off-screen and hint hidden, p = 1 exactly home. Ease-out.</summary>
+        public void SetIntro(float p)
+        {
+            if (!_introCached) CacheIntro();
+            p = Mathf.Clamp01(p);
+            float e = 1f - (1f - p) * (1f - p) * (1f - p);
+            float away = 1f - e;
+            if (_introAmmo != null) _introAmmo.anchoredPosition = _homeAmmo + new Vector2(-420f * away, 0f);
+            if (_introTargets != null) _introTargets.anchoredPosition = _homeTargets + new Vector2(0f, 320f * away);
+            if (_introLeft != null) _introLeft.anchoredPosition = _homeLeft + new Vector2(0f, -340f * away);
+            if (_introRight != null) _introRight.anchoredPosition = _homeRight + new Vector2(0f, -340f * away);
+            if (_hint != null) { var c = _hintHome; c.a *= e; _hint.color = c; }
+        }
+
+        private void CacheIntro()
+        {
+            _introCached = true;
+            _introAmmo = transform.Find("AmmoPanel") as RectTransform;
+            _introTargets = transform.Find("TargetPanel") as RectTransform;
+            _introLeft = transform.Find("RotateLeft") as RectTransform;
+            _introRight = transform.Find("RotateRight") as RectTransform;
+            if (_introAmmo != null) _homeAmmo = _introAmmo.anchoredPosition;
+            if (_introTargets != null) _homeTargets = _introTargets.anchoredPosition;
+            if (_introLeft != null) _homeLeft = _introLeft.anchoredPosition;
+            if (_introRight != null) _homeRight = _introRight.anchoredPosition;
+            if (_hint != null) _hintHome = _hint.color;
+        }
+
+        /// <summary>Screen pixels of the ammo number (overlay or camera canvas), for the transition badge to fly into.</summary>
+        public Vector2 AmmoScreenPoint
+        {
+            get
+            {
+                if (_ammo == null) return Vector2.zero;
+                var canvas = GetComponent<Canvas>();
+                var cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+                return RectTransformUtility.WorldToScreenPoint(cam, _ammo.rectTransform.position);
+            }
+        }
+
         /// <summary>Short scale pop on the ammo number (transition arrival).</summary>
         public void PopAmmo()
         {
