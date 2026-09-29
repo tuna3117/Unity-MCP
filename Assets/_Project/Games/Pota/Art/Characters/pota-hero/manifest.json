@@ -71,8 +71,13 @@
         "min": 0.3,
         "pass": true
       },
+      "surface_distance": {
+        "value": 0.00315,
+        "max": 0.01,
+        "pass": true
+      },
       "passed": true
     }
   },
-  "made": "2026-09-29T13:57:43Z"
+  "made": "2026-09-29T14:44:40Z"
 }
