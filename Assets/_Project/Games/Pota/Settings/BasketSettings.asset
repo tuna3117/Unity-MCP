@@ -56,7 +56,7 @@ MonoBehaviour:
   CityTexture: {fileID: 2800000, guid: 06ea1e3bfe6824fe686fe43d9d44bd72, type: 3}
   SkyTexture: {fileID: 2800000, guid: ea634917d0e4441b49f5ee8bbc9cffb3, type: 3}
   BackboardTexture: {fileID: 2800000, guid: 34773f249fd6b4f93817a6a7283c506b, type: 3}
-  PlayerPrefab: {fileID: 7238237135376279548, guid: 8f94e0b9a90d841c08273ef35662fc9b, type: 3}
+  PlayerPrefab: {fileID: 354579727231323136, guid: 7e9b5c8df548f4b90b32021a60af3bdc, type: 3}
   PlayerShootClipStart: 0.9
   SkyColor: {r: 0.557, g: 0.788, b: 0.949, a: 1}
   FogColor: {r: 0.62, g: 0.827, b: 0.961, a: 1}

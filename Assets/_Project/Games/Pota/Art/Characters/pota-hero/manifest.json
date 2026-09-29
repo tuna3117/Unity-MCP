@@ -2,7 +2,7 @@
   "id": "pota-hero",
   "game": "Pota",
   "kind": "character",
-  "version": 1,
+  "version": 2,
   "files": {
     "glb": "pota-hero.glb",
     "fbx": "pota-hero.fbx",
@@ -14,7 +14,7 @@
   "up": "+Y",
   "scale_applied": true,
   "stats": {
-    "tris": 8400,
+    "tris": 8480,
     "materials": 1,
     "textures": [
       {
@@ -28,16 +28,16 @@
     "bones": 0,
     "clips": [],
     "size_m": [
-      0.7681,
-      0.419,
-      0.9999
+      0.8027,
+      0.3584,
+      0.9998
     ]
   },
   "source": {
     "recipe": null,
     "copy_provenance": null,
     "inputs": [
-      "/Users/tunaaltin17/projects/copy/cikti/karakter/pota-hero/mesh/pota-hero-rodin.glb",
+      "/Users/tunaaltin17/projects/copy/cikti/karakter/pota-hero/mesh/pota-hero-rodin-a.glb",
       "/Users/tunaaltin17/projects/Unity MCP/Tools/character/out/apose2.rgba.png"
     ],
     "pipeline": "character_model",
@@ -56,23 +56,23 @@
         "pass": true
       },
       "silhouette_iou": {
-        "value": 0.9282,
+        "value": 0.8955,
         "min": 0.85,
         "pass": true
       },
       "quads_vs_target": {
-        "value": 4200,
+        "value": 4240,
         "target": 4000,
         "tolerance": 0.2,
         "pass": true
       },
       "texture_filled": {
-        "value": 0.482,
+        "value": 0.894,
         "min": 0.3,
         "pass": true
       },
       "passed": true
     }
   },
-  "made": "2026-09-29T12:22:14Z"
+  "made": "2026-09-29T13:57:43Z"
 }

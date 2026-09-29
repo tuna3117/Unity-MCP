@@ -3,6 +3,7 @@
     "rootNamespace": "Project.Tests",
     "references": [
         "Pota.Runtime",
+        "Pota.Editor",
         "Project.Runtime",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"

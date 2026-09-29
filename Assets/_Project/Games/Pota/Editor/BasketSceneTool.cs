@@ -161,12 +161,19 @@ namespace Project.Editor.AITools
             settings.CityTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "cephe.jpg");
             settings.SkyTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "sehir.jpg");
             settings.BackboardTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "pano.png");
-            settings.PlayerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(art + "Mesh/oyuncu.glb");
+            settings.PlayerPrefab = ChoosePlayerPrefab(settings.PlayerPrefab);
             settings.BallVisualMaterial = BasketballTextureTool.Ensure(false);
             report.Add($"art refs: facade={settings.FacadeTexture != null} wing={settings.WingTexture != null} city={settings.CityTexture != null} sky={settings.SkyTexture != null} board={settings.BackboardTexture != null} player={settings.PlayerPrefab != null} ball={settings.BallVisualMaterial != null}");
             EditorUtility.SetDirty(settings);
             return settings;
         }
+
+        public const string DefaultPlayerPrefab = "Assets/_Project/Games/Pota/Prefabs/PotaHeroToon.prefab";
+
+        /// <summary>Keeps the player prefab already in the settings (ai_character_setup assigns it); an empty slot gets
+        /// the animated toon hero. Rebuilding the scene must not swap the player back to an older model.</summary>
+        public static GameObject ChoosePlayerPrefab(GameObject current) =>
+            current != null ? current : AssetDatabase.LoadAssetAtPath<GameObject>(DefaultPlayerPrefab);
 
         private static PhysicsMaterial EnsurePhysicsMaterial(string name, float bounciness, float friction, List<string> report)
         {
