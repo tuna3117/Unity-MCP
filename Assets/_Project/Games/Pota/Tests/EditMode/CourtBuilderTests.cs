@@ -37,6 +37,12 @@ namespace Project.Tests
                 Assert.AreEqual(36.4f, b.max.z, 1e-3f);
                 Assert.AreEqual(7.5f, b.max.x, 1e-3f);
                 Assert.IsNull(court.GetComponent<Collider>(), "taps and basket physics must not hit the court");
+                var body = court.transform.Find("CourtBody");
+                Assert.IsNotNull(body, "the slab under the markings");
+                Assert.AreNotSame(court.GetComponent<Renderer>().sharedMaterial, body.GetComponent<Renderer>().sharedMaterial,
+                    "the slab's sides must not show the stretched court texture");
+                Assert.LessOrEqual(body.GetComponent<Renderer>().bounds.max.y, 0f, "body stays under the marked top");
+                Assert.IsNull(body.GetComponent<Collider>());
             }
             finally
             {

@@ -9,14 +9,24 @@ namespace Project.Flow
     /// </summary>
     public static class CourtBuilder
     {
+        /// <summary>Marked top (a quad facing up, v = 1 at the hoop end) with a plain slab under it for the roof edges.</summary>
         public static GameObject Build(Transform parent, PotaFlowSettings s)
         {
             var tex = CourtTexture(512, 1024, s.CourtColor, s.CourtLineColor);
             var mat = BasketEnvironmentBuilder.TexturedLit(tex, Color.white, 0.25f);
-            var go = RimMeshBuilder.MeshObject("Court", parent, Resources.GetBuiltinResource<Mesh>("Cube.fbx"), mat);
-            go.transform.position = new Vector3(0f, -0.2f, s.CourtStartZ + s.CourtSize.y * 0.5f);
-            go.transform.localScale = new Vector3(s.CourtSize.x, 0.4f, s.CourtSize.y);
-            return go;
+            var centre = new Vector3(0f, 0f, s.CourtStartZ + s.CourtSize.y * 0.5f);
+            var top = RimMeshBuilder.MeshObject("Court", parent, Resources.GetBuiltinResource<Mesh>("Quad.fbx"), mat);
+            top.transform.position = centre;
+            top.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            top.transform.localScale = new Vector3(s.CourtSize.x, s.CourtSize.y, 1f);
+
+            var edge = RimMeshBuilder.UrpLit(s.CourtColor * 0.62f, 0.2f);
+            var body = RimMeshBuilder.MeshObject("CourtBody", top.transform, Resources.GetBuiltinResource<Mesh>("Cube.fbx"), edge);
+            body.transform.SetPositionAndRotation(centre + new Vector3(0f, -0.201f, 0f), Quaternion.identity);
+            body.transform.localScale = Vector3.one;
+            var ls = body.transform.lossyScale;      // undo the quad's scale/rotation: 15 × 0.4 × 28 m in world terms
+            body.transform.localScale = new Vector3(s.CourtSize.x / ls.x, 0.4f / ls.y, s.CourtSize.y / ls.z);
+            return top;
         }
 
         /// <summary>Court markings: v = 0 is the terrace end, v = 1 the hoop end.</summary>
