@@ -1,0 +1,54 @@
+{
+  "id": "pota-hero",
+  "game": "Pota",
+  "kind": "character",
+  "version": 1,
+  "files": {
+    "glb": "pota-hero.glb",
+    "fbx": "pota-hero.fbx",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 8400,
+    "materials": 1,
+    "textures": [
+      {
+        "name": "base",
+        "size": [
+          1024,
+          1024
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0.7681,
+      0.419,
+      0.9999
+    ]
+  },
+  "source": {
+    "recipe": null,
+    "copy_provenance": null,
+    "inputs": [
+      "/Users/tunaaltin17/projects/copy/cikti/karakter/pota-hero/mesh/pota-hero-rodin.glb",
+      "/Users/tunaaltin17/projects/Unity MCP/Tools/character/out/apose2.rgba.png"
+    ],
+    "pipeline": "character_model",
+    "target_faces": 4000
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-09-29T11:33:36Z"
+}
