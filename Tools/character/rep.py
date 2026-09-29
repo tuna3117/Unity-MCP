@@ -7,7 +7,7 @@ Input JSON values that start with "@" are local files: uploaded via the Files AP
 Every output URL is downloaded into --out; <name>.koken.json (provenance) is written next to it.
 Token: REPLICATE_API_TOKEN env or ~/projects/copy/.env.
 """
-import hashlib, json, os, subprocess, sys, time, urllib.request
+import hashlib, json, os, re, subprocess, sys, time, traceback, urllib.request
 from pathlib import Path
 
 API = "https://api.replicate.com/v1"
@@ -35,13 +35,25 @@ def http(method, url, body=None, timeout=60):
         print("HTTP", e.code, e.read().decode()[:2000], file=sys.stderr, flush=True)
         raise
 
+def mask(text):
+    return re.sub(r"r8_[A-Za-z0-9]+", "r8_***", text)
+
+
+def install_masking():
+    """Uncaught errors print through here with any Replicate token masked."""
+    def hook(kind, value, tb):
+        sys.stderr.write(mask("".join(traceback.format_exception(kind, value, tb))))
+    sys.excepthook = hook
+
+
 def sha(p):
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def upload(p):
+    # the header goes in on stdin (-H @-): a token in argv shows up in ps and in CalledProcessError messages
     out = subprocess.run(["curl", "-s", "--max-time", "120", "-X", "POST", f"{API}/files",
-                          "-H", f"Authorization: Bearer {tok()}", "-F", f"content=@{p}"],
-                         capture_output=True, text=True, check=True).stdout
+                          "-H", "@-", "-F", f"content=@{p}"],
+                         input=f"Authorization: Bearer {tok()}\n", capture_output=True, text=True, check=True).stdout
     d = json.loads(out)
     url = d["urls"]["get"]
     print(f"uploaded {Path(p).name} -> {url}", file=sys.stderr, flush=True)
@@ -103,4 +115,6 @@ def main():
     (out / f"{name}.koken.json").write_text(json.dumps(prov, indent=2))
     print(json.dumps(written))
 
-main()
+if __name__ == "__main__":
+    install_masking()
+    main()
