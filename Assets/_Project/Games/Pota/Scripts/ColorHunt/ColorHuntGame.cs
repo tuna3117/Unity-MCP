@@ -58,7 +58,7 @@ namespace Project.ColorHunt
         private readonly Dictionary<BlockView, float> _explosions = new Dictionary<BlockView, float>();
         private class DropState { public float StartY, Distance, T; public bool Landed; }
 
-        private Mesh _blockMesh, _shardMesh;
+        private Mesh _blockMesh;
         private Material _blockMat, _labelMat;
         private readonly Dictionary<int, int> _shown = new Dictionary<int, int>();
         private int _flights, _flightGen;
@@ -83,7 +83,6 @@ namespace Project.ColorHunt
             _blocksRoot.SetParent(BoardRoot, false);
 
             _blockMesh = PillowBlockMesh.Create();
-            _shardMesh = RoundedBoxMesh.Create(Vector3.one, 0.22f, 3);
             _blockMat = BlockView.BodyMaterial();
             _labelMat = BlockView.LabelMaterial(S.LabelAtlas);
 
@@ -95,7 +94,7 @@ namespace Project.ColorHunt
             _selectionRing.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _selectionRing.SetActive(false);
 
-            if (Fx != null) Fx.Build(_shardMesh);
+            if (Fx != null) { Fx.Build(); Fx.SetBoard(BoardRoot); }
             if (AutoStart) NewRound();
         }
 
@@ -118,6 +117,8 @@ namespace Project.ColorHunt
             Board = ColorHuntRules.Create(S.ToDesign(), ammo, Seed);
             BuildViews(Board);
             BoardRoot.localScale = Vector3.one * PotaLook.GridScale(Board.Size);
+            Fx?.SetBoard(BoardRoot);
+            Fx?.Clear();
             DisplayedAmmo = Board.Ammo;
             Current = State.Idle;
             _staged = true;
@@ -149,10 +150,6 @@ namespace Project.ColorHunt
         }
 
         // ---------- public actions ----------
-
-        /// <summary>Where the win confetti starts: above the board, relative to the game root (the board may sit anywhere).</summary>
-        public Vector3 ConfettiOrigin =>
-            transform.TransformPoint(new Vector3(0f, S.Size * 0.5f + BoardBuilder.Margin + 1.2f, -0.8f));
 
         public Vector3 CellWorld(int cell)
         {
@@ -254,7 +251,7 @@ namespace Project.ColorHunt
             Juice?.Result(won);
             if (won && Fx != null)
             {
-                Fx.Confetti(ConfettiOrigin, S.Palette, 260);
+                Fx.Confetti(Board.Size, S.ConfettiCount);
             }
             _resultTimer = won ? S.WinWait : S.LoseWait;
         }
@@ -317,7 +314,6 @@ namespace Project.ColorHunt
             var target = CellWorld(s.Cell);
             var source = transform.TransformPoint(_launcher);
             var view = ViewAt(s.Cell);
-            var color = view != null ? S.PaletteColor(view.Block.Color) : Color.white;
             Salvo?.Fire(source, target, s.Cost, S.SalvoDuration, hit =>
             {
                 s.Arrived++;
@@ -326,7 +322,7 @@ namespace Project.ColorHunt
                 {
                     v.Flash = Mathf.Max(v.Flash, 0.55f);
                     v.Squash = Mathf.Max(v.Squash, 0.5f);
-                    if (s.Arrived % 3 == 1) Fx?.Sparkle(hit, color);
+                    if (s.Arrived % 3 == 1) Fx?.Particles(BoardRoot.InverseTransformPoint(hit), S.PaletteColor(v.Block.Color), 3, 1.5f, 0.07f);
                 }
                 Juice?.BallHit();
             });
@@ -340,7 +336,10 @@ namespace Project.ColorHunt
             var pos = CellWorld(s.Cell);
             if (view != null)
             {
-                Fx?.Explode(pos, S.PaletteColor(view.Block.Color), 0);
+                var tone = S.PaletteColor(view.Block.Color);
+                Fx?.Burst(view.Pos, tone, 0);
+                Fx?.Puff(view.Pos, 1.15f);
+                Fx?.Particles(view.Pos, tone, S.PointsBase + 4, 2.6f, 0.12f);
                 CountItem(view, pos);
                 RippleNeighbours(s.Cell);
                 Recycle(view);
@@ -446,7 +445,10 @@ namespace Project.ColorHunt
                 v.Exploding = true;
                 var p = CellWorld(i);
                 center += p;
-                Fx?.Explode(p, S.PaletteColor(v.Block.Color), st.Depth);
+                var tone = S.PaletteColor(v.Block.Color);
+                Fx?.Burst(v.Pos, tone, st.Depth);
+                Fx?.Puff(v.Pos, 1f + st.Depth * 0.12f);
+                Fx?.Particles(v.Pos, tone, PotaFx.PointCount(S, st.Depth), 2.2f + st.Depth * 0.3f, 0.1f);
                 CountItem(v, p);
             }
             center /= Mathf.Max(1, st.Step.Exploded.Count);
@@ -518,7 +520,7 @@ namespace Project.ColorHunt
                     {
                         v.Squash = 1f;
                         Juice?.Landed(d.Distance);
-                        Fx?.Puff(BoardRoot.TransformPoint(new Vector3(v.Home.x, v.Home.y - PotaLook.Block * 0.5f, 0f)), Mathf.Min(1f, d.Distance / 4f));
+                        if (d.Distance >= 1f) Fx?.Puff(new Vector2(v.Home.x, v.Home.y - 0.45f), 0.4f + 0.08f * d.Distance);
                     }
                 }
             }

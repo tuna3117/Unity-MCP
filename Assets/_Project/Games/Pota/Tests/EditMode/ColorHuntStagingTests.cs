@@ -40,25 +40,5 @@ namespace Project.Tests
             }
             finally { Object.DestroyImmediate(go); }
         }
-
-        [Test]
-        public void ConfettiOrigin_FollowsTheGameRoot()
-        {
-            var go = new GameObject("Game");
-            var settings = ScriptableObject.CreateInstance<ColorHuntSettings>();
-            try
-            {
-                var game = go.AddComponent<ColorHuntGame>();
-                game.S = settings;
-                var atOrigin = game.ConfettiOrigin;
-                go.transform.position = new Vector3(0f, 8.5f, 30f);
-                Assert.That(Vector3.Distance(game.ConfettiOrigin, atOrigin + go.transform.position), Is.LessThan(1e-4f));
-            }
-            finally
-            {
-                Object.DestroyImmediate(go);
-                Object.DestroyImmediate(settings);
-            }
-        }
     }
 }

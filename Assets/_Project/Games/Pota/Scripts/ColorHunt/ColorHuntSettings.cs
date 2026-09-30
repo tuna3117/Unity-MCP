@@ -92,9 +92,19 @@ namespace Project.ColorHunt
         public int ShardsBase = 14;
         public int ShardsPerDepth = 5;
         public int ShardsMax = 34;
-        public int SparksBase = 16;
         public float LightFlashIntensity = 6f;
         public float LightFlashTime = 0.18f;
+        [Tooltip("RENK_AVI_HIS.flas: flash size 1.3 (+0.15 per chain depth).")]
+        public float FlashSize = 1.3f;
+        public float FlashSizePerDepth = 0.15f;
+        [Tooltip("three's 1/d^1.6 light (÷π) on URP's 1/d² at the block plane (≈ 1.9·1.2 m): 2.28^0.4 / π ≈ 0.44. Tuned side by side.")]
+        public float LightIntensityScale = 0.44f;
+        [Tooltip("HIS.parcacik: hot points per chain burst, 10 + 4 per depth, at most 26.")]
+        public int PointsBase = 10;
+        public int PointsPerDepth = 4;
+        public int PointsMax = 26;
+        [Tooltip("RENK_AVI_HIS.konfeti.")]
+        public int ConfettiCount = 220;
 
         public Color PaletteColor(int index)
         {
