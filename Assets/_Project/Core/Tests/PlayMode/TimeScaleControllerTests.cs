@@ -34,5 +34,24 @@ namespace Project.Tests
             yield return null;
             Assert.AreEqual(1f, Time.timeScale, 1e-4f);
         }
+
+        [UnityTest]
+        public IEnumerator Dip_KeepsTheSmallerScale_AndTheLaterEnd()
+        {
+            _go = new GameObject("TimeCtl");
+            var ctl = _go.AddComponent<TimeScaleController>();
+            yield return null;
+            ctl.Dip(0.12f, 0.05f);                   // tap: renkAviFaz.ts HIS.hitStop
+            Assert.AreEqual(0.12f, Time.timeScale, 1e-4f);
+            ctl.Dip(0.06f, 0.2f);                    // chain step arriving during the tap's dip
+            Assert.AreEqual(0.06f, Time.timeScale, 1e-4f, "smaller scale wins (zamanDusur)");
+            ctl.Dip(0.12f, 0.01f);
+            Assert.AreEqual(0.06f, Time.timeScale, 1e-4f, "a weaker, shorter dip changes nothing");
+            float t0 = Time.unscaledTime;
+            while (Time.unscaledTime - t0 < 0.3f) yield return null;
+            Assert.AreEqual(1f, Time.timeScale, 1e-4f, "time always comes back");
+            ctl.Dip(0.12f, 0.05f);
+            Assert.AreEqual(0.12f, Time.timeScale, 1e-4f, "an expired dip does not keep its old scale");
+        }
     }
 }
