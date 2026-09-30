@@ -53,15 +53,15 @@ MonoBehaviour:
   CourtStartZ: 8.4
   CourtColor: {r: 0.851, g: 0.467, b: 0.227, a: 1}
   CourtLineColor: {r: 1, g: 1, b: 1, a: 1}
-  BoardFov: 34
+  BoardFov: 38
   MidPos: {x: 8.5, y: 4, z: 4.5}
   MidLook: {x: 0.7, y: 1, z: 7.15}
   MidFov: 46
   LookLead: 1
   FovPunch: 3
   SettleAmount: 0.35
-  BoardFogStart: 60
-  BoardFogEnd: 220
+  BoardFogStart: 30
+  BoardFogEnd: 130
   BallRadius: 0.19
   ApexAbove: 5
   BinPosition: {x: 1.4, y: 0, z: 7.5}

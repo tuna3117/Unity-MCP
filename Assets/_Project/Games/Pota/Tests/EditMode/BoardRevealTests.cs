@@ -52,10 +52,10 @@ namespace Project.Tests
                 Assert.AreEqual(FlowCandidate.Stream, s.Candidate);
                 Assert.AreEqual(20, s.BasketLevel);
                 Assert.AreEqual(new Vector3(0f, 8.5f, 30f), s.BoardAnchor);
-                Assert.AreEqual(34f, s.BoardFov);
+                Assert.AreEqual(38f, s.BoardFov, "yapbozSahne.ts GORUS_ACISI");
                 Assert.AreEqual(46f, s.MidFov);
-                Assert.AreEqual(60f, s.BoardFogStart);
-                Assert.AreEqual(220f, s.BoardFogEnd);
+                Assert.AreEqual(30f, s.BoardFogStart, "saha.ts fog");
+                Assert.AreEqual(130f, s.BoardFogEnd);
                 Assert.AreEqual(2.5f, s.Timing.Ready);
             }
             finally { Object.DestroyImmediate(s); }

@@ -52,9 +52,9 @@ namespace Project.Editor.AITools
             boardCam.S = board;
             boardCam.Anchor = flow.BoardAnchor;
             boardCam.enabled = false;
-            BasketSceneTool.CreateSun();
-            ColorHuntSceneTool.CreateFill();
-            SceneParts.CreateGlobalVolume(BasketSceneTool.VolumeProfilePath);
+            var sun = BasketSceneTool.CreateSun();
+            var fill = ColorHuntSceneTool.CreateFill();
+            SceneParts.EnablePost(cam);                  // only the puzzle volumes carry overrides: the basket looks as approved
 
             var juiceGo = new GameObject("Juice");
             var juice = JuiceSet.Create(juiceGo, cam, shake, board.Font);
@@ -74,6 +74,12 @@ namespace Project.Editor.AITools
 
             var d = new GameObject("PotaFlow").AddComponent<PotaFlowDirector>();
             d.S = flow;
+            var look = d.gameObject.AddComponent<PuzzleLighting>();
+            look.Sun = sun;
+            look.Fill = fill;
+            look.Cam = cam;
+            look.Source = board.PuzzleProfile;
+            d.Look = look;
             d.Round = round.Round; d.Shot = round.Input; d.RoundCam = roundCam; d.BasketHud = basketHud;
             d.Game = game.Game; d.BoardInput = game.Input; d.BoardCam = boardCam; d.Hud = game.Hud;
             d.Cam = cam; d.Shake = shake; d.TimeCtl = juice.TimeCtl; d.Sfx = juice.Sfx;

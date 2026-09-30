@@ -21,7 +21,7 @@ namespace Project.Flow
         public Color CourtLineColor = Color.white;
 
         [Header("Camera")]
-        public float BoardFov = 34f;
+        public float BoardFov = 38f;   // yapbozSahne.ts GORUS_ACISI
         [Tooltip("Vista at the end of the first camera beat: beside the roof, on the hero with the balls rising behind him.")]
         public Vector3 MidPos = new Vector3(8.5f, 4f, 4.5f);
         public Vector3 MidLook = new Vector3(0.7f, 1f, 7.15f);
@@ -30,8 +30,8 @@ namespace Project.Flow
         public float LookLead = 1f;
         public float FovPunch = 3f;
         public float SettleAmount = 0.35f;
-        public float BoardFogStart = 60f;
-        public float BoardFogEnd = 220f;
+        public float BoardFogStart = 30f;   // saha.ts fog 30–130
+        public float BoardFogEnd = 130f;
 
         [Header("Balls")]
         public float BallRadius = 0.19f;   // Pota's salvo ball

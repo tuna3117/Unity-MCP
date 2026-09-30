@@ -5,6 +5,7 @@ using Project.Basket;
 using Project.ColorHunt;
 using Project.Flow;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -301,6 +302,28 @@ namespace Project.Tests
             yield return WaitUntil(() => d.Current != Phase.Basket, 45f);
             Assert.AreNotEqual(Phase.Basket, d.Current, "round end did not start the transition");
             Assert.AreEqual(d.Round.BasketCount, d.Count);
+        }
+
+        [UnityTest]
+        public IEnumerator Puzzle_HasPotasLook_AndTheBasketKeepsItsOwn()
+        {
+            PotaFlowDirector d = null;
+            yield return Load(x => d = x);
+            Assert.IsTrue(d.Cam.GetUniversalAdditionalCameraData().renderPostProcessing);
+            Assert.AreEqual(0f, d.Look.Post.weight, "basket phase: no puzzle post");
+            yield return null;
+            var stack = UnityEngine.Rendering.VolumeManager.instance.stack;
+            Assert.AreEqual(0f, stack.GetComponent<Vignette>().intensity.value, 1e-4f, "URP's default profile must not reach the basket");
+            Assert.AreEqual(0f, stack.GetComponent<Bloom>().intensity.value, 1e-4f);
+            Assert.AreEqual(TonemappingMode.None, stack.GetComponent<Tonemapping>().mode.value);
+            Assert.AreEqual(1.2f, d.Game.BoardRoot.localScale.x, 1e-4f);
+            Assert.IsNotNull(d.Stage.Reflection);
+            d.BeginTransition(158);
+            RunTransition(d);
+            Assert.AreEqual(1f, d.Look.Post.weight, 1e-4f);
+            Assert.AreEqual(1f, d.Look.Tone.weight);
+            Assert.AreEqual(38f, d.Cam.fieldOfView, 1e-3f);
+            Assert.Less(Vector3.Distance(d.Stage.Hoop.RimCenter, d.Game.transform.position + new Vector3(0f, -5.6f, -2.2f)), 1e-3f);
         }
     }
 }

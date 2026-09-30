@@ -29,6 +29,8 @@ namespace Project.Flow
         public ColorHuntInput BoardInput;
         public ColorHuntCamera BoardCam;
         public ColorHuntHud Hud;
+        [Header("Look")]
+        public PuzzleLighting Look;
         [Header("Shared")]
         public Camera Cam;
         public CameraShake Shake;
@@ -54,6 +56,7 @@ namespace Project.Flow
         public bool Skipping => _skipping;
         public FlowTimeline Timeline { get; private set; }
         public GiantHoop Hoop { get; private set; }
+        public PuzzleStage Stage { get; private set; }
         /// <summary>The hero's basket on the terrace: candidate A's balls land here.</summary>
         public BallBin Bin { get; private set; }
         public BallStream Stream { get; private set; }
@@ -80,13 +83,19 @@ namespace Project.Flow
             Hud.ShowHint = false;          // the giant hoop's net sits where the how-to hint goes
             Hud.SetIntro(0f);
 
-            CourtBuilder.Build(transform, S);
-            var hoopGo = new GameObject("GiantHoop");
-            hoopGo.transform.SetParent(Game.transform, false);
-            Hoop = hoopGo.AddComponent<GiantHoop>();
-            Hoop.BallRadius = S.BallRadius;
-            Hoop.Backboard = Game.S.Backboard;
-            Hoop.Build();
+            var stageGo = new GameObject("Stage");
+            stageGo.transform.SetParent(transform, false);
+            Stage = stageGo.AddComponent<PuzzleStage>();
+            Stage.BuildOnStart = false;
+            Stage.Game = Game;
+            Stage.GroundBelow = Game.transform.position.y;                      // the roof is world y = 0
+            Stage.CourtSize = S.CourtSize;
+            Stage.CourtNear = Game.transform.position.z - S.CourtStartZ;
+            Stage.CourtColor = S.CourtColor;
+            Stage.CourtLineColor = S.CourtLineColor;
+            Stage.BallRadius = S.BallRadius;
+            Stage.Build();
+            Hoop = Stage.Hoop;
 
             var binGo = new GameObject("BallBin");
             binGo.transform.SetParent(transform, false);
@@ -114,6 +123,7 @@ namespace Project.Flow
             _fogStart0 = RenderSettings.fogStartDistance;
             _fogEnd0 = RenderSettings.fogEndDistance;
             _built = true;
+            Look?.Blend(0f);
             EnterPhase(Phase.Basket);
         }
 
@@ -257,6 +267,7 @@ namespace Project.Flow
             float f = _camU;
             RenderSettings.fogStartDistance = Mathf.Lerp(_fogStart0, S.BoardFogStart, f);
             RenderSettings.fogEndDistance = Mathf.Lerp(_fogEnd0, S.BoardFogEnd, f);
+            Look?.Blend(f);
             if (_basketCanvas != null) _basketCanvas.enabled = t < T.CameraStart;
 
             var player = Round.Column.Player;
@@ -309,6 +320,7 @@ namespace Project.Flow
             Badge.Hide();
             RenderSettings.fogStartDistance = S.BoardFogStart;
             RenderSettings.fogEndDistance = S.BoardFogEnd;
+            Look?.Blend(1f);
             Cam.fieldOfView = S.BoardFov;
             Game.Begin();
             Hud.PopAmmo();
@@ -322,6 +334,7 @@ namespace Project.Flow
             ApplyPose(CameraFlight.Evaluate(_back, _p1, AimPose(), u));
             RenderSettings.fogStartDistance = Mathf.Lerp(S.BoardFogStart, _fogStart0, u);
             RenderSettings.fogEndDistance = Mathf.Lerp(S.BoardFogEnd, _fogEnd0, u);
+            Look?.Blend(1f - u);
             Hud.SetIntro(1f - Mathf.Clamp01(t / 0.3f));
         }
 
@@ -330,6 +343,7 @@ namespace Project.Flow
             ApplyPose(AimPose());
             RenderSettings.fogStartDistance = _fogStart0;
             RenderSettings.fogEndDistance = _fogEnd0;
+            Look?.Blend(0f);
             var player = Round.Column != null ? Round.Column.Player : null;
             if (player != null) player.transform.rotation = _heroRot0;
             Hud.SetIntro(0f);
