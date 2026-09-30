@@ -33,6 +33,23 @@ namespace Project.ColorHunt
         /// <summary>Labels' angle relative to the board in degrees (Pota `donme`: rides the board, then stands up).</summary>
         public float LabelAngle;
 
+        /// <summary>Studio press: the finger is on this block (the game sets it only for looks other than Pota).</summary>
+        public bool Pressed;
+        /// <summary>Studio idle hint: z tilt in degrees.</summary>
+        public float Wiggle;
+        /// <summary>The press factor applied this frame (1 = none).</summary>
+        public float PressScale { get; private set; } = 1f;
+        private float _press, _release = -1f, _releaseFrom = 1f;
+
+        public void ResetStudio()
+        {
+            Pressed = false;
+            Wiggle = 0f;
+            _press = 0f;
+            _release = -1f;
+            PressScale = 1f;
+        }
+
         private MeshRenderer _body, _item, _number;
         private MaterialPropertyBlock _bodyMpb, _itemMpb, _numberMpb;
         private ColorHuntSettings _s;
@@ -124,7 +141,24 @@ namespace Project.ColorHunt
             float shiverX = Shiver > 0f ? Mathf.Sin((t - Shiver) * 68f) * PotaLook.ShiverAmount * (Shiver / t) : 0f;
             transform.localPosition = new Vector3(Pos.x + shiverX, Pos.y, 0f);
             float own = Mathf.Max(0.001f, Swell >= 0f ? Swell : 1f - PotaLook.LandSquash * Squash);
-            transform.localScale = Vector3.one * Mathf.Max(0.001f, own * Scale);
+            float press = 1f;
+            if (Pressed)
+            {
+                _release = -1f;
+                _press = Mathf.Min(1f, _press + dt / StudioCurves.PressTime);
+                press = StudioCurves.PressScale(_press);
+                Flash = Mathf.Max(Flash, 0.18f);                 // a soft glow under the finger
+            }
+            else if (_press > 0f)
+            {
+                if (_release < 0f) { _release = 0f; _releaseFrom = StudioCurves.PressScale(_press); }
+                _release += dt / StudioCurves.ReleaseTime;
+                press = StudioCurves.ReleaseScale(_release, _releaseFrom);
+                if (_release >= 1f) { _press = 0f; _release = -1f; press = 1f; }
+            }
+            PressScale = press;
+            transform.localScale = Vector3.one * Mathf.Max(0.001f, own * Scale * press);
+            transform.localRotation = Quaternion.Euler(0f, 0f, Wiggle);
             PlaceLabels(own);
             Apply();
         }

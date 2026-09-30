@@ -124,5 +124,18 @@ namespace Project.Tests
             }
             Assert.IsTrue(flew);
         }
+
+
+        [UnityTest]
+        public IEnumerator RollingTargetCount_IsClippedToItsSlot()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Candy, (g, h) => { game = g; hud = h; });
+            int cell = TargetCell(game, out int color);
+            Assert.AreEqual("broken", game.Tap(cell));
+            int before = hud.Collect.Arrived;
+            yield return StudioLookPlayTests.WaitUntil(() => hud.Collect.Arrived > before, 4f);
+            Assert.IsTrue(hud.Collect.RowClipped(color), "the rolling count stays under the HEDEF label");
+        }
     }
 }

@@ -38,6 +38,7 @@ namespace Project.ColorHunt
             public float Squash = -1f, Ring = -1f, Roll = -1f, Stamp = -1f;
             public Image RingImg;
             public Text Old;
+            public RectMask2D Window;
             public Vector2 CountHome;
             public Color Final;
         }
@@ -59,6 +60,9 @@ namespace Project.ColorHunt
         public int Arrived { get; private set; }
         public int LastStreak => _streak;
         public IEnumerable<float> Departures { get { foreach (var f in _flying) yield return f.Start; } }
+
+        /// <summary>The row's rolling count is clipped to its slot.</summary>
+        public bool RowClipped(int color) => _rows.TryGetValue(color, out var fx) && fx.Window != null && fx.Window.enabled;
 
         public bool Animating(int color) =>
             _rows.TryGetValue(color, out var fx) && (fx.Squash >= 0f || fx.Roll >= 0f || fx.Stamp >= 0f);
@@ -140,6 +144,8 @@ namespace Project.ColorHunt
         {
             if (_hud == null) return;
             float now = Time.unscaledTime, dt = Time.unscaledDeltaTime;
+            bool studio = _hud.Game != null && _hud.Game.Studio;
+            foreach (var fx in _rows.Values) if (fx.Window != null) fx.Window.enabled = studio;
             for (int i = _flying.Count - 1; i >= 0; i--)
             {
                 var f = _flying[i];
@@ -231,8 +237,7 @@ namespace Project.ColorHunt
                     fx.Roll += dt / StudioCurves.RollTime;
                     float u = Mathf.Min(1f, fx.Roll);
                     var r = StudioCurves.CounterRoll(u);
-                    // 0.6 of the text height keeps the rolling numbers inside the panel
-                    float h = count.rectTransform.rect.height * 0.6f;
+                    float h = count.rectTransform.rect.height;         // the window clips the slide
                     count.rectTransform.anchoredPosition = fx.CountHome + new Vector2(0f, r.y * h);
                     fx.Old.rectTransform.anchoredPosition = fx.CountHome + new Vector2(0f, r.x * h);
                     fx.Old.color = new Color(PotaLook.HudGold.r, PotaLook.HudGold.g, PotaLook.HudGold.b, 1f - u);
@@ -285,7 +290,8 @@ namespace Project.ColorHunt
         {
             if (_rows.TryGetValue(color, out var fx)) return fx;
             if (_hud == null || !_hud.TryTarget(color, out var icon, out var count, out _)) return null;
-            fx = new RowFx { CountHome = count.rectTransform.anchoredPosition, Final = PotaLook.HudGold };
+            var window = RollWindow.Wrap(count, 6f);
+            fx = new RowFx { Window = window, CountHome = count.rectTransform.anchoredPosition, Final = PotaLook.HudGold };
             fx.Old = Instantiate(count, count.transform.parent);
             fx.Old.name = "CountOld";
             fx.Old.enabled = false;

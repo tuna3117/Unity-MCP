@@ -158,18 +158,23 @@ namespace Project.ColorHunt
             return BoardRoot.TransformPoint(new Vector3(p.x, p.y, 0f));
         }
 
+        public int Selected => _selected;
+        public event Action SelectionChanged;
         public BlockView ViewAt(int cell) => _views.TryGetValue(cell, out var v) ? v : null;
 
         public void Select(int cell)
         {
             if (cell == _selected) return;
+            if (_selected >= 0 && _views.TryGetValue(_selected, out var previous)) previous.Pressed = false;
             _selected = cell;
             ShowRing(cell);
             if (cell >= 0 && _views.TryGetValue(cell, out var v))
             {
                 v.Squash = Mathf.Max(v.Squash, 0.35f);
                 Juice?.Select();
+                if (Studio) v.Pressed = true;
             }
+            Raise(SelectionChanged);
         }
 
         /// <summary>yapbozSahne.ts secimGoster: the white ring on a cell (−1 hides it).</summary>
@@ -669,6 +674,7 @@ namespace Project.ColorHunt
                 v.Init(S, _blockMesh, _blockMat, _labelMat);
             }
             v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false; v.Swell = -1f; v.LabelAngle = 0f;
+            v.ResetStudio();
             v.SetBlock(block, cell);
             v.transform.localPosition = new Vector3(home.x, home.y, 0f);
             v.transform.localScale = Vector3.one;

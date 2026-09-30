@@ -46,6 +46,7 @@ namespace Project.ColorHunt
 
         /// <summary>The studio sticker flight (looks other than Pota).</summary>
         public CollectFlight Collect { get; private set; }
+        public AmmoCounter AmmoCounter { get; private set; }
         public int FlyingCount => _flying.Count + (Collect != null ? Collect.Flying : 0);
 
         internal RectTransform FlyersRoot => _flyers;
@@ -89,6 +90,9 @@ namespace Project.ColorHunt
             Collect = GetComponent<CollectFlight>();
             if (Collect == null) Collect = gameObject.AddComponent<CollectFlight>();
             Collect.Init(this);
+            AmmoCounter = GetComponent<AmmoCounter>();
+            if (AmmoCounter == null) AmmoCounter = gameObject.AddComponent<AmmoCounter>();
+            AmmoCounter.Init(this);
         }
 
         // Listeners added while the scene tool builds the HUD in Edit Mode are not saved with the scene: wire them here.
