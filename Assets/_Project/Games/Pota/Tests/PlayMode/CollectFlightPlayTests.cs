@@ -127,10 +127,28 @@ namespace Project.Tests
         }
 
         [UnityTest]
-        public IEnumerator PotaLook_KeepsItsOwnFlight()
+        public IEnumerator PotaLook_FliesTheStudioSticker()
+        {
+            // Tuna (2026-09-30): the Pota look keeps its burst but takes the studio sticker flight
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            Assert.IsTrue(game.S.StudioFlight, "on by default");
+            int cell = TargetCell(game, out int color);
+            int arrived = hud.Collect.Arrived;
+            Assert.AreEqual("broken", game.Tap(cell));
+            yield return StudioLookPlayTests.WaitUntil(() => hud.Collect.Flying > 0, 3f);
+            Assert.Greater(hud.Collect.Flying, 0, "the studio flyer carries the sticker");
+            yield return StudioLookPlayTests.WaitUntil(() => hud.Collect.Arrived > arrived, 3f);
+            Assert.IsTrue(hud.Collect.Animating(color), "arrival squash / roll on the Pota HUD");
+        }
+
+        [UnityTest]
+        public IEnumerator PotaLook_WithoutStudioFlight_KeepsPotasOwnFlight()
         {
             ColorHuntGame game = null; ColorHuntHud hud = null;
             yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            game.S = Object.Instantiate(game.S);                   // a copy: the test never writes the settings asset
+            game.S.StudioFlight = false;
             int cell = TargetCell(game, out _);
             Assert.AreEqual("broken", game.Tap(cell));
             bool flew = false;
@@ -138,13 +156,30 @@ namespace Project.Tests
             while (t < 3f && !(flew && hud.FlyingCount == 0))
             {
                 flew |= hud.FlyingCount > 0;
-                Assert.AreEqual(0, hud.Collect.Flying, "the studio flight stays off under Pota");
+                Assert.AreEqual(0, hud.Collect.Flying, "the switch brings back Pota's own flight");
                 t += Time.unscaledDeltaTime;
                 yield return null;
             }
             Assert.IsTrue(flew);
         }
 
+        [UnityTest]
+        public IEnumerator LongChain_EveryStickerArrives_CountMatchesRules_Pota() => LongChain(PuzzleLook.Pota);
+
+        [UnityTest]
+        public IEnumerator Win_ThenNewRound_DoesNotReplayTheStamp_Pota() => WinThenNewRound(PuzzleLook.Pota);
+
+        [UnityTest]
+        public IEnumerator RollingTargetCount_IsClippedToItsSlot_Pota()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            int cell = TargetCell(game, out int color);
+            Assert.AreEqual("broken", game.Tap(cell));
+            int before = hud.Collect.Arrived;
+            yield return StudioLookPlayTests.WaitUntil(() => hud.Collect.Arrived > before, 4f);
+            Assert.IsTrue(hud.Collect.RowClipped(color));
+        }
 
         [UnityTest]
         public IEnumerator RollingTargetCount_IsClippedToItsSlot()
@@ -159,10 +194,11 @@ namespace Project.Tests
         }
 
 
-        private static IEnumerator WinThenNewRound(PuzzleLook look)
+        private static IEnumerator WinThenNewRound(PuzzleLook look, bool studioFlight = true)
         {
             ColorHuntGame game = null; ColorHuntHud hud = null;
             yield return StudioLookPlayTests.LoadLook(look, (g, h) => { game = g; hud = h; });
+            if (!studioFlight) { game.S = Object.Instantiate(game.S); game.S.StudioFlight = false; }
             var design = game.S.ToDesign();
             design.Targets = new[] { (0, 1) };                   // one red: the first affordable red wins (the recorder's win)
             game.Prepare(game.S.Ammo, 7, design);
@@ -179,7 +215,12 @@ namespace Project.Tests
             yield return null;
             foreach (var t in game.Board.Targets)
                 Assert.IsFalse(hud.Collect.Animating(t.Color), "a new round neither stamps nor rolls the fresh counts");
+            float wait = 0f;
+            while (wait < 0.5f) { wait += Time.unscaledDeltaTime; yield return null; }   // the old rows' pops end on destroyed transforms
         }
+
+        [UnityTest]
+        public IEnumerator Win_ThenNewRound_PotasOwnFlight_DoesNotThrow() => WinThenNewRound(PuzzleLook.Pota, false);
 
         [UnityTest]
         public IEnumerator Win_ThenNewRound_DoesNotReplayTheStamp_Candy() => WinThenNewRound(PuzzleLook.Candy);

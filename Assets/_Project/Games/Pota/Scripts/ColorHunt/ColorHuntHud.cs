@@ -231,7 +231,7 @@ namespace Project.ColorHunt
         /// </summary>
         public bool FlyItem(int color, Vector3 world, Action onArrive)
         {
-            if (Game != null && Game.Studio && Collect != null) return Collect.Fly(color, world, onArrive);
+            if (Game != null && Game.StudioFlight && Collect != null) return Collect.Fly(color, world, onArrive);
             TargetRow row = null;
             foreach (var r in _rows) if (r.Color == color) row = r;
             if (row == null || row.Icon.sprite == null || _flyers == null) return false;
@@ -293,7 +293,7 @@ namespace Project.ColorHunt
         private void OnTargets()
         {
             if (Game == null || Game.Board == null) return;
-            bool studio = Game.Studio && Collect != null;
+            bool studio = Game.StudioFlight && Collect != null;
             foreach (var row in _rows)
             {
                 int shown = Game.ShownTarget(row.Color);
@@ -348,6 +348,7 @@ namespace Project.ColorHunt
             var keys = new List<Transform>(_pops.Keys);
             foreach (var t in keys)
             {
+                if (t == null) { _pops.Remove(t); continue; }                     // a new round rebuilt the rows under a running pop
                 float p = _pops[t] + dt / 0.18f;                                   // @keyframes pop: 0.18 s, 1.25 at 40 %
                 float k = p < 0.4f ? p / 0.4f : Mathf.Max(0f, (1f - p) / 0.6f);
                 t.localScale = Vector3.one * (1f + 0.25f * k);

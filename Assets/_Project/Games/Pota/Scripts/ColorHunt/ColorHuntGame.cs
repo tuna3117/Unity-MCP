@@ -419,6 +419,8 @@ namespace Project.ColorHunt
         public PuzzleLook Look { get; private set; } = PuzzleLook.Pota;
         /// <summary>The studio polish runs for every look but Pota (spec §3).</summary>
         public bool Studio => Look != PuzzleLook.Pota;
+        /// <summary>The studio sticker flight: always under A/B, under the Pota look while <see cref="ColorHuntSettings.StudioFlight"/> is on.</summary>
+        public bool StudioFlight => Studio || (S != null && S.StudioFlight);
         public IBurstStyle Style => _style ?? (_style = Resolve(Look));
         public event Action LookChanged;
 

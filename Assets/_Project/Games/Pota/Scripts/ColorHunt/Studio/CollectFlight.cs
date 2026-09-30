@@ -144,7 +144,7 @@ namespace Project.ColorHunt
         {
             if (_hud == null) return;
             float now = Time.unscaledTime, dt = Time.unscaledDeltaTime;
-            bool studio = _hud.Game != null && _hud.Game.Studio;
+            bool studio = _hud.Game != null && _hud.Game.StudioFlight;
             foreach (var fx in _rows.Values) if (fx.Window != null) fx.Window.enabled = studio;
             for (int i = _flying.Count - 1; i >= 0; i--)
             {

@@ -12,6 +12,8 @@ namespace Project.ColorHunt
         [Header("Look (spec 2026-09-30 studio polish: Pota, A = Candy, B = Shatter)")]
         [Tooltip("Pota keeps today's burst and HUD; Candy and Shatter add their burst and the studio polish.")]
         public PuzzleLook Look = PuzzleLook.Pota;
+        [Tooltip("Stüdyo uçuşu: kırılan eşya zıplayıp kavisle hedefe uçar, varışta esneme, sayaç yuvarlanması ve ✓ damgası. Kapalıyken Pota görünümü Pota'nın düz uçuşunu kullanır; A/B'de hep açık.")]
+        public bool StudioFlight = true;
 
         [Header("Level (Pota level 20 calibration)")]
         public int Size = 7;
