@@ -75,6 +75,8 @@ Renk Avı artık Pota'nın güncel bulmacası gibi görünüyor, sesleniyor ve o
 
 ## Renk Avı: stüdyo görünümleri A/B ve cila (2026-09-30)
 
+**Karar (2026-09-30 akşam):** Tuna A ile B'yi beğenmedi; Pota görünümü kalıyor ve adım adım iyileştirilecek. İlk adım: Pota görünümü **stüdyo uçuşunu** kullanıyor (kırılan eşya zıplayıp kavisle hedefe uçar, varışta esneme, yıldız, sayaç yuvarlanması, ✓ damgası, `topla`/`tamam` sesleri). Anahtar `ColorHuntSettings.StudioFlight` (varsayılan açık; kapalıyken Pota'nın düz uçuşu). Pota görünümünde diğer cila parçaları (basma, cephane, açılış, ipucu) kapalı. Karşılaştırma videosu `docs/screenshots/2026-09-30-potaflight-side.mp4` (Pota | Unity eski uçuş | Unity yeni uçuş). A/B kodda `Look` arkasında duruyor.
+
 Pota görünümünün üstüne iki "daha iyi" aday ve ortak bir cila katmanı. Tuna A ile B arasında seçecek; seçilen görünüm ayrı bir cila turunda varsayılan olacak. Tasarım `docs/superpowers/specs/2026-09-30-colorhunt-studio-polish-design.md`, plan `docs/superpowers/plans/2026-09-30-colorhunt-studio-polish.md`. Görüntüler: `docs/screenshots/2026-09-30-studio-{tap,chain,win}.jpg` (Pota | A | B aynı anlarda), `2026-09-30-studio-side.mp4` (üç sütun yan yana), `2026-09-30-studio-closeup-{candy,shatter}.mp4` (×2,4 yakın, ×0,3 yavaş).
 
 - **Görünüm seçimi:** `Settings/ColorHuntSettings.asset` → `Look` (Pota / Candy = A / Shatter = B); çalışırken `ColorHuntGame.SetLook(...)`. Görünümün varlıkları eksikse konsola uyarı yazar ve Pota'ya döner.
