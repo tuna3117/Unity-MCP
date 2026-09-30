@@ -62,7 +62,7 @@ namespace Project.Tests
                 var local = h.Rim.InverseTransformPoint(h.SlotPosition(i));
                 float depth = -local.y;
                 Assert.That(depth, Is.InRange(h.BallRadius, h.NetDepth - h.BallRadius * 0.9f), $"slot {i} depth");
-                float netR = h.RimRadius * (1f - 0.11f * h.NetRings * depth / h.NetDepth);
+                float netR = h.RimRadius * (1f - 0.1f * h.NetRings * depth / h.NetDepth);     // pota.ts rings: R(1 − 0.1k) every 0.3
                 float r = new Vector2(local.x, local.z).magnitude;
                 Assert.LessOrEqual(r + h.BallRadius, netR + 0.01f, $"slot {i} pokes through the net");
                 for (int j = 0; j < i; j++)
@@ -83,6 +83,29 @@ namespace Project.Tests
             h.ClearPile();
             Assert.AreEqual(0, h.Pile);
             Assert.AreEqual(Vector3.one, h.Net.localScale);
+        }
+
+        [Test]
+        public void Net_IsSixRings_EachATenthNarrower()
+        {
+            var h = Build();
+            Assert.AreEqual(6, h.Net.childCount, "pota.ts: six rings, no strands");
+            for (int k = 1; k <= 6; k++)
+            {
+                var ring = h.Net.GetChild(k - 1).GetComponent<Renderer>().bounds;
+                Assert.AreEqual(2f * (1.6f * (1f - 0.1f * k) + 0.035f), ring.size.x, 2e-3f, $"ring {k} width");
+                Assert.AreEqual(h.RimCenter.y - k * 0.3f, ring.center.y, 1e-3f, $"ring {k} height");
+            }
+        }
+
+        [Test]
+        public void Pole_HangsFromTheFrameBottom_ToTheGround()
+        {
+            var h = Build();
+            var pole = h.transform.Find("Pole").GetComponent<Renderer>().bounds;
+            Assert.AreEqual(8.5f - 4.75f, pole.max.y, 0.02f, "pota.ts direk: from the frame's lower edge");
+            Assert.AreEqual(31.2f, pole.center.z, 1e-3f, "1.2 behind the board");
+            Assert.IsNull(h.transform.Find("RimStrut"));
         }
     }
 }

@@ -63,3 +63,6 @@ crashlytics-build.properties
 !/Tools/character/out/motion/
 /Tools/character/out/motion/*
 !/Tools/character/out/motion/*.json
+
+# Python bytecode (Tools/*.py helpers)
+__pycache__/

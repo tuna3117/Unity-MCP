@@ -106,15 +106,14 @@ namespace Project.ColorHunt
             Begin();
         }
 
-        /// <summary>
-        /// Deals a board and builds its block views without starting play: views keep animating (PotaFlow scales them in),
-        /// taps and rotations stay locked until <see cref="Begin"/>.
-        /// </summary>
-        public void Prepare(int ammo)
+        public void Prepare(int ammo) => Prepare(ammo, 0, null);
+
+        /// <summary>Deals a board: <paramref name="seed"/> 0 = the settings' seed (random if 0 there); <paramref name="design"/> null = the settings' level.</summary>
+        public void Prepare(int ammo, uint seed, LevelDesign design)
         {
             ClearViews();
-            Seed = S.Seed != 0 ? S.Seed : (uint)UnityEngine.Random.Range(1, int.MaxValue);
-            Board = ColorHuntRules.Create(S.ToDesign(), ammo, Seed);
+            Seed = seed != 0 ? seed : S.Seed != 0 ? S.Seed : (uint)UnityEngine.Random.Range(1, int.MaxValue);
+            Board = ColorHuntRules.Create(design ?? S.ToDesign(), ammo, Seed);
             BuildViews(Board);
             BoardRoot.localScale = Vector3.one * PotaLook.GridScale(Board.Size);
             Fx?.SetBoard(BoardRoot);

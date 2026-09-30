@@ -79,13 +79,14 @@ namespace Project.ColorHunt
         public static readonly Vector3 SunDirection = new Vector3(3f + 24f, 2f - 26f, 4f + 24f);
         /// <summary>
         /// Ambient for URP's trilight: saha.ts HemisphereLight #dcefff / #8a7a66 × 0.8 (÷π like every three light) plus the room
-        /// environment's diffuse share (environment intensity 0.55 × the room's mean radiance ≈ 0.8, estimated from RoomEnvironment.js'
-        /// light; tuned side by side in Task 11).
+        /// environment's diffuse share per direction — irradiance/π of the baked PotaRoom.exr, measured 2026-09-30 (up 1.577,
+        /// horizon 0.867, down 0.692), × the blocks' envMapIntensity 0.45. Tuned side by side: a flat 0.44 made the blocks look flat.
         /// </summary>
-        public const float RoomDiffuse = 0.55f * 0.8f;
-        public static Color AmbientSky => Hex(0xdcefff).linear * (0.8f * ThreeToUnityLight) + Grey(RoomDiffuse);
-        public static Color AmbientGround => Hex(0x8a7a66).linear * (0.8f * ThreeToUnityLight) + Grey(RoomDiffuse);
-        public static Color AmbientEquator => Color.Lerp(AmbientSky, AmbientGround, 0.5f);
+        public const float RoomDiffuseUp = 1.577f * 0.45f, RoomDiffuseHorizon = 0.867f * 0.45f, RoomDiffuseDown = 0.692f * 0.45f;
+        public static Color AmbientSky => Hex(0xdcefff).linear * (0.8f * ThreeToUnityLight) + Grey(RoomDiffuseUp);
+        public static Color AmbientGround => Hex(0x8a7a66).linear * (0.8f * ThreeToUnityLight) + Grey(RoomDiffuseDown);
+        public static Color AmbientEquator =>
+            Color.Lerp(Hex(0xdcefff).linear, Hex(0x8a7a66).linear, 0.5f) * (0.8f * ThreeToUnityLight) + Grey(RoomDiffuseHorizon);
         private static Color Grey(float v) => new Color(v, v, v, 0f);
 
         public static Color Hex(uint rgb) => new Color(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f, 1f);

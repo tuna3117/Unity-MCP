@@ -91,6 +91,7 @@ namespace Project.Flow
             Stage.GroundBelow = Game.transform.position.y;                      // the roof is world y = 0
             Stage.CourtSize = S.CourtSize;
             Stage.CourtNear = Game.transform.position.z - S.CourtStartZ;
+            Stage.BuildRoof = false;                                          // PotaFlow keeps its approved longer court
             Stage.CourtColor = S.CourtColor;
             Stage.CourtLineColor = S.CourtLineColor;
             Stage.BallRadius = S.BallRadius;

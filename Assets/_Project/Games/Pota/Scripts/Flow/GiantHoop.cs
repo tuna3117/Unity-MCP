@@ -52,8 +52,9 @@ namespace Project.Flow
             float half = GlassSize * 0.5f, outer = half + FrameWidth;
             _frameMat = Emissive(FrameColor, 0.5f, 0.1f);
             _rimMat = Emissive(FrameColor, 0.5f, 0.1f);
-            var netMat = RimMeshBuilder.UrpLit(NetColor, 0.2f);
+            var netMat = RimMeshBuilder.UrpLit(NetColor, 0f);             // MeshStandard default roughness 1
             var poleMat = RimMeshBuilder.UrpLit(PoleColor, 0.4f);
+            poleMat.SetFloat("_Metallic", 0.3f);                         // roughness 0.6, metalness 0.3
             var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             var cyl = Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
 
@@ -62,38 +63,40 @@ namespace Project.Flow
             glass.transform.localScale = new Vector3(GlassSize, GlassSize, 1f);
             glass.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
 
-            var barH = RoundedBoxMesh.Create(new Vector3(GlassSize + 2f * FrameWidth, FrameWidth, FrameDepth), 0.06f, 3);
-            var barV = RoundedBoxMesh.Create(new Vector3(FrameWidth, GlassSize, FrameDepth), 0.06f, 3);
+            // pota.ts cubukGeo: plain boxes.
             float mid = half + FrameWidth * 0.5f;
-            Bar("FrameTop", barH, new Vector3(0f, mid, FrameZ));
-            Bar("FrameBottom", barH, new Vector3(0f, -mid, FrameZ));
-            Bar("FrameLeft", barV, new Vector3(-mid, 0f, FrameZ));
-            Bar("FrameRight", barV, new Vector3(mid, 0f, FrameZ));
+            Bar("FrameTop", cube, new Vector3(0f, mid, FrameZ), new Vector3(GlassSize + 2f * FrameWidth, FrameWidth, FrameDepth));
+            Bar("FrameBottom", cube, new Vector3(0f, -mid, FrameZ), new Vector3(GlassSize + 2f * FrameWidth, FrameWidth, FrameDepth));
+            Bar("FrameLeft", cube, new Vector3(-mid, 0f, FrameZ), new Vector3(FrameWidth, GlassSize, FrameDepth));
+            Bar("FrameRight", cube, new Vector3(mid, 0f, FrameZ), new Vector3(FrameWidth, GlassSize, FrameDepth));
 
             Rim = RimMeshBuilder.MeshObject("Rim", transform, RimMeshBuilder.Torus(RimRadius, RimTube, 48, 12), _rimMat).transform;
             Rim.localPosition = new Vector3(0f, RimY, -RimForward);
-            float backZ = -RimForward + RimRadius;
-            Box("RimStrut", cube, _rimMat, new Vector3(0f, (RimY - outer) * 0.5f, FrameZ), new Vector3(0.3f, Mathf.Abs(RimY + outer) + 0.12f, 0.2f));
-            Box("RimBracket", cube, _rimMat, new Vector3(0f, RimY, (backZ + FrameZ) * 0.5f), new Vector3(0.4f, 0.12f, FrameZ - backZ));
-
+            // pota.ts file: six rings, R(1 − 0.1k), 0.3 apart, white; no strands.
             Net = new GameObject("Net").transform;
             Net.SetParent(Rim, false);
-            NetBuilder.Build(Net, RimRadius * 0.98f, netMat, NetRings, 16, NetDepth / NetRings, 0.03f, 0.035f);
+            for (int k = 1; k <= NetRings; k++)
+            {
+                var ring = RimMeshBuilder.MeshObject($"Ring{k}", Net, RimMeshBuilder.Torus(RimRadius * (1f - 0.1f * k), 0.035f, 30, 6), netMat);
+                ring.transform.localPosition = new Vector3(0f, -k * NetDepth / NetRings, 0f);
+            }
 
-            // Pole from the ground up to the glass centre, plus an arm to the glass (the game root is never rotated or scaled).
-            float ground = GroundY - transform.position.y;
-            float len = Mathf.Max(0.01f, -ground);
+            // pota.ts direk: steel pole from the frame's lower edge to the roof, an arm from the board to the rim, an arm to the pole.
+            float ground = GroundY - transform.position.y;           // the game root is never rotated or scaled
+            float len = Mathf.Max(0.01f, -outer - ground);
             var pole = RimMeshBuilder.MeshObject("Pole", transform, cyl, poleMat);
-            pole.transform.localPosition = new Vector3(0f, ground + len * 0.5f, PoleZ);
+            pole.transform.localPosition = new Vector3(0f, -outer - len * 0.5f, PoleZ);
             pole.transform.localScale = new Vector3(PoleDiameter, len * 0.5f, PoleDiameter);
-            Box("PoleArm", cube, poleMat, new Vector3(0f, 0f, (GlassZ + PoleZ) * 0.5f), new Vector3(0.25f, 0.25f, PoleZ - GlassZ + 0.1f));
+            Box("RimArm", cube, poleMat, new Vector3(0f, RimY, -RimForward * 0.5f), new Vector3(0.3f, 0.3f, RimForward));
+            Box("PoleArm", cube, poleMat, new Vector3(0f, -outer, 1.3f), new Vector3(0.3f, 0.3f, 1.2f));
             SetGlow(0f);
         }
 
-        private void Bar(string name, Mesh mesh, Vector3 pos)
+        private void Bar(string name, Mesh mesh, Vector3 pos, Vector3 size)
         {
             var go = RimMeshBuilder.MeshObject(name, transform, mesh, _frameMat);
             go.transform.localPosition = pos;
+            go.transform.localScale = size;
             var r = go.GetComponent<MeshRenderer>();
             r.shadowCastingMode = ShadowCastingMode.On;
             r.receiveShadows = true;
@@ -107,7 +110,7 @@ namespace Project.Flow
             int first = layer == 0 ? 0 : layer == 1 ? 3 : 7;
             int count = layer == 1 ? 4 : 3;
             float depth = NetDepth - BallRadius * (1.2f + 1.7f * layer);
-            float netR = RimRadius * (1f - 0.11f * NetRings * depth / NetDepth);     // NetBuilder's taper
+            float netR = RimRadius * (1f - 0.1f * NetRings * depth / NetDepth);      // the rings' taper
             float r = Mathf.Max(0f, netR - BallRadius * 1.1f);
             float a = (i - first) * Mathf.PI * 2f / count + layer * 0.6f;
             return Rim.TransformPoint(new Vector3(Mathf.Cos(a) * r, -depth, Mathf.Sin(a) * r));
