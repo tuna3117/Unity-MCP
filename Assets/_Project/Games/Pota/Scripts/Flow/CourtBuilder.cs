@@ -9,23 +9,26 @@ namespace Project.Flow
     /// </summary>
     public static class CourtBuilder
     {
-        /// <summary>Marked top (a quad facing up, v = 1 at the hoop end) with a plain slab under it for the roof edges.</summary>
-        public static GameObject Build(Transform parent, PotaFlowSettings s)
+        /// <summary>PotaFlow's court from its settings (world: the terrace end at CourtStartZ).</summary>
+        public static GameObject Build(Transform parent, PotaFlowSettings s) =>
+            Build(parent, s.CourtSize, new Vector3(0f, 0f, s.CourtStartZ + s.CourtSize.y * 0.5f), s.CourtColor, s.CourtLineColor);
+
+        /// <summary>Marked top centred at <paramref name="centre"/> (world; v = 1 toward +z, the hoop end) with a plain slab under it.</summary>
+        public static GameObject Build(Transform parent, Vector2 size, Vector3 centre, Color floor, Color line)
         {
-            var tex = CourtTexture(512, 1024, s.CourtColor, s.CourtLineColor);
+            var tex = CourtTexture(512, 1024, floor, line);
             var mat = BasketEnvironmentBuilder.TexturedLit(tex, Color.white, 0.25f);
-            var centre = new Vector3(0f, 0f, s.CourtStartZ + s.CourtSize.y * 0.5f);
             var top = RimMeshBuilder.MeshObject("Court", parent, Resources.GetBuiltinResource<Mesh>("Quad.fbx"), mat);
             top.transform.position = centre;
             top.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-            top.transform.localScale = new Vector3(s.CourtSize.x, s.CourtSize.y, 1f);
+            top.transform.localScale = new Vector3(size.x, size.y, 1f);
 
-            var edge = RimMeshBuilder.UrpLit(s.CourtColor * 0.62f, 0.2f);
+            var edge = RimMeshBuilder.UrpLit(floor * 0.62f, 0.2f);
             var body = RimMeshBuilder.MeshObject("CourtBody", top.transform, Resources.GetBuiltinResource<Mesh>("Cube.fbx"), edge);
             body.transform.SetPositionAndRotation(centre + new Vector3(0f, -0.201f, 0f), Quaternion.identity);
             body.transform.localScale = Vector3.one;
-            var ls = body.transform.lossyScale;      // undo the quad's scale/rotation: 15 × 0.4 × 28 m in world terms
-            body.transform.localScale = new Vector3(s.CourtSize.x / ls.x, 0.4f / ls.y, s.CourtSize.y / ls.z);
+            var ls = body.transform.lossyScale;      // undo the quad's scale/rotation: size.x × 0.4 × size.y in world terms
+            body.transform.localScale = new Vector3(size.x / ls.x, 0.4f / ls.y, size.y / ls.z);
             return top;
         }
 

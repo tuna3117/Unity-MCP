@@ -68,7 +68,6 @@ namespace Project.Flow
         private Quaternion _heroRot0 = Quaternion.identity;
         private int _shownCount;
         private Canvas _basketCanvas, _boardCanvas;
-        private Material _boardFrameMat;
 
         private void Start()
         {
@@ -86,7 +85,8 @@ namespace Project.Flow
             hoopGo.transform.SetParent(Game.transform, false);
             Hoop = hoopGo.AddComponent<GiantHoop>();
             Hoop.BallRadius = S.BallRadius;
-            Hoop.Build(Game.S.Size);
+            Hoop.Backboard = Game.S.Backboard;
+            Hoop.Build();
 
             var binGo = new GameObject("BallBin");
             binGo.transform.SetParent(transform, false);
@@ -277,7 +277,6 @@ namespace Project.Flow
             BoardReveal.Apply(Game, tl, t);
             float glow = tl.FrameGlow(t);
             Hoop.SetGlow(glow);
-            GlowBoardFrame(glow);
             if (!_revealSounded && t >= T.RevealStart) { _revealSounded = true; Sfx?.Play("multiply"); }
             Hud.SetIntro(tl.AmmoProgress(t), tl.HudProgress(t));
         }
@@ -306,7 +305,6 @@ namespace Project.Flow
         {
             BoardReveal.Finish(Game);
             Hoop.SetGlow(0f);
-            GlowBoardFrame(0f);
             Hud.SetIntro(1f);
             Badge.Hide();
             RenderSettings.fogStartDistance = S.BoardFogStart;
@@ -377,19 +375,6 @@ namespace Project.Flow
             Cam.transform.position = p.Pos + (Shake != null ? Shake.Offset : Vector3.zero);
             Cam.transform.rotation = Quaternion.LookRotation(p.Look - p.Pos, Vector3.up);
             Cam.fieldOfView = p.Fov;
-        }
-
-        private void GlowBoardFrame(float g)
-        {
-            if (_boardFrameMat == null)
-            {
-                var bar = Game.transform.Find("Scenery/FrameTop");
-                var r = bar != null ? bar.GetComponent<Renderer>() : null;
-                if (r == null) return;
-                _boardFrameMat = r.sharedMaterial;          // runtime material shared by the four frame bars
-                _boardFrameMat.EnableKeyword("_EMISSION");
-            }
-            _boardFrameMat.SetColor("_EmissionColor", Game.S.FrameColor * (0.9f * g));
         }
 
         private void OnLaunched(int i)

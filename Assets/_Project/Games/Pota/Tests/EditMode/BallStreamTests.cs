@@ -30,7 +30,7 @@ namespace Project.Tests
             game.transform.position = new Vector3(0f, 8.5f, 30f);
             hoop = new GameObject("GiantHoop").AddComponent<GiantHoop>();
             hoop.transform.SetParent(game.transform, false);
-            hoop.Build(7);
+            hoop.Build();
             var stream = new GameObject("BallStream").AddComponent<BallStream>();
             stream.transform.SetParent(_root.transform, false);
             stream.Prewarm(25);

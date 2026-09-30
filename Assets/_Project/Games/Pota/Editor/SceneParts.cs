@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Project.Editor.AITools
 {
@@ -53,6 +54,18 @@ namespace Project.Editor.AITools
             vol.sharedProfile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
             return vol;
         }
+
+        public static Volume CreateGlobalVolume(VolumeProfile profile, string name = "Global Volume", float weight = 1f)
+        {
+            var vol = new GameObject(name).AddComponent<Volume>();
+            vol.isGlobal = true;
+            vol.weight = weight;
+            vol.sharedProfile = profile;
+            return vol;
+        }
+
+        /// <summary>URP post is per camera and off by default: without this no Volume does anything (found 2026-09-30).</summary>
+        public static void EnablePost(Camera cam) => cam.GetUniversalAdditionalCameraData().renderPostProcessing = true;
 
         public static GameObject CreateEventSystem(Transform parent)
         {

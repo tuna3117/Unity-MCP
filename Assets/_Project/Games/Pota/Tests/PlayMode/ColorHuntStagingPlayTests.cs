@@ -132,7 +132,7 @@ namespace Project.Tests
             var cam = fit.GetComponent<Camera>();
             fit.Anchor = new Vector3(0f, 8.5f, 30f);
             yield return null;
-            var expected = ColorHuntCamera.FitPosition(game.S.Size, cam.fieldOfView, cam.aspect, fit.Anchor);
+            var expected = ColorHuntCamera.FitPosition(cam.fieldOfView, cam.aspect, fit.Anchor, fit.TopCssNow, fit.BottomCss);
             Assert.Less(Vector3.Distance(cam.transform.position, expected), 0.3f, "camera must fit the anchored board (shake aside)");
             Assert.Less(Vector3.Distance(fit.FitFor(cam.fieldOfView, cam.aspect), expected), 1e-4f);
             fit.Anchor = Vector3.zero;

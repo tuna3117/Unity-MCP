@@ -8,35 +8,49 @@ namespace Project.Tests
     {
         private GameObject _root;
 
-        private GiantHoop Build()
+        private GiantHoop Build(float groundY = 0f)
         {
             _root = new GameObject("Game");
             _root.transform.position = new Vector3(0f, 8.5f, 30f);
             var hoop = new GameObject("GiantHoop").AddComponent<GiantHoop>();
             hoop.transform.SetParent(_root.transform, false);
-            hoop.Build(7);
+            hoop.GroundY = groundY;
+            hoop.Build();
             return hoop;
+        }
+
+        [Test]
+        public void Rim_SitsAtPotasDevPota()
+        {
+            var h = Build();
+            Assert.Less(Vector3.Distance(h.RimCenter, new Vector3(0f, 8.5f - 5.6f, 30f - 2.2f)), 1e-3f, "cemberY −5.6, R + 0.6 toward the camera");
+        }
+
+        [Test]
+        public void Frame_OuterIs9Point5_AroundAn8Point8Glass()
+        {
+            var h = Build();
+            var glass = h.transform.Find("Glass").GetComponent<Renderer>().bounds;
+            Assert.AreEqual(8.8f, glass.size.x, 1e-3f);
+            Assert.AreEqual(30.7f, glass.center.z, 1e-3f, "pano plane 0.7 behind the board centre");
+            var top = h.transform.Find("FrameTop").GetComponent<Renderer>().bounds;
+            Assert.AreEqual(9.5f, top.size.x, 1e-3f, "panoEn + 2·cerceve");
+            Assert.AreEqual(8.5f + 4.75f, top.max.y, 1e-3f);
+            Assert.AreEqual(0.9f, top.size.z, 1e-3f);
+        }
+
+        [Test]
+        public void Pole_StandsOnTheGround()
+        {
+            Assert.AreEqual(0f, Build().transform.Find("Pole").GetComponent<Renderer>().bounds.min.y, 0.02f);
+            Object.DestroyImmediate(_root);
+            Assert.AreEqual(-3f, Build(-3f).transform.Find("Pole").GetComponent<Renderer>().bounds.min.y, 0.02f);
         }
 
         [TearDown]
         public void TearDown()
         {
             if (_root != null) Object.DestroyImmediate(_root);
-        }
-
-        [Test]
-        public void Rim_SitsBelowTheBoard_InFrontOfIt()
-        {
-            var h = Build();
-            Assert.Less(Vector3.Distance(h.RimCenter, new Vector3(0f, 8.5f - 3.92f - 1.7f, 27.8f)), 1e-3f);
-        }
-
-        [Test]
-        public void Pole_StandsOnTheRoof()
-        {
-            var h = Build();
-            var pole = h.transform.Find("Pole").GetComponent<Renderer>();
-            Assert.AreEqual(0f, pole.bounds.min.y, 0.02f);
         }
 
         [Test]

@@ -3,16 +3,20 @@ using UnityEngine;
 
 namespace Project.ColorHunt
 {
-    /// <summary>Fits the board (plus launcher strip and HUD bands) into the view whatever the aspect, and applies shake.</summary>
+    /// <summary>
+    /// Pota's puzzle camera (yapbozSahne.ts boyutla, kasasız): straight at the board; the frame's outer width fills 98.5 % of the screen
+    /// width unless frame + ball strip do not fit the band between the HUD and the buttons (then the band decides). Applies the shake.
+    /// </summary>
     [RequireComponent(typeof(Camera))]
     public class ColorHuntCamera : MonoBehaviour
     {
         public ColorHuntSettings S;
-        public float TopBand = 1.25f;
-        public float BottomBand = 1.55f;
-        public float SidePad = 0.25f;
         [Tooltip("World position of the board's game root (PotaFlow places the board away from the origin).")]
         public Vector3 Anchor;
+        [Tooltip("HUD band top in Pota CSS px; < 0 = the counters' bottom + 10 under the safe area (renkAviFaz.ts boyutla).")]
+        public float TopCss = -1f;
+        [Tooltip("Button band under the board in Pota CSS px (renkAviFaz.ts dugmePayi).")]
+        public float BottomCss = PotaLook.ButtonBandCss;
 
         private Camera _cam;
         private CameraShake _shake;
@@ -25,30 +29,24 @@ namespace Project.ColorHunt
 
         private void LateUpdate()
         {
-            var pos = FitFor(_cam.fieldOfView, _cam.aspect);
-            transform.position = pos + (_shake != null ? _shake.Offset : Vector3.zero);
+            transform.position = FitFor(_cam.fieldOfView, _cam.aspect) + (_shake != null ? _shake.Offset : Vector3.zero);
             transform.rotation = Quaternion.identity;
         }
 
-        /// <summary>This camera's fit position with its own bands (valid while the component is disabled).</summary>
-        public Vector3 FitFor(float fov, float aspect) =>
-            FitPosition(S != null ? S.Size : 7, fov, aspect, Anchor, TopBand, BottomBand, SidePad);
+        /// <summary>The HUD band's top in CSS px now (safe area included).</summary>
+        public float TopCssNow => TopCss >= 0f ? TopCss : PotaLook.HudTopCss(SafeTopCss());
 
-        /// <summary>
-        /// Camera position (looking +z) that fits an n×n board plus the launcher strip and HUD bands at this FOV and aspect,
-        /// for a board whose game root sits at <paramref name="anchor"/>.
-        /// </summary>
-        public static Vector3 FitPosition(int n, float fov, float aspect, Vector3 anchor,
-            float topBand = 1.25f, float bottomBand = 1.55f, float sidePad = 0.25f)
-        {
-            float halfW = n * 0.5f + BoardBuilder.Margin + sidePad;
-            float top = n * 0.5f + BoardBuilder.Margin + topBand;
-            float bottom = -(n * 0.5f + BoardBuilder.Margin + bottomBand);
-            float halfH = (top - bottom) * 0.5f;
-            float centerY = (top + bottom) * 0.5f;
-            float tan = Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
-            float dist = Mathf.Max(halfW / (tan * aspect), halfH / tan) + 0.6f;
-            return anchor + new Vector3(0f, centerY, -dist);
-        }
+        /// <summary>This camera's fit (valid while the component is disabled: PotaFlow flies to it).</summary>
+        public Vector3 FitFor(float fov, float aspect) => FitPosition(fov, aspect, Anchor, TopCssNow, BottomCss);
+
+        public static Vector3 FitPosition(float fov, float aspect, Vector3 anchor) =>
+            FitPosition(fov, aspect, anchor, PotaLook.HudTopCss(0f), PotaLook.ButtonBandCss);
+
+        public static Vector3 FitPosition(float fov, float aspect, Vector3 anchor, float topCss, float bottomCss) =>
+            PotaLook.CameraPosition(anchor, PotaLook.CameraFit(aspect, topCss, bottomCss, fov));
+
+        /// <summary>The screen's top safe inset in Pota CSS px (the phone is 390 CSS px wide).</summary>
+        public static float SafeTopCss() =>
+            Screen.width <= 0 ? 0f : (Screen.height - Screen.safeArea.yMax) * PotaLook.PhoneCssWidth / Screen.width;
     }
 }

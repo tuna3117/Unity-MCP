@@ -75,6 +75,7 @@ namespace Project.ColorHunt
         {
             BoardRoot = new GameObject("Board").transform;
             BoardRoot.SetParent(transform, false);
+            BoardRoot.localScale = Vector3.one * PotaLook.GridScale(S.Size);
             _blocksRoot = new GameObject("Blocks").transform;
             _blocksRoot.SetParent(BoardRoot, false);
 
@@ -90,7 +91,6 @@ namespace Project.ColorHunt
             _blockMat = BlockView.BodyMaterial();
             _labelMat = BlockView.LabelMaterial(S.LabelAtlas);
 
-            BoardBuilder.Build(transform, S, S.Size);
             _launcher = new Vector3(0f, -(S.Size * 0.5f + BoardBuilder.Margin + 0.55f), -0.1f);
             _accel = 2f / (S.DropTimePerCell * S.DropTimePerCell);
 
@@ -121,6 +121,7 @@ namespace Project.ColorHunt
             Seed = S.Seed != 0 ? S.Seed : (uint)UnityEngine.Random.Range(1, int.MaxValue);
             Board = ColorHuntRules.Create(S.ToDesign(), ammo, Seed);
             BuildViews(Board);
+            BoardRoot.localScale = Vector3.one * PotaLook.GridScale(Board.Size);
             DisplayedAmmo = Board.Ammo;
             Current = State.Idle;
             _staged = true;

@@ -106,5 +106,17 @@ namespace Project.Tests
 
         [Test]
         public void RoomLayer_Exists() => Assert.GreaterOrEqual(LayerMask.NameToLayer("PotaRoom"), 8, Hint);
+
+        [Test]
+        public void RoomReflection_IsABakedSpecularCubemap()
+        {
+            var s = Settings();
+            Assert.IsNotNull(s.RoomReflection, Hint);
+            var imp = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(s.RoomReflection));
+            var ts = new TextureImporterSettings();
+            imp.ReadTextureSettings(ts);
+            Assert.AreEqual(TextureImporterShape.TextureCube, ts.textureShape);
+            Assert.AreEqual(TextureImporterCubemapConvolution.Specular, ts.cubemapConvolution);
+        }
     }
 }

@@ -3,6 +3,7 @@ using MCPForUnity.Editor.Helpers;
 using MCPForUnity.Editor.Tools;
 using Newtonsoft.Json.Linq;
 using Project.Basket;
+using Project.Flow;
 using Project.ColorHunt;
 using Project.Juice;
 using UnityEditor;
@@ -49,17 +50,50 @@ namespace Project.Editor.AITools
             public ColorHuntJuice Juice;
         }
 
+        /// <summary>The puzzle camera: 38°, straight on (yapbozSahne.ts), sky #8ec9f2 (saha.ts), post on.</summary>
+        public static Camera CreateCamera()
+        {
+            var camGo = new GameObject("Main Camera");
+            camGo.tag = "MainCamera";
+            var cam = camGo.AddComponent<Camera>();
+            cam.fieldOfView = PotaLook.Fov;
+            cam.nearClipPlane = 0.1f;
+            cam.farClipPlane = 200f;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = PotaLook.Sky;
+            cam.transform.position = new Vector3(0f, -1.2f, -25.35f);
+            SceneParts.EnablePost(cam);
+            camGo.AddComponent<AudioListener>();
+            camGo.AddComponent<CameraShake>();
+            return cam;
+        }
+
+        /// <summary>saha.ts sun: #fff4e0, 2.1 (÷π for URP), from (−24, 26, 24) toward (3, 2, −4), shadows.</summary>
         public static Light CreateSun()
         {
             var lightGo = new GameObject("Directional Light");
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.color = new Color(1f, 0.96f, 0.9f);
-            light.intensity = 1.5f;
+            light.color = PotaLook.SunColor;
+            light.intensity = PotaLook.SunIntensity * PotaLook.ThreeToUnityLight;
             light.shadows = LightShadows.Soft;
-            light.shadowStrength = 0.6f;
-            lightGo.transform.rotation = Quaternion.Euler(38f, -22f, 0f);
+            light.shadowStrength = 1f;
+            lightGo.transform.rotation = Quaternion.LookRotation(PotaLook.SunDirection);
             return light;
+        }
+
+        /// <summary>saha.ts hemisphere + room environment as URP trilight ambient; fog #9ed3f5 30–130. RenderSettings colours are sRGB.</summary>
+        public static void ApplyPuzzleLighting()
+        {
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = PotaLook.AmbientSky.gamma;
+            RenderSettings.ambientEquatorColor = PotaLook.AmbientEquator.gamma;
+            RenderSettings.ambientGroundColor = PotaLook.AmbientGround.gamma;
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = PotaLook.Fog;
+            RenderSettings.fogStartDistance = PotaLook.FogStart;
+            RenderSettings.fogEndDistance = PotaLook.FogEnd;
         }
 
         public static Light CreateFill()
@@ -113,44 +147,25 @@ namespace Project.Editor.AITools
             return new GameParts { Game = game, Input = input, Hud = hud, Juice = chJuice };
         }
 
-        public static void ApplyAmbient()
-        {
-            RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.80f, 0.90f, 1f);
-            RenderSettings.ambientEquatorColor = new Color(0.70f, 0.72f, 0.76f);
-            RenderSettings.ambientGroundColor = new Color(0.45f, 0.42f, 0.40f);
-        }
-
         public static List<string> Build()
         {
             var report = new List<string>();
             var settings = EnsureSettings(report);
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            var camGo = new GameObject("Main Camera");
-            camGo.tag = "MainCamera";
-            var cam = camGo.AddComponent<Camera>();
-            cam.fieldOfView = 34f;
-            cam.nearClipPlane = 0.1f;
-            cam.farClipPlane = 200f;
-            cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = settings.SkyBottom;
-            cam.transform.position = new Vector3(0f, 0f, -16f);
-            camGo.AddComponent<AudioListener>();
-            var shake = camGo.AddComponent<CameraShake>();
-            var fit = camGo.AddComponent<ColorHuntCamera>();
+            var cam = CreateCamera();
+            var shake = cam.GetComponent<CameraShake>();
+            var fit = cam.gameObject.AddComponent<ColorHuntCamera>();
             fit.S = settings;
-
             CreateSun();
-            CreateFill();
-            SceneParts.CreateGlobalVolume(VolumeProfilePath);
+            SceneParts.CreateGlobalVolume(settings.PuzzleProfile, "Puzzle Volume");
 
             var uiRoot = new GameObject("UI");
-            BuildGame(settings, cam, shake, null, uiRoot.transform);
+            var parts = BuildGame(settings, cam, shake, null, uiRoot.transform);
             SceneParts.CreateEventSystem(uiRoot.transform);
-
-            ApplyAmbient();
-            RenderSettings.fog = false;
+            var stage = new GameObject("Stage").AddComponent<PuzzleStage>();
+            stage.Game = parts.Game;
+            ApplyPuzzleLighting();
 
             AIToolsCommon.EnsureFolder("Assets/_Project/Games/Pota/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);

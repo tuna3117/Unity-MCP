@@ -63,6 +63,7 @@ namespace Project.Editor.AITools
             }
             report.Add($"layer {RoomLayer} = {EnsureLayer(RoomLayer)}");
 
+            var room = PotaRoomBaker.Bake(report);
             var s = ColorHuntSceneTool.EnsureSettings(report);
             s.LabelAtlas = Load<Texture2D>(LookFolder + "/label-atlas.png");
             s.StarSprite = Load<Texture2D>(LookFolder + "/star.png");
@@ -72,6 +73,7 @@ namespace Project.Editor.AITools
             s.Backboard = Load<Texture2D>(LookFolder + "/pano-a.png");
             s.Font = Load<Font>(FontPath);
             s.Palette = (Color[])PotaLook.Tones.Clone();
+            s.RoomReflection = room;
             s.SalvoBall = BallMaterial(Load<Texture2D>(LookFolder + "/ball-skin.png"));
             s.PuzzleProfile = Profile();
             s.SfxBreak = Clip("blok-pop"); s.SfxSalvo = Clip("salvo"); s.SfxDrop = Clip("dustu"); s.SfxRotate = Clip("dondur");

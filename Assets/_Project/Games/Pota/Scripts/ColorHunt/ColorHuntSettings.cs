@@ -19,10 +19,6 @@ namespace Project.ColorHunt
 
         [Header("Palette (Pota SEKER_TONU: red, blue, green, yellow, purple)")]
         public Color[] Palette = (Color[])PotaLook.Tones.Clone();
-        public Color FrameColor = new Color(1f, 0.541f, 0.165f);
-        public Color PlateColor = new Color(0.106f, 0.208f, 0.373f);
-        public Color SkyTop = new Color(0.62f, 0.80f, 0.93f);
-        public Color SkyBottom = new Color(0.83f, 0.91f, 0.96f);
         public Color NavyColor = new Color(0.106f, 0.208f, 0.373f);
         public Color GoldColor = new Color(1f, 0.78f, 0.24f);
         public Color GreenColor = new Color(0.30f, 0.85f, 0.45f);
@@ -60,6 +56,8 @@ namespace Project.ColorHunt
         public AudioClip[] SfxHit;
         [Tooltip("ses.ts dokun: a block gets selected under the finger.")]
         public AudioClip SfxSelect;
+        [Tooltip("three.js RoomEnvironment baked by ai_potalook_import (PotaRoomBaker): the blocks' reflections, intensity 0.45.")]
+        public Cubemap RoomReflection;
 
         [Header("Timing (seconds)")]
         public float SalvoDuration = 0.5f;
