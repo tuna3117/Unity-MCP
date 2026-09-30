@@ -33,13 +33,13 @@ namespace Project.ColorHunt
         }
 
         /// <summary>adimBaslat adimTepe (a chain step's first peak): shake, ×0.06 dip, kombo(d), "×d" from depth 2.</summary>
-        public void Chain(int depth, Vector3 at)
+        public void Chain(int depth, Vector3 at, bool number = true)
         {
             Shake?.Add(S.ShakeChain + (depth - 1) * S.ShakeChainPerDepth);
             TimeCtl?.Dip(S.HitStopChainScale, Mathf.Min(S.HitStopChainMax, S.HitStopChainBase + depth * S.HitStopChainPerDepth));
             Sounds?.Combo(depth);
             // index.html .patlama.kombo: gold 44 px; ≥ 4: .kombo.buyuk 62 px #ff7a3d.
-            if (depth >= 2) Popups?.Show(at, $"×{depth}", depth >= 4 ? PotaLook.Hex(0xff7a3d) : PotaLook.HudGold, depth >= 4 ? 96 : 72, false, 0.9f);
+            if (number && depth >= 2) Popups?.Show(at, $"×{depth}", depth >= 4 ? PotaLook.Hex(0xff7a3d) : PotaLook.HudGold, depth >= 4 ? 96 : 72, false, 0.9f);
         }
 
         /// <summary>gorselleriIlerlet: dustu from a fall of one cell or more, louder with the distance.</summary>

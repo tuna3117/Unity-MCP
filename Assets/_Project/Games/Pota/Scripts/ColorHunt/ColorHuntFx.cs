@@ -28,6 +28,18 @@ namespace Project.ColorHunt
         private readonly System.Random _rng = new System.Random();
         private bool _built;
 
+        /// <summary>Live particles across the eight layers (BurstBudget).</summary>
+        public int LiveCount
+        {
+            get
+            {
+                if (!_built) return 0;
+                int n = 0;
+                foreach (var ps in new[] { _flashWhite, _flashTone, _ring, _stars, _points, _puff, _shards, _confetti }) n += ps.particleCount;
+                return n;
+            }
+        }
+
         public void Build()
         {
             if (_built) return;

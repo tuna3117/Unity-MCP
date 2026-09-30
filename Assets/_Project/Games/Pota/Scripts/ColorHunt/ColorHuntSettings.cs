@@ -2,10 +2,17 @@ using UnityEngine;
 
 namespace Project.ColorHunt
 {
+    /// <summary>Pota = the 1:1 port of Pota's puzzle; Candy = A "Şeker patlaması"; Shatter = B "Gerçek kırılma".</summary>
+    public enum PuzzleLook { Pota, Candy, Shatter }
+
     /// <summary>Every tunable number of the colour-hunt scene. Edit in the Inspector; nothing is hard-coded elsewhere.</summary>
     [CreateAssetMenu(menuName = "Project/Color Hunt/Settings", fileName = "ColorHuntSettings")]
     public class ColorHuntSettings : ScriptableObject
     {
+        [Header("Look (spec 2026-09-30 studio polish: Pota, A = Candy, B = Shatter)")]
+        [Tooltip("Pota keeps today's burst and HUD; Candy and Shatter add their burst and the studio polish.")]
+        public PuzzleLook Look = PuzzleLook.Pota;
+
         [Header("Level (Pota level 20 calibration)")]
         public int Size = 7;
         public int ColorCount = 5;

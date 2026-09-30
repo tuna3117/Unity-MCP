@@ -191,16 +191,12 @@ namespace Project.Editor.AITools
         {
             if (int.TryParse(arg, out int c)) return c;
             var b = game.Board;
-            int best = -1, bestSteps = -1, bestHp = int.MaxValue;
-            for (int i = 0; i < b.Cells.Length; i++)
+            if (_win)
             {
-                var block = b.Cells[i];
-                if (block.Hp > b.Ammo) continue;
-                if (_win) { if (block.Color == 0) return i; continue; }
-                int steps = ColorHuntRules.Break(b, i).Steps.Count;                     // pure: Break clones the board
-                if (steps > bestSteps || (steps == bestSteps && block.Hp < bestHp)) { best = i; bestSteps = steps; bestHp = block.Hp; }
+                for (int i = 0; i < b.Cells.Length; i++) if (b.Cells[i].Hp <= b.Ammo && b.Cells[i].Color == 0) return i;
+                return -1;
             }
-            return best;
+            return ColorHuntHint.Best(b);
         }
 
         private static void Capture()

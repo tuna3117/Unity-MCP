@@ -95,6 +95,7 @@ namespace Project.ColorHunt
 
             if (Fx != null) { Fx.Build(); Fx.SetBoard(BoardRoot); }
             if (Salvo != null) Salvo.Board = BoardRoot;
+            SetLook(S != null ? S.Look : PuzzleLook.Pota);
             if (AutoStart) NewRound();
         }
 
@@ -118,6 +119,7 @@ namespace Project.ColorHunt
             BoardRoot.localScale = Vector3.one * PotaLook.GridScale(Board.Size);
             Fx?.SetBoard(BoardRoot);
             Fx?.Clear();
+            _style?.Clear();
             DisplayedAmmo = Board.Ammo;
             Current = State.Idle;
             _staged = true;
@@ -379,9 +381,7 @@ namespace Project.ColorHunt
                 _swells.Start(view, S.TapSwellTime, S.TapSwell, true, () =>
                 {
                     Juice?.Break();
-                    Fx?.Puff(view.Pos, 1.15f);
-                    Fx?.Particles(view.Pos, tone, S.PointsBase + 4, 2.6f, 0.12f);
-                    Fx?.Burst(view.Pos, tone, 0);
+                    Style.TapBurst(view, tone);
                     CountItem(view, BoardRoot.TransformPoint(new Vector3(view.Pos.x, view.Pos.y, -PotaLook.FrontZ)));
                 });
                 RippleNeighbours(s.Cell);
@@ -397,6 +397,58 @@ namespace Project.ColorHunt
                 _jobs.Add(new StepJob { Step = step, Depth = depth });
             }
             if (depth > LongestChain) LongestChain = depth;
+        }
+
+        public PuzzleLook Look { get; private set; } = PuzzleLook.Pota;
+        /// <summary>The studio polish runs for every look but Pota (spec §3).</summary>
+        public bool Studio => Look != PuzzleLook.Pota;
+        public IBurstStyle Style => _style ?? (_style = Resolve(Look));
+        public event Action LookChanged;
+
+        private IBurstStyle _style;
+        private readonly Dictionary<PuzzleLook, IBurstStyle> _styles = new Dictionary<PuzzleLook, IBurstStyle>();
+
+        /// <summary>Switches the look (the record tool and designers do it at runtime): the old style is cleared and deactivated.</summary>
+        public void SetLook(PuzzleLook look)
+        {
+            if (_style != null && look == Look) return;
+            if (_style != null) { _style.Clear(); _style.Activate(false); }
+            Look = look;
+            _style = Resolve(look);
+            _style.Activate(true);
+            Raise(LookChanged);
+        }
+
+        /// <summary>Registers (and builds) the style a look uses; later looks and tests plug in here.</summary>
+        public void UseStyle(PuzzleLook look, IBurstStyle style)
+        {
+            style.Build(this);
+            _styles[look] = style;
+        }
+
+        private IBurstStyle Resolve(PuzzleLook look)
+        {
+            if (!_styles.TryGetValue(look, out var style)) UseStyle(look, style = CreateStyle(look));
+            if (style.Ready) return style;
+            Debug.LogWarning($"Color Hunt: the {look} look is missing assets (run ai_studio_import); Pota's burst plays instead.");
+            return Resolve(PuzzleLook.Pota);
+        }
+
+        private IBurstStyle CreateStyle(PuzzleLook look)
+        {
+            switch (look)
+            {
+                case PuzzleLook.Pota: return new PotaBurstStyle();
+                default: return new NoStyle();          // Candy: Task 10, Shatter: Task 11
+            }
+        }
+
+        /// <summary>A MonoBehaviour style on its own child of the game root (so it lives in the hoop's space, not the board's).</summary>
+        private T AddStyle<T>(string name) where T : MonoBehaviour, IBurstStyle
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            return go.AddComponent<T>();
         }
 
         public int ItemsInFlight => _flights;
@@ -484,14 +536,24 @@ namespace Project.ColorHunt
             int d = st.Depth;
             bool peaked = false;
             BlockView first = null;
+            Vector2 centre = Vector2.zero;
+            int count = 0;
+            foreach (int i in st.Step.Exploded)
+            {
+                var v = ViewAt(i);
+                if (v == null) continue;
+                centre += v.Pos;
+                count++;
+            }
+            if (count > 0) centre /= count;
             void StepPeak()
             {
                 if (peaked) return;
                 peaked = true;
                 var at = first != null ? first.Pos : Vector2.zero;
-                Juice?.Chain(d, BoardRoot.TransformPoint(new Vector3(at.x, at.y + 0.5f, -PotaLook.LabelZ)));
+                Juice?.Chain(d, BoardRoot.TransformPoint(new Vector3(at.x, at.y + 0.5f, -PotaLook.LabelZ)), Style.ShowsChainNumber);
+                Style.ChainPeak(d, centre, first != null ? S.PaletteColor(first.Block.Color) : Color.white);
             }
-            int points = PotaFx.PointCount(S, d);
             foreach (int i in st.Step.Exploded)
             {
                 var v = ViewAt(i);
@@ -502,9 +564,7 @@ namespace Project.ColorHunt
                 _swells.Start(v, S.ChainTime, S.ChainSwell, false, () =>
                 {
                     StepPeak();
-                    Fx?.Puff(v.Pos, 1f + d * 0.12f);
-                    Fx?.Particles(v.Pos, tone, points, 2.2f + d * 0.3f, 0.1f);
-                    Fx?.Burst(v.Pos, tone, d);
+                    Style.StepBurst(v, tone, d);
                     CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
                 });
             }
