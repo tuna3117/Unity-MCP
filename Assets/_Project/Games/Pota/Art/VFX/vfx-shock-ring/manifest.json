@@ -1,0 +1,77 @@
+{
+  "id": "vfx-shock-ring",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-shock-ring.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 4,
+    "rows": 4,
+    "frames": 16,
+    "frame_px": 256,
+    "duration_s": 0.4,
+    "linear": true
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-shock-ring.png",
+        "size": [
+          1024,
+          1024
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:shock_ring",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 16
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.0726,
+      0.1232,
+      0.1605,
+      0.1855,
+      0.2017,
+      0.2089,
+      0.2094,
+      0.2036,
+      0.1929,
+      0.1796,
+      0.1623,
+      0.1443,
+      0.1245,
+      0.1029,
+      0.0824,
+      0.0611
+    ],
+    "passed": true
+  },
+  "made": "2026-09-30T11:33:39Z"
+}

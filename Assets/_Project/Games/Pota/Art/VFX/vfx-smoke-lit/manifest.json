@@ -1,0 +1,77 @@
+{
+  "id": "vfx-smoke-lit",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-smoke-lit.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 4,
+    "rows": 4,
+    "frames": 16,
+    "frame_px": 256,
+    "duration_s": 0.9,
+    "linear": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-smoke-lit.png",
+        "size": [
+          1024,
+          1024
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:smoke_lit",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 16
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.0757,
+      0.1235,
+      0.1743,
+      0.2242,
+      0.2706,
+      0.3116,
+      0.346,
+      0.3736,
+      0.3939,
+      0.4066,
+      0.4112,
+      0.4057,
+      0.3876,
+      0.3451,
+      0.2214,
+      0.0
+    ],
+    "passed": true
+  },
+  "made": "2026-09-30T11:34:26Z"
+}

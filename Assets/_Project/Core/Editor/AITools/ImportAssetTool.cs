@@ -42,6 +42,7 @@ namespace Project.Editor.AITools
             public int manifestTris, unityTris, manifestBones, unityBones;
             public List<string> manifestClips = new List<string>(), unityClips = new List<string>();
             public List<string> differences = new List<string>();
+            public int[] sheetSize, manifestSheetSize;
             public bool matches => differences.Count == 0;
         }
 
@@ -58,7 +59,7 @@ namespace Project.Editor.AITools
                 return new SuccessResponse(msg, new
                 {
                     r.id, r.folder, r.main, r.copied, r.matches, r.differences, r.manifestTris, r.unityTris,
-                    r.manifestBones, r.unityBones, r.manifestClips, r.unityClips,
+                    r.manifestBones, r.unityBones, r.manifestClips, r.unityClips, r.sheetSize, r.manifestSheetSize,
                 });
             }
             catch (Exception e) when (e is IOException || e is ArgumentException || e is JsonException)
@@ -75,14 +76,16 @@ namespace Project.Editor.AITools
             if (!KindFolders.TryGetValue(kind, out string kindFolder))
                 throw new ArgumentException($"Unknown kind '{kind}' (known: {string.Join(", ", KindFolders.Keys)}).");
             var files = m["files"] as JObject ?? throw new ArgumentException("manifest has no 'files'.");
-            string glb = files.Value<string>("glb"), fbx = files.Value<string>("fbx");
-            string mainName = !string.IsNullOrEmpty(glb) ? glb : fbx;
+            string glb = files.Value<string>("glb"), fbx = files.Value<string>("fbx"), sheet = files.Value<string>("sheet");
+            bool flipbook = kind == "vfx-flipbook";
+            if (flipbook && string.IsNullOrEmpty(sheet)) throw new ArgumentException("a vfx-flipbook manifest lists no 'sheet'.");
+            string mainName = flipbook ? sheet : !string.IsNullOrEmpty(glb) ? glb : fbx;
             if (string.IsNullOrEmpty(mainName)) throw new ArgumentException("manifest lists neither a glb nor an fbx.");
 
             var r = new Result { id = id, folder = dest ?? $"Assets/_Project/Games/{game}/Art/{kindFolder}/{id}" };
             AIToolsCommon.EnsureFolder(r.folder);
             string sourceDir = Path.GetDirectoryName(Path.GetFullPath(manifestPath));
-            foreach (string name in new[] { glb, fbx, "manifest.json" }.Where(n => !string.IsNullOrEmpty(n)))
+            foreach (string name in new[] { glb, fbx, flipbook ? sheet : null, "manifest.json" }.Where(n => !string.IsNullOrEmpty(n)))
             {
                 string source = name == "manifest.json" ? manifestPath : Path.Combine(sourceDir, name);
                 if (!File.Exists(source)) throw new FileNotFoundException("Hand-off file missing: " + source);
@@ -92,9 +95,41 @@ namespace Project.Editor.AITools
                 r.copied.Add(target);
             }
             r.main = $"{r.folder}/{mainName}";
+            if (flipbook)
+            {
+                var fb = m["flipbook"] as JObject ?? throw new ArgumentException("a vfx-flipbook manifest has no 'flipbook' block.");
+                ConfigureSheet(r.main, fb.Value<bool?>("linear") ?? false);
+                MeasureSheet(r, fb);
+                return r;
+            }
             Measure(r);
             Compare(r, m["stats"] as JObject);
             return r;
+        }
+
+        /// <summary>Particle flipbook import: straight alpha, clamped, mipmapped, uncompressed; sRGB unless the sheet holds data.</summary>
+        private static void ConfigureSheet(string path, bool linear)
+        {
+            var imp = (TextureImporter)AssetImporter.GetAtPath(path);
+            imp.textureType = TextureImporterType.Default;
+            imp.alphaSource = TextureImporterAlphaSource.FromInput;
+            imp.alphaIsTransparency = true;
+            imp.wrapMode = TextureWrapMode.Clamp;
+            imp.mipmapEnabled = true;
+            imp.sRGBTexture = !linear;
+            imp.npotScale = TextureImporterNPOTScale.None;
+            imp.textureCompression = TextureImporterCompression.Uncompressed;
+            imp.SaveAndReimport();
+        }
+
+        private static void MeasureSheet(Result r, JObject fb)
+        {
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(r.main) ?? throw new IOException("Unity imported no texture from " + r.main);
+            int px = fb.Value<int?>("frame_px") ?? 0;
+            r.sheetSize = new[] { tex.width, tex.height };
+            r.manifestSheetSize = new[] { (fb.Value<int?>("cols") ?? 0) * px, (fb.Value<int?>("rows") ?? 0) * px };
+            if (r.sheetSize[0] != r.manifestSheetSize[0] || r.sheetSize[1] != r.manifestSheetSize[1])
+                r.differences.Add($"sheet manifest {r.manifestSheetSize[0]}x{r.manifestSheetSize[1]} vs Unity {tex.width}x{tex.height}");
         }
 
         private static void Measure(Result r)

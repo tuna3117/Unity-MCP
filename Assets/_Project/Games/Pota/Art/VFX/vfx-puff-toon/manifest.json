@@ -1,0 +1,77 @@
+{
+  "id": "vfx-puff-toon",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-puff-toon.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 4,
+    "rows": 4,
+    "frames": 16,
+    "frame_px": 256,
+    "duration_s": 0.35,
+    "linear": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-puff-toon.png",
+        "size": [
+          1024,
+          1024
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:puff_toon",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 16
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.0442,
+      0.092,
+      0.1374,
+      0.1721,
+      0.1944,
+      0.2057,
+      0.2092,
+      0.2097,
+      0.2095,
+      0.2053,
+      0.1944,
+      0.1731,
+      0.1364,
+      0.0907,
+      0.0473,
+      0.0179
+    ],
+    "passed": true
+  },
+  "made": "2026-09-30T11:29:49Z"
+}

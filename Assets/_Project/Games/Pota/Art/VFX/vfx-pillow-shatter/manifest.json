@@ -1,0 +1,151 @@
+{
+  "id": "vfx-pillow-shatter",
+  "game": "Pota",
+  "kind": "vfx-mesh",
+  "version": 1,
+  "files": {
+    "glb": "vfx-pillow-shatter.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 1198,
+    "materials": 1,
+    "textures": [],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0.9,
+      0.9546,
+      0.9
+    ]
+  },
+  "source": {
+    "recipe": "vfx_fracture",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "pieces": 10,
+      "seed": 7,
+      "size": 0.9,
+      "radius": 0.22,
+      "bulge": 0.1,
+      "segments": 5
+    }
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true,
+    "fracture": {
+      "pieces": 10,
+      "volume_ratio": 1.0,
+      "front_faces": 71,
+      "front_uv_range": [
+        0.0467,
+        0.9533
+      ],
+      "passed": true
+    }
+  },
+  "made": "2026-09-30T11:37:19Z",
+  "pieces": [
+    {
+      "name": "piece_00",
+      "center": [
+        -0.2255,
+        -0.2797,
+        0.2152
+      ],
+      "volume": 0.07068
+    },
+    {
+      "name": "piece_01",
+      "center": [
+        -0.2394,
+        0.0261,
+        -0.0798
+      ],
+      "volume": 0.0277
+    },
+    {
+      "name": "piece_02",
+      "center": [
+        -0.3045,
+        -0.0164,
+        -0.3517
+      ],
+      "volume": 0.019708
+    },
+    {
+      "name": "piece_03",
+      "center": [
+        0.0568,
+        -0.2821,
+        -0.3205
+      ],
+      "volume": 0.065898
+    },
+    {
+      "name": "piece_04",
+      "center": [
+        0.1225,
+        0.2314,
+        -0.2216
+      ],
+      "volume": 0.111441
+    },
+    {
+      "name": "piece_05",
+      "center": [
+        -0.2449,
+        0.1935,
+        0.2919
+      ],
+      "volume": 0.075015
+    },
+    {
+      "name": "piece_06",
+      "center": [
+        0.2034,
+        0.0891,
+        0.2985
+      ],
+      "volume": 0.078891
+    },
+    {
+      "name": "piece_07",
+      "center": [
+        -0.3151,
+        0.2953,
+        -0.2269
+      ],
+      "volume": 0.040325
+    },
+    {
+      "name": "piece_08",
+      "center": [
+        -0.3274,
+        -0.3076,
+        -0.216
+      ],
+      "volume": 0.038242
+    },
+    {
+      "name": "piece_09",
+      "center": [
+        0.3109,
+        -0.2259,
+        0.0798
+      ],
+      "volume": 0.123681
+    }
+  ]
+}

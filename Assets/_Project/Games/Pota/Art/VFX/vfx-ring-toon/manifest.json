@@ -1,0 +1,77 @@
+{
+  "id": "vfx-ring-toon",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-ring-toon.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 4,
+    "rows": 4,
+    "frames": 16,
+    "frame_px": 256,
+    "duration_s": 0.4,
+    "linear": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-ring-toon.png",
+        "size": [
+          1024,
+          1024
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:ring_toon",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 16
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.0588,
+      0.0988,
+      0.129,
+      0.152,
+      0.168,
+      0.1777,
+      0.1821,
+      0.1824,
+      0.1778,
+      0.1715,
+      0.1608,
+      0.1485,
+      0.1346,
+      0.1186,
+      0.1002,
+      0.0747
+    ],
+    "passed": true
+  },
+  "made": "2026-09-30T11:29:52Z"
+}

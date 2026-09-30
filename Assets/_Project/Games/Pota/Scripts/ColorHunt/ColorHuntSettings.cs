@@ -69,6 +69,18 @@ namespace Project.ColorHunt
         [Tooltip("URP Unlit, transparent: the selection ring.")]
         public Material SelectionTemplate;
 
+        [Header("Studio looks (Blender hand-offs, ai_studio_import)")]
+        [Tooltip("A: vfx_flipbook puff_toon, 4×4 frames of 256 px.")]
+        public Texture2D CandyPuff;
+        [Tooltip("A: vfx_flipbook ring_toon.")]
+        public Texture2D CandyRing;
+        [Tooltip("B: vfx_flipbook smoke_lit.")]
+        public Texture2D ShatterSmoke;
+        [Tooltip("B: vfx_flipbook shock_ring (linear screen normals).")]
+        public Texture2D ShockRing;
+        [Tooltip("B: vfx_fracture pillow, one child mesh per piece (origin = piece centre, UV1.x = front flag).")]
+        public GameObject ShatterPieces;
+
         [Header("Timing (seconds)")]
         public float SalvoDuration = 0.5f;
         [Range(0f, 1f)] public float SalvoLaunchFraction = 0.55f;

@@ -51,24 +51,24 @@ namespace Project.Editor.AITools
             return report;
         }
 
-        /// <summary>Writes <paramref name="fresh"/> as a new asset, or copies it onto the existing one (GUID kept).</summary>
+        /// <summary>
+        /// Writes <paramref name="fresh"/> as a new asset. An existing template with the same shader is kept as it is: copying a fresh
+        /// runtime material onto it dropped what URP set when the asset was first imported (the ring's Transparent tag, its disabled
+        /// ShadowCaster/DepthOnly passes, its 0.9 alpha). A template whose shader changed is written again.
+        /// </summary>
         private static Material Template(string name, Material fresh)
         {
             string path = $"{Folder}/{name}.mat";
             fresh.name = name;
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (existing == null)
+            if (existing != null && existing.shader == fresh.shader)
             {
-                AssetDatabase.CreateAsset(fresh, path);                  // fully set up before it is written (CLAUDE.md lesson)
-                return fresh;
+                Object.DestroyImmediate(fresh);
+                return existing;
             }
-            existing.shader = fresh.shader;
-            existing.CopyPropertiesFromMaterial(fresh);
-            existing.enableInstancing = fresh.enableInstancing;
-            existing.renderQueue = fresh.renderQueue;
-            Object.DestroyImmediate(fresh);
-            EditorUtility.SetDirty(existing);
-            return existing;
+            if (existing != null) AssetDatabase.DeleteAsset(path);
+            AssetDatabase.CreateAsset(fresh, path);                      // fully set up before it is written (CLAUDE.md lesson)
+            return fresh;
         }
 
         private static void EnsureFolder(string path)

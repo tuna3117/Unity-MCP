@@ -1,0 +1,10 @@
+{
+  "id": "fixture-flipbook", "game": "_test", "kind": "vfx-flipbook", "version": 1,
+  "files": {"glb": null, "fbx": null, "sheet": "fixture-flipbook.png", "previews": []},
+  "flipbook": {"cols": 2, "rows": 2, "frames": 4, "frame_px": 64, "duration_s": 0.35, "linear": false},
+  "units": "px", "up": "+Y", "scale_applied": true,
+  "stats": {"tris": 0, "materials": 0, "textures": [{"name": "fixture-flipbook.png", "size": [128, 128]}], "bones": 0, "clips": [], "size_m": [0, 0, 0]},
+  "source": {"recipe": "fixture", "copy_provenance": null, "inputs": [], "params": {}},
+  "checks": {"frames_empty": [], "coverage": [0.1, 0.2, 0.3, 0.4], "passed": true},
+  "made": "2026-09-30T00:00:00Z"
+}
