@@ -26,7 +26,15 @@ namespace Project.ColorHunt
         public State Current { get; private set; } = State.Idle;
         public Board Board { get; private set; }
         public Transform BoardRoot { get; private set; }
-        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose;
+        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _intro >= 0f;
+
+        private float _intro = -1f, _idle, _hintT = -1f;
+        private int _hintCell = -1;
+
+        /// <summary>Studio board intro running (spec §3.3): the board is busy, taps wait.</summary>
+        public bool Intro => _intro >= 0f;
+        /// <summary>The block the idle hint is wiggling, −1 when none (spec §3.4).</summary>
+        public int HintCell => _hintT >= 0f ? _hintCell : -1;
         public int DisplayedAmmo { get; private set; }
         public bool Won { get; private set; }
         public int Rotations { get; private set; }
@@ -104,6 +112,7 @@ namespace Project.ColorHunt
         public void NewRound(int ammo)
         {
             Prepare(ammo);
+            StartIntro();
             Begin();
         }
 
@@ -237,7 +246,9 @@ namespace Project.ColorHunt
             float dt = Mathf.Min(Time.deltaTime, 0.05f);
             Salvo?.Tick(dt);
             AdvanceJobs(dt);
+            AdvanceIntro(dt);
             AdvanceViews(dt);
+            TickHint(Time.unscaledDeltaTime);
             if (Current == State.Playing && !Busy && _checkNeeded) AfterSettle();
             if (_targetsPending && !Busy && _flights == 0) SyncTargetsIfSettled();
             if (_resultTimer >= 0f)
@@ -687,6 +698,60 @@ namespace Project.ColorHunt
             _pool.Push(v);
         }
 
+        /// <summary>Studio board intro (a no-op under Pota): call between Prepare and Begin, as NewRound does.</summary>
+        public void StartIntro()
+        {
+            if (!Studio) return;
+            _intro = 0f;
+            foreach (var v in _views.Values) v.Scale = 0f;
+        }
+
+        /// <summary>Rows pop in bottom first, 0.03 s apart, each 0 → 1.15 → 1 in 0.3 s.</summary>
+        private void AdvanceIntro(float dt)
+        {
+            if (_intro < 0f || Board == null) return;
+            _intro += dt;
+            int n = Board.Size;
+            foreach (var kv in _views)
+            {
+                int fromBottom = n - 1 - ColorHuntRules.Row(n, kv.Key);
+                kv.Value.Scale = StudioCurves.IntroScale((_intro - StudioCurves.IntroDelay(fromBottom)) / StudioCurves.IntroTime);
+            }
+            if (_intro < StudioCurves.IntroTotal(n)) return;
+            _intro = -1f;
+            foreach (var v in _views.Values) v.Scale = 1f;
+        }
+
+        /// <summary>After 5 s without a touch the best move wiggles (±4°, twice) and glows; again every 5 s; any touch or job stops it.</summary>
+        private void TickHint(float dt)
+        {
+            if (!Studio || Current != State.Playing || Busy || _selected >= 0) { _idle = 0f; StopHint(); return; }
+            if (_hintT >= 0f)
+            {
+                _hintT += dt;
+                float u = _hintT / StudioCurves.HintTime;
+                if (_views.TryGetValue(_hintCell, out var v))
+                {
+                    v.Wiggle = StudioCurves.HintWiggle(u);
+                    v.Flash = Mathf.Max(v.Flash, StudioCurves.HintGlow(u));
+                }
+                if (u >= 1f) { StopHint(); _idle = 0f; }
+                return;
+            }
+            _idle += dt;
+            if (_idle < StudioCurves.HintDelay) return;
+            _hintCell = ColorHuntHint.Best(Board);
+            if (_hintCell >= 0) _hintT = 0f;
+            else _idle = 0f;
+        }
+
+        private void StopHint()
+        {
+            if (_hintCell >= 0 && _views.TryGetValue(_hintCell, out var v)) v.Wiggle = 0f;
+            _hintCell = -1;
+            _hintT = -1f;
+        }
+
         private void ClearViews()
         {
             foreach (var v in _views.Values) Recycle(v);
@@ -696,6 +761,7 @@ namespace Project.ColorHunt
             foreach (var v in _loose) Recycle(v);
             _loose.Clear();
             _disperse = -1f;
+            _intro = -1f; StopHint(); _idle = 0f;
             _jobs.Clear();
             Salvo?.Clear();
             Select(-1);

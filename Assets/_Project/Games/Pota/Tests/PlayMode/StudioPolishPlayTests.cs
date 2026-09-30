@@ -116,5 +116,58 @@ namespace Project.Tests
             yield return Wait(0.3f);
             Assert.Less(hud.AmmoCounter.ChipAlpha, 0.01f);
         }
+
+        [UnityTest]
+        public IEnumerator Intro_PopsTheBoardInFromTheBottomRow()
+        {
+            ColorHuntGame game = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Candy, (g, h) => game = g);
+            game.NewRound();
+            yield return null;
+            yield return null;
+            Assert.IsTrue(game.Intro);
+            Assert.IsTrue(game.Busy, "no taps during the intro");
+            int n = game.Board.Size;
+            var bottom = game.ViewAt(ColorHuntRules.Index(n, n - 1, 0));
+            var top = game.ViewAt(ColorHuntRules.Index(n, 0, 0));
+            Assert.Greater(bottom.Scale, top.Scale, "the bottom row pops first");
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 1f);
+            Assert.IsFalse(game.Intro);
+            Assert.AreEqual(1f, top.Scale, 1e-5f);
+            Assert.IsFalse(game.Busy);
+        }
+
+        [UnityTest]
+        public IEnumerator IdleHint_WigglesTheBestBlock_AfterFiveSeconds_AndStopsOnTouch()
+        {
+            ColorHuntGame game = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Candy, (g, h) => game = g);
+            float start = Time.unscaledTime;
+            yield return StudioLookPlayTests.WaitUntil(() => game.HintCell >= 0, 6.5f);
+            Assert.GreaterOrEqual(Time.unscaledTime - start, StudioCurves.HintDelay - 0.1f);
+            int cell = game.HintCell;
+            Assert.AreEqual(ColorHuntHint.Best(game.Board), cell);
+            var view = game.ViewAt(cell);
+            bool wiggled = false;
+            float t = 0f;
+            while (t < 0.3f) { wiggled |= Mathf.Abs(view.Wiggle) > 0.5f; t += Time.unscaledDeltaTime; yield return null; }
+            Assert.IsTrue(wiggled);
+            game.Select(cell);
+            yield return null;
+            Assert.AreEqual(-1, game.HintCell);
+            Assert.AreEqual(0f, view.Wiggle);
+        }
+
+        [UnityTest]
+        public IEnumerator PotaLook_DealsWithoutIntro_AndNeverHints()
+        {
+            ColorHuntGame game = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => game = g);
+            game.NewRound();
+            yield return null;
+            Assert.IsFalse(game.Intro);
+            yield return Wait(StudioCurves.HintDelay + 0.6f);
+            Assert.AreEqual(-1, game.HintCell);
+        }
     }
 }

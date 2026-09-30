@@ -143,6 +143,7 @@ namespace Project.Editor.AITools
                 var design = game.S.ToDesign();
                 if (_win) design.Targets = new[] { (0, 1) };
                 game.Prepare(_ammo, (uint)_seed, design);
+                game.StartIntro();                                  // studio looks deal like NewRound
                 game.Begin();
                 _recorder = new FrameRecorder(game.Cam, _width, _aspect, true);
                 _t0 = Time.unscaledTime;
@@ -169,6 +170,7 @@ namespace Project.Editor.AITools
                     game.Select(Cell(game, s.Arg));
                     break;
                 case "tap":
+                    if (game.Intro) { next = false; break; }        // taps wait for the board intro
                     int cell = Cell(game, s.Arg);
                     game.Select(-1);
                     string key = _win ? "win" : "tap";
