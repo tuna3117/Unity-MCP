@@ -54,12 +54,29 @@ namespace Project.ColorHunt
         {
             float p = Mathf.Clamp01(u);
             p *= p;
-            Vector2 chord = to - from;
-            Vector2 normal = chord.sqrMagnitude > 1e-6f ? new Vector2(-chord.y, chord.x).normalized : Vector2.zero;
-            Vector2 control = (from + to) * 0.5f + normal * (side * 0.35f * chord.magnitude);
+            Vector2 control = FlightControl(from, to, side);
             float q = 1f - p;
             return q * q * from + 2f * q * p * control + p * p * to;
         }
+
+        /// <summary>The bow's control point: the chord's middle pushed sideways by side · 0.35 · chord length.</summary>
+        public static Vector2 FlightControl(Vector2 from, Vector2 to, float side)
+        {
+            Vector2 chord = to - from;
+            Vector2 normal = chord.sqrMagnitude > 1e-6f ? new Vector2(-chord.y, chord.x).normalized : Vector2.zero;
+            return (from + to) * 0.5f + normal * (side * 0.35f * chord.magnitude);
+        }
+
+        /// <summary>The side whose bow stays inside ±half less margin: as asked, else mirrored, else straight.</summary>
+        public static float FitSide(Vector2 from, Vector2 to, float side, Vector2 half, float margin)
+        {
+            if (Inside(FlightControl(from, to, side), half, margin)) return side;
+            if (Inside(FlightControl(from, to, -side), half, margin)) return -side;
+            return 0f;
+        }
+
+        private static bool Inside(Vector2 p, Vector2 half, float margin) =>
+            Mathf.Abs(p.x) <= half.x - margin && Mathf.Abs(p.y) <= half.y - margin;
 
         public static float FlightScale(float u) => Mathf.Lerp(LaunchEnd, ArrivalScale, Mathf.Pow(Mathf.Clamp01(u), 1.5f));
         public static float FlightTilt(float side, float u) => -side * 14f * Mathf.Sin(Mathf.Clamp01(u) * Mathf.PI);

@@ -44,7 +44,39 @@ namespace Project.ColorHunt
         private Color _hintColor;
         private bool _hintCached;
 
-        public int FlyingCount => _flying.Count;
+        /// <summary>The studio sticker flight (looks other than Pota).</summary>
+        public CollectFlight Collect { get; private set; }
+        public int FlyingCount => _flying.Count + (Collect != null ? Collect.Flying : 0);
+
+        internal RectTransform FlyersRoot => _flyers;
+        internal RectTransform TargetPanel => _targetPanel;
+        internal RectTransform AmmoPanel => _ammoPanel;
+        internal Text AmmoText => _ammo;
+        internal Font HudFont => _font;
+
+        /// <summary>A world point on the canvas (centre origin, canvas units); false when behind the camera.</summary>
+        internal bool CanvasPoint(Vector3 world, out Vector2 point)
+        {
+            point = Vector2.zero;
+            var cam = Game != null ? Game.Cam : null;
+            if (cam == null) return false;
+            var vp = cam.WorldToViewportPoint(world);
+            if (vp.z <= 0f) return false;
+            var rect = ((RectTransform)transform).rect;
+            point = new Vector2((vp.x - 0.5f) * rect.width, (vp.y - 0.5f) * rect.height);
+            return true;
+        }
+
+        internal Vector2 CanvasPointOf(RectTransform t) =>
+            ((RectTransform)transform).InverseTransformPoint(t.TransformPoint(t.rect.center));
+
+        internal bool TryTarget(int color, out Image icon, out Text count, out Text tick)
+        {
+            foreach (var r in _rows)
+                if (r.Color == color) { icon = r.Icon; count = r.Count; tick = r.Tick; return true; }
+            icon = null; count = null; tick = null;
+            return false;
+        }
 
         public void Bind(ColorHuntGame game)
         {
@@ -54,6 +86,9 @@ namespace Project.ColorHunt
             game.RoundEnded += OnEnded;
             game.RoundStarted += OnStarted;
             WireButtons();
+            Collect = GetComponent<CollectFlight>();
+            if (Collect == null) Collect = gameObject.AddComponent<CollectFlight>();
+            Collect.Init(this);
         }
 
         // Listeners added while the scene tool builds the HUD in Edit Mode are not saved with the scene: wire them here.
@@ -192,17 +227,14 @@ namespace Project.ColorHunt
         /// </summary>
         public bool FlyItem(int color, Vector3 world, Action onArrive)
         {
-            var cam = Game != null ? Game.Cam : null;
+            if (Game != null && Game.Studio && Collect != null) return Collect.Fly(color, world, onArrive);
             TargetRow row = null;
             foreach (var r in _rows) if (r.Color == color) row = r;
-            if (cam == null || row == null || row.Icon.sprite == null || _flyers == null) return false;
-            var vp = cam.WorldToViewportPoint(world);
-            if (vp.z <= 0f) return false;
-            var canvasRt = (RectTransform)transform;
-            var rect = canvasRt.rect;
+            if (row == null || row.Icon.sprite == null || _flyers == null) return false;
+            if (!CanvasPoint(world, out var from)) return false;
             var f = _flyerPool.Count > 0 ? _flyerPool.Pop() : NewFlyer();
-            f.From = new Vector2((vp.x - 0.5f) * rect.width, (vp.y - 0.5f) * rect.height);
-            f.To = canvasRt.InverseTransformPoint(row.Icon.rectTransform.TransformPoint(row.Icon.rectTransform.rect.center));
+            f.From = from;
+            f.To = CanvasPointOf(row.Icon.rectTransform);
             f.T0 = Time.unscaledTime;
             f.Done = onArrive;
             f.Row = row;
@@ -242,6 +274,7 @@ namespace Project.ColorHunt
             if (_hint != null) _hint.enabled = true;
             foreach (var f in _flying) { f.T.gameObject.SetActive(false); _flyerPool.Push(f); }
             _flying.Clear();
+            Collect?.ClearAll();
             BuildTargets();
             OnAmmo();
         }
@@ -256,14 +289,23 @@ namespace Project.ColorHunt
         private void OnTargets()
         {
             if (Game == null || Game.Board == null) return;
+            bool studio = Game.Studio && Collect != null;
             foreach (var row in _rows)
             {
                 int shown = Game.ShownTarget(row.Color);
                 string s = shown.ToString();
-                if (row.Count.text != s) { row.Count.text = s; _pops[row.Count.transform] = 0f; }
                 bool done = shown == 0;
+                string old = row.Count.text;
+                if (old != s)
+                {
+                    row.Count.text = s;
+                    if (studio) Collect.CountChanged(row.Color, old, done);
+                    else _pops[row.Count.transform] = 0f;
+                }
                 row.Count.color = done ? PotaLook.HudGreen : PotaLook.HudGold;
+                bool stamped = done && !row.Tick.enabled;
                 row.Tick.enabled = done;
+                if (stamped && studio) Collect.StampTick(row.Color);
             }
         }
 

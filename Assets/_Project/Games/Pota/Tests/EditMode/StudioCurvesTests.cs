@@ -143,5 +143,37 @@ namespace Project.Tests
             Assert.AreEqual(0f, StudioCurves.WordAlpha(1f), 1e-5f);
             Assert.AreEqual(0.55f, StudioCurves.EdgeGlowAlpha(9), 1e-5f);
         }
+
+
+        [Test]
+        public void FitSide_KeepsTheBowOnScreen()
+        {
+            var half = new Vector2(540f, 960f);
+            const float margin = 60f;
+            bool Inside(Vector2 c) => Mathf.Abs(c.x) <= half.x - margin && Mathf.Abs(c.y) <= half.y - margin;
+            // a block at the left edge flying to a box top left: the +0.6 bow leaves the screen, −0.6 fits → flipped
+            var from = new Vector2(-450f, -600f);
+            var to = new Vector2(-300f, 850f);
+            Assert.IsFalse(Inside(StudioCurves.FlightControl(from, to, 0.6f)));
+            Assert.AreEqual(-0.6f, StudioCurves.FitSide(from, to, 0.6f, half, margin), 1e-5f);
+            // a wide ±1.3 bow across the screen fits neither way → straight
+            var right = new Vector2(200f, 850f);
+            Assert.IsFalse(Inside(StudioCurves.FlightControl(from, right, 1.3f)));
+            Assert.IsFalse(Inside(StudioCurves.FlightControl(from, right, -1.3f)));
+            Assert.AreEqual(0f, StudioCurves.FitSide(from, right, 1.3f, half, margin));
+            // an inside bow stays as it is
+            Assert.AreEqual(0.6f, StudioCurves.FitSide(new Vector2(0f, -300f), new Vector2(0f, 300f), 0.6f, half, margin), 1e-5f);
+        }
+
+        [Test]
+        public void FlightControl_IsTheBezierMiddle()
+        {
+            var from = new Vector2(0f, 0f);
+            var to = new Vector2(0f, 100f);
+            var c = StudioCurves.FlightControl(from, to, 1f);
+            Assert.AreEqual(new Vector2(-35f, 50f), c);
+            var mid = StudioCurves.FlightPoint(from, to, 1f, Mathf.Sqrt(0.5f));   // eased p = 0.5
+            Assert.AreEqual(0.25f * from.x + 0.5f * c.x + 0.25f * to.x, mid.x, 1e-4f);
+        }
     }
 }
