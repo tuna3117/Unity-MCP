@@ -27,12 +27,49 @@ Sahne `Scenes/Basket.unity`, kod `Scripts/Basket/` (saf kurallar: `AimMapper`, `
 
 ## Renk avı (Pota 2. aşama denemesi, 2026-09-22)
 
-Sahne `Scenes/ColorHunt.unity`, kod `Scripts/ColorHunt/` (saf kural `ColorHuntRules` = Pota `src/renkAvi.ts` portu, mulberry32 dâhil; `ColorHuntGame` durum makinesi + animasyon kuyruğu; `BlockView`, `BoardBuilder`+`RoundedBoxMesh`, `ColorHuntFx` (tek parçacık sistemi seti, `Emit` ile renk), `BallSalvo`, `ColorHuntHud` (uGUI, üretilmiş sprite'lar), `ColorHuntJuice` (Core juice bileşenleri), `ColorHuntCamera` (en/boya göre sığdırma), `ColorHuntInput` (Input System pointer)). Ayarlar `Settings/ColorHuntSettings.asset` (bölüm 20: 7×7, 5 renk, can 3–14, cephane 158, hedef 22 kırmızı + 16 mavi; efekt/juice sayıları). Tasarım `docs/superpowers/specs/2026-09-22-color-hunt-design.md`, görüntüler `docs/screenshots/colorhunt_*.png`. Testler `Tests/EditMode/ColorHuntRulesTests.cs` (8/8).
+**Görünüm 2026-09-30'da Pota'nınkiyle değişti (aşağıdaki bölüm); bu bölümdeki blok/efekt/HUD tarifleri ilk denemenin.** Sahne `Scenes/ColorHunt.unity`, kod `Scripts/ColorHunt/` (saf kural `ColorHuntRules` = Pota `src/renkAvi.ts` portu, mulberry32 dâhil; `ColorHuntGame` durum makinesi + animasyon kuyruğu; `BlockView`, `BoardBuilder`+`RoundedBoxMesh`, `ColorHuntFx` (tek parçacık sistemi seti, `Emit` ile renk), `BallSalvo`, `ColorHuntHud` (uGUI, üretilmiş sprite'lar), `ColorHuntJuice` (Core juice bileşenleri), `ColorHuntCamera` (en/boya göre sığdırma), `ColorHuntInput` (Input System pointer)). Ayarlar `Settings/ColorHuntSettings.asset` (bölüm 20: 7×7, 5 renk, can 3–14, cephane 158, hedef 22 kırmızı + 16 mavi; efekt/juice sayıları). Tasarım `docs/superpowers/specs/2026-09-22-color-hunt-design.md`, görüntüler `docs/screenshots/colorhunt_*.png`. Testler `Tests/EditMode/ColorHuntRulesTests.cs` (8/8).
 
 - Araçlar: `ai_colorhunt_build_scene` (sahneyi sıfırdan kurar, Game view'ı 1080×1920'ye alır — Core'daki `GameViewPortrait`), `ai_colorhunt_play` (Play Mode: status / tap {cell} / rotate {dir} / auto {moves} / slowmo {scale, seconds} / retry). Menü: `AI Tools/Color Hunt/...`.
 - **Revizyon 2026-09-23 (Pota commit 71f8b9e/f55775d):** bloklar renk + basket eşyası + rakam (`ColorHuntSettings.ItemIcons`, `Art/esya-*.png`; eşya yüzün üst yarısında ölçek 0.62, rakam önde ve altta 0.56 — Pota `etiketleriYaz` düzeni), hedef panelinde eşya ikonu. Unity ekstrası: sayılan bloğun eşyası patlayınca HUD'daki hedef kutusuna uçar ve ikonu zıplatır (`ColorHuntFx.FlyItem`, `ColorHuntHud.TargetScreenPoint/PopTarget`). Quad primitive zaten −z'ye (kameraya) bakar; 180° çevirme mirror + cull yapar.
 - **Düğme hatası (2026-09-29, PotaFlow sırasında bulundu):** döndürme okları ve "Yeni tahta" düğmesi, sahne diskten açıldığında hiçbir şey yapmıyordu (dinleyiciler sahne aracında Edit Mode'da ekleniyordu, sahneye kaydedilmez). Artık `ColorHuntHud.Bind` çalışırken bağlar; test `ColorHuntHudPlayTests`.
 - Denemek için: ColorHunt sahnesini aç, Play, bloğa tıkla (bas-sürükle-bırak seçimi), alttaki oklar döndürür. Pota projesine taşınmadı; Tuna Unity'de bakıp karar verecek (patlama/efekt hissi, tahta boyu, HUD).
+
+## Renk Avı: Pota'nın bulmaca görünümü (2026-09-30)
+
+Renk Avı artık Pota'nın güncel bulmacası gibi görünüyor, sesleniyor ve oynuyor: bloklar, etiketler, patlama katmanları, salvo, düşüş, dönüş, HUD ve sesler. Oyun kuralları değişmedi (normal bloklar; özel toplar, engeller, güçlendiriciler ve smaç sonraki iş). Tasarım `docs/superpowers/specs/2026-09-30-colorhunt-pota-look-design.md`, plan `docs/superpowers/plans/2026-09-30-colorhunt-pota-look.md`. Görüntüler `docs/screenshots/2026-09-30-potalook-{tap,rotate,win}.jpg` (Pota | Unity aynı anlarda) ve `2026-09-30-potalook-side.mp4` (yan yana video).
+
+- **Pota'dan gelenler:** etiket atlası (2048², 11×11 hücre: 1–99 rakam, yıldız, eşyalar, özeller, engeller), yıldız/iz/yumuşak disk/halka dokuları, basketbol dokusu, 256² eşya çıkartmaları, buzlu pano `pano-a.png`, Lilita One yazı tipi (OFL) ve 22 ses (`Audio/PotaLook/`). Hepsi Pota'nın **kopyasından** üretilir: `Tools/potalook/run_export.sh <scratch>`. Betik Pota'yı scratch'e rsync'ler, kopyayı :5199'da vite ile açar, Pota'nın kendi kodunu sayfada çalıştırıp PNG ve WAV yazar. Sentez sesleri (`kombo`, `carpma`) ve örnekler Pota'nın zinciriyle (oda gönderimi 0,09, ana ses 0,9) WAV'a işlenir. Sonra `execute_custom_tool {"tool_name":"ai_potalook_import"}` çalıştır: içe aktarma ayarlarını, `PotaRoom` katmanını (12), oda yansımasını, ayar bağlantılarını ve `Settings/PotaPuzzleProfile.asset` son işlem profilini kurar. Pota klasörüne hiçbir şey yazılmaz.
+- **Sayılar nerede:**
+  - `Scripts/ColorHunt/PotaLook.cs` görünümün geometrisini tutar: DEV_POTA ölçüleri, ızgara, kamera sığdırma, CSS düzeni, blok renkleri, ışık, eğriler. Her sabitin yanında Pota'daki kaynağı yazar. Bunları değiştirmek birebirliği bozar.
+  - `Settings/ColorHuntSettings.asset` his değerlerini tutar: süreler, şişme zirveleri, sarsıntı, anlık yavaşlama, parçacık sayıları, ışık gücü. Varsayılanlar Pota'nın değerleri; Inspector'dan ayarlanır.
+  - three.js ışık yoğunlukları URP'de ÷π (`PotaLook.ThreeToUnityLight`).
+- **Oda yansıması:** `Editor/PotaRoomBaker.cs` three'nin `RoomEnvironment`'ını (kutu, 6 kutu, 6 ışık paneli, nokta ışık) editörde (0, −400, 0)'da kurar. Odayı küçük bir ışıksız shader (`Shaders/PotaRoom.shader`) ile three'nin formülüyle aydınlatır. Unity'nin probe bake'iyle HDR küp dokuya pişirir: `Art/PotaLook/PotaRoom.exr`, en parlak değer 100. Tahtadaki Custom reflection probe bunu kullanır (şiddet 0,45). Gerçek zamanlı probe'lar iki kalite seviyesinde de kapalı. Ortam ışığı bu pişmiş odanın yön başına ışınımından gelir (yukarı 1,577, ufuk 0,867, aşağı 0,692, × 0,45).
+- **Kamera:** 38°. Çerçevenin dış genişliği (9,5) ekran genişliğinin %98,5'i. HUD'un altı ile okların üstü 390 px'lik telefonun CSS pikselleriyle hesaplanır (`PotaLook.CameraFit`, `ColorHuntCamera`).
+- **Sahne:** Pota'nın çatısı (`PuzzleStage`):
+  - 15×14 saha potadan 3 m önce biter;
+  - bina 17×16 #cbbfae potadan 2 m önce biter, üç kenarında korkuluk;
+  - dev pota: buzlu cam pano, turuncu çubuklar, çember R 1,6, altı halkalı file (her halka %10 dar), çerçevenin altından zemine direk.
+
+  PotaFlow kendi uzun sahasını korur (`BuildRoof` kapalı).
+- **HUD** (`ColorHuntHud`): Pota'nın lacivert gradyan kutuları, altın kenar ve Lilita One rakamları; oklar sağda üst üste. İpucu Pota'nın krem kartında. Eşya patlayınca HUD'daki hedefine 0,55 sn'de uçar, hedef sayısı her varışta birer düşer.
+- **Animasyon sırası** (`ColorHuntGame`, `SwellSet`, `PotaFx`, `BallSalvo`):
+  1. Dokunulan blok 0,11 sn'de 1,18'e şişer.
+  2. **Zirvede** (0,0605 sn) sarsıntı, anlık yavaşlama ve ses gelir. Patlama katmanları: beyaz ve renkli flaş, halka, yassı parlak parçalar, yıldız kıvılcımlar, puf, nokta ışık.
+  3. Salvo 0,5 sn: bedel kadar top (en çok 24) kavisle bloğa uçar.
+  4. Zincir adımları 0,15 sn arayla; derinlik büyüdükçe sarsıntı ve `kombo` sesi yükselir.
+  5. Düşüş: sabit ivme, hücre başına 0,25 sn, inişte ezilme.
+  6. Dönüş 0,42 sn. Tahta çerçeveye sığmak için küçülür; etiketler önce tahtayla döner, sonra dikelir.
+  7. Kazanınca bloklar dağılır ve kâğıt konfeti yağar.
+- **Kaydet ve karşılaştır:**
+  1. Unity kaydı: ColorHunt sahnesi Play'deyken `execute_custom_tool {"tool_name":"ai_colorhunt_record","parameters":{"name":"potalook-play"}}` çalıştır. Kazanma kaydı için `"win":true` ekle. Ayrıca `script` (`wait 0.6; select auto; tap auto; settle; rotate cw; …`), `seed` (7), `width` (540) ve `tail` verilebilir. Araç editörü duraklatıp kare kare ilerletir ve `Temp/record/<ad>/f_NNNN_t<sn>.png` + `events.json` yazar. Dosya adındaki süre gerçek oyun zamanıdır (duraklatılmış editör adım başına 0,02 sn ilerler).
+  2. Pota kaydı: kopyada vite açıkken `node Tools/potalook/record-pota.mjs http://localhost:5199/ <klasör> play|win` çalıştır. Pencere 390×693, 9:16. Her olayda köşede 10 px'lik macenta işaret yanar; Playwright videosu ~0,35 sn geç başladığı için anlar bu işaretten okunur.
+  3. Levhalar: `uv run --with pillow Tools/potalook/compare.py <çıktı-ön-eki> <pota.webm> <pota events.json> Temp/record/<ad> Temp/record/<ad>/events.json`.
+- **Bilinen farklar:**
+  - Kayıtta HUD da son işlemden geçiyor (`FrameRecorder`); oyunda geçmiyor.
+  - Konfeti kazanmada; Pota'da smaçta (smaç sonraki iş).
+  - Tahtalar ve hedefler farklı: Pota bölüm 9 (üç hedef), Unity bölüm 20 (iki hedef). Pota'nın ○○○ smaç göstergesi yok.
+  - Pota'nın şehir arka planı yok.
+  - Karşılaştırma Pota'nın 2026-09-30 03:58 haline göre yapıldı. Pota'da 04:29'daki tasarım turu (alt bar: solda güçlendirmeler, sağda oklar; ipucu tahtanın üstünde) henüz taşınmadı.
 
 ## PotaFlow: sepetten tahtaya geçiş (2026-09-29/30)
 
