@@ -456,7 +456,8 @@ namespace Project.ColorHunt
             {
                 case PuzzleLook.Pota: return new PotaBurstStyle();
                 case PuzzleLook.Candy: return AddStyle<CandyBurst>("CandyBurst");
-                default: return new NoStyle();          // Shatter: Task 11
+                case PuzzleLook.Shatter: return AddStyle<ShatterBurst>("ShatterBurst");
+                default: return new NoStyle();
             }
         }
 

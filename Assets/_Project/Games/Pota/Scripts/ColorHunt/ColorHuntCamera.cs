@@ -27,9 +27,43 @@ namespace Project.ColorHunt
             _shake = GetComponent<CameraShake>();
         }
 
+        /// <summary>Close-up for recordings: 1 = the Pota fit; 2 = half the distance, centred halfway to <see cref="ZoomFocus"/>.</summary>
+        public float Zoom = 1f;
+        public Vector3 ZoomFocus;
+        private Vector3 _pushTarget;
+        private float _pushAmount, _pushTime = -1f, _pushDuration = 1f;
+
+        public bool Pushing => _pushTime >= 0f;
+
+        /// <summary>A short push toward <paramref name="target"/>: <paramref name="amount"/> of the way in and back out (sin), real time.</summary>
+        public void Push(Vector3 target, float amount, float seconds)
+        {
+            _pushTarget = target;
+            _pushAmount = amount;
+            _pushDuration = Mathf.Max(0.01f, seconds);
+            _pushTime = 0f;
+        }
+
+        public static Vector3 Zoomed(Vector3 fit, Vector3 focus, float zoom)
+        {
+            if (zoom <= 1f) return fit;
+            float k = 1f - 1f / zoom;
+            return new Vector3(Mathf.Lerp(fit.x, focus.x, k), Mathf.Lerp(fit.y, focus.y, k), focus.z + (fit.z - focus.z) / zoom);
+        }
+
+        public static float PushWeight(float u) => u <= 0f || u >= 1f ? 0f : Mathf.Sin(u * Mathf.PI);
+
         private void LateUpdate()
         {
-            transform.position = FitFor(_cam.fieldOfView, _cam.aspect) + (_shake != null ? _shake.Offset : Vector3.zero);
+            var pos = Zoomed(FitFor(_cam.fieldOfView, _cam.aspect), ZoomFocus, Zoom);
+            if (_pushTime >= 0f)
+            {
+                _pushTime += Time.unscaledDeltaTime;
+                float u = _pushTime / _pushDuration;
+                pos += (_pushTarget - pos) * (_pushAmount * PushWeight(u));
+                if (u >= 1f) _pushTime = -1f;
+            }
+            transform.position = pos + (_shake != null ? _shake.Offset : Vector3.zero);
             transform.rotation = Quaternion.identity;
         }
 

@@ -325,5 +325,24 @@ namespace Project.Tests
             Assert.AreEqual(38f, d.Cam.fieldOfView, 1e-3f);
             Assert.Less(Vector3.Distance(d.Stage.Hoop.RimCenter, d.Game.transform.position + new Vector3(0f, -5.6f, -2.2f)), 1e-3f);
         }
+
+        [UnityTest]
+        public IEnumerator StudioLook_TransitionEndsOnAPlayableBoard_AndTheBurstIsTheLooks()
+        {
+            PotaFlowDirector d = null;
+            yield return Load(x => d = x);
+            d.Game.SetLook(PuzzleLook.Shatter);
+            Assert.IsTrue(d.BeginTransition(158));
+            yield return WaitUntil(() => d.Current == Phase.Puzzle, 3.5f);
+            Assert.AreEqual(Phase.Puzzle, d.Current);
+            yield return null;
+            Assert.AreEqual(ColorHuntGame.State.Playing, d.Game.Current);
+            Assert.IsFalse(d.Game.Intro, "PotaFlow keeps its own reveal");
+            var shatter = d.Game.Style as ShatterBurst;
+            Assert.IsNotNull(shatter);
+            Assert.AreEqual("broken", d.Game.Tap(ColorHuntHint.Best(d.Game.Board)));
+            yield return WaitUntil(() => shatter.ActivePieces > 0, 1.5f);
+            Assert.Greater(shatter.ActivePieces, 0, "the pieces fly in the giant hoop's space too");
+        }
     }
 }

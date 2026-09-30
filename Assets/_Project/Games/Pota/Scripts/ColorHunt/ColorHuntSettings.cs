@@ -79,6 +79,8 @@ namespace Project.ColorHunt
         public Material FlipbookTemplate;
         [Tooltip("Project/CandyShard: A's inked candy chunks.")]
         public Material CandyShardTemplate;
+        [Tooltip("Project/PotaPiece: B's lit pieces with the sticker.")]
+        public Material PieceTemplate;
 
         [Header("Studio looks (Blender hand-offs, ai_studio_import)")]
         [Tooltip("A: vfx_flipbook puff_toon, 4×4 frames of 256 px.")]
