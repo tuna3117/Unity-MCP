@@ -153,5 +153,46 @@ namespace Project.ColorHunt
             c.a = 1f;
             return c;
         }
+
+        // index.html :root and HUD rules
+        public static readonly Color HudNavy = Hex(0x142850), HudNavy2 = Hex(0x1f3a6e), HudPanelTop = Hex(0x24407a), HudButtonTop = Hex(0x2b4d91),
+            HudGold = Hex(0xffc83d), HudGold2 = Hex(0xb3600a), HudGreen = Hex(0x2fb36b), HudRed = Hex(0xff6b5e),
+            HudOrange = Hex(0xff7a1a), HudOrangeTop = Hex(0xffb46b), HudHint = Hex(0x103055);
+
+        public struct FlightPose { public float Along, Lift, Scale; }
+
+        /// <summary>
+        /// renkAviFaz.ts esyaUcur (WAAPI): keyframes 0 → scale 0.9; 0.3 → 30 % of the way, 40 CSS px up, scale 1.35; 1 → there, 0.5;
+        /// the whole flight eased by cubic-bezier(.45, 0, .55, 1). <paramref name="t"/> = elapsed / esyaUcus.
+        /// </summary>
+        public static FlightPose ItemFlight(float t)
+        {
+            float p = CubicBezier(0.45f, 0f, 0.55f, 1f, Mathf.Clamp01(t));
+            if (p < 0.3f)
+            {
+                float u = p / 0.3f;
+                return new FlightPose { Along = 0.3f * u, Lift = 40f * u, Scale = Mathf.Lerp(0.9f, 1.35f, u) };
+            }
+            float w = (p - 0.3f) / 0.7f;
+            return new FlightPose { Along = 0.3f + 0.7f * w, Lift = 40f * (1f - w), Scale = Mathf.Lerp(1.35f, 0.5f, w) };
+        }
+
+        /// <summary>CSS cubic-bezier(x1, y1, x2, y2) at time x: bisection on the x curve (24 steps ≈ 6e-8).</summary>
+        public static float CubicBezier(float x1, float y1, float x2, float y2, float x)
+        {
+            float lo = 0f, hi = 1f;
+            for (int i = 0; i < 24; i++)
+            {
+                float s = (lo + hi) * 0.5f;
+                if (Bezier(x1, x2, s) < x) lo = s; else hi = s;
+            }
+            return Bezier(y1, y2, (lo + hi) * 0.5f);
+        }
+
+        private static float Bezier(float a, float b, float s)
+        {
+            float u = 1f - s;
+            return 3f * u * u * s * a + 3f * u * s * s * b + s * s * s;
+        }
     }
 }

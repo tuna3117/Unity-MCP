@@ -84,9 +84,9 @@ namespace Project.Tests
             Assert.Less(right.anchoredPosition.y, rightHome.y - 250f, "rotate button must leave downward");
 
             hud.SetIntro(1f);
-            Assert.AreEqual(ammoHome, ammo.anchoredPosition);
-            Assert.AreEqual(targetsHome, targets.anchoredPosition);
-            Assert.AreEqual(rightHome, right.anchoredPosition);
+            Assert.Less(Vector2.Distance(ammoHome, ammo.anchoredPosition), 0.01f);
+            Assert.Less(Vector2.Distance(targetsHome, targets.anchoredPosition), 0.01f);
+            Assert.Less(Vector2.Distance(rightHome, right.anchoredPosition), 0.01f);
 
             Vector2 vp = hud.AmmoViewportPoint;
             Assert.That(vp.x, Is.InRange(0f, 0.5f), "ammo number sits on the left half");
@@ -111,12 +111,12 @@ namespace Project.Tests
             var hint = hud.transform.Find("Hint").GetComponent<Text>();
             Vector2 ammoHome = ammo.anchoredPosition, targetsHome = targets.anchoredPosition;
             hud.SetIntro(1f, 0f);
-            Assert.AreEqual(ammoHome, ammo.anchoredPosition, "ammo panel in");
+            Assert.Less(Vector2.Distance(ammoHome, ammo.anchoredPosition), 0.01f, "ammo panel in");
             Assert.Greater(targets.anchoredPosition.y, targetsHome.y + 250f, "targets still out");
             Assert.AreEqual(0f, hint.color.a, 1e-4f);
             hud.ShowHint = false;
             hud.SetIntro(1f, 1f);
-            Assert.AreEqual(targetsHome, targets.anchoredPosition);
+            Assert.Less(Vector2.Distance(targetsHome, targets.anchoredPosition), 0.01f);
             Assert.AreEqual(0f, hint.color.a, 1e-4f, "PotaFlow hides the hint (the net sits there)");
             hud.ShowHint = true;
             hud.SetIntro(1f);

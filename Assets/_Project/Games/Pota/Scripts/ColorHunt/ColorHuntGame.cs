@@ -59,7 +59,10 @@ namespace Project.ColorHunt
         private class DropState { public float StartY, Distance, T; public bool Landed; }
 
         private Mesh _blockMesh, _shardMesh;
-        private Material _blockMat, _labelMat, _itemMat;
+        private Material _blockMat, _labelMat;
+        private readonly Dictionary<int, int> _shown = new Dictionary<int, int>();
+        private int _flights, _flightGen;
+        private bool _targetsPending;
         private Transform _blocksRoot;
         private bool _checkNeeded;
         private float _accel;
@@ -79,13 +82,6 @@ namespace Project.ColorHunt
             _blocksRoot = new GameObject("Blocks").transform;
             _blocksRoot.SetParent(BoardRoot, false);
 
-            _itemMat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-            _itemMat.SetFloat("_Surface", 1f); _itemMat.SetFloat("_Blend", 0f); _itemMat.SetFloat("_ZWrite", 0f);
-            _itemMat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            _itemMat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            _itemMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            _itemMat.renderQueue = 3000;
-            if (Fx != null) Fx.ItemMaterial = _itemMat;
             _blockMesh = PillowBlockMesh.Create();
             _shardMesh = RoundedBoxMesh.Create(Vector3.one, 0.22f, 3);
             _blockMat = BlockView.BodyMaterial();
@@ -132,7 +128,7 @@ namespace Project.ColorHunt
             BoardRoot.localRotation = Quaternion.identity;
             Raise(RoundStarted);
             Raise(AmmoChanged);
-            Raise(TargetsChanged);
+            ResetShownTargets();
         }
 
         /// <summary>Shows a different number on the ammo counter while the board is staged (transition count-up).</summary>
@@ -195,6 +191,7 @@ namespace Project.ColorHunt
             }
             Board = r.Board;
             _checkNeeded = true;
+            _targetsPending = true;
             _jobs.Add(new SalvoJob { Cell = cell, Cost = r.Cost, AmmoBefore = ammoBefore, Steps = r.Steps });
             return "broken";
         }
@@ -225,6 +222,7 @@ namespace Project.ColorHunt
             AdvanceJobs(dt);
             AdvanceViews(dt);
             if (Current == State.Playing && !Busy && _checkNeeded) AfterSettle();
+            if (_targetsPending && !Busy && _flights == 0) SyncTargetsIfSettled();
             if (_resultTimer >= 0f)
             {
                 _resultTimer -= Time.unscaledDeltaTime;
@@ -343,7 +341,7 @@ namespace Project.ColorHunt
             if (view != null)
             {
                 Fx?.Explode(pos, S.PaletteColor(view.Block.Color), 0);
-                FlyItem(view, pos);
+                CountItem(view, pos);
                 RippleNeighbours(s.Cell);
                 Recycle(view);
                 _views.Remove(s.Cell);
@@ -351,7 +349,6 @@ namespace Project.ColorHunt
             Juice?.Tap(pos, s.Cost);
             DisplayedAmmo = Board.Ammo;
             Raise(AmmoChanged);
-            Raise(TargetsChanged);
             _jobs.RemoveAt(0);
             int depth = -1;
             foreach (var step in s.Steps)
@@ -362,20 +359,66 @@ namespace Project.ColorHunt
             if (depth > LongestChain) LongestChain = depth;
         }
 
-        /// <summary>A counted block's item sprite flies to its target box in the HUD and pops it (Unity extra).</summary>
-        private void FlyItem(BlockView v, Vector3 from)
+        public int ItemsInFlight => _flights;
+
+        /// <summary>
+        /// The target count the HUD shows (renkAviFaz.ts hedefAzalt / hedefHudYaz): one less per sticker that lands, never below the
+        /// rules, and equal to the rules once the board has settled with no sticker in the air.
+        /// </summary>
+        public int ShownTarget(int color) => _shown.TryGetValue(color, out int v) ? v : Remaining(color);
+
+        private int Remaining(int color)
         {
-            if (Fx == null || Hud == null || Cam == null) return;
+            if (Board != null) foreach (var t in Board.Targets) if (t.Color == color) return Mathf.Max(0, t.Remaining);
+            return 0;
+        }
+
+        private void ResetShownTargets()
+        {
+            _shown.Clear();
+            _flights = 0;
+            _flightGen++;                              // a sticker still flying from the old board changes nothing
+            _targetsPending = false;
+            if (Board != null) foreach (var t in Board.Targets) _shown[t.Color] = Mathf.Max(0, t.Remaining);
+            Raise(TargetsChanged);
+        }
+
+        /// <summary>A burst block of a target colour: its sticker flies to the HUD and lowers the count on arrival (at once if it cannot fly).</summary>
+        private void CountItem(BlockView v, Vector3 world)
+        {
             int color = v.Block.Color;
-            bool counted = false;
-            foreach (var t in Board.Targets) if (t.Color == color) counted = true;
-            if (!counted) return;
-            var icon = v.ItemIcon;
-            if (icon == null) return;
-            if (!Hud.TargetScreenPoint(color, out var screen)) return;
-            float depth = Mathf.Abs(Cam.transform.position.z - from.z) - 1.5f;
-            var to = Cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, depth));
-            Fx.FlyItem(icon, from + Vector3.back * 0.6f, to, 0.55f, () => Hud.PopTarget(color));
+            if (!_shown.ContainsKey(color)) return;
+            int gen = _flightGen;
+            if (Hud != null && Hud.FlyItem(color, world, () =>
+                {
+                    if (gen != _flightGen) return;
+                    _flights--;
+                    LowerShown(color);
+                    SyncTargetsIfSettled();
+                }))
+                _flights++;
+            else LowerShown(color);
+        }
+
+        private void LowerShown(int color)
+        {
+            _shown[color] = Mathf.Max(Remaining(color), _shown[color] - 1);
+            Raise(TargetsChanged);
+        }
+
+        private void SyncTargetsIfSettled()
+        {
+            if (Busy || _flights > 0 || Board == null) return;
+            _targetsPending = false;
+            bool changed = false;
+            foreach (var t in Board.Targets)
+            {
+                int r = Mathf.Max(0, t.Remaining);
+                if (_shown.TryGetValue(t.Color, out int s) && s == r) continue;
+                _shown[t.Color] = r;
+                changed = true;
+            }
+            if (changed) Raise(TargetsChanged);
         }
 
         private void RippleNeighbours(int cell)
@@ -404,11 +447,10 @@ namespace Project.ColorHunt
                 var p = CellWorld(i);
                 center += p;
                 Fx?.Explode(p, S.PaletteColor(v.Block.Color), st.Depth);
-                FlyItem(v, p);
+                CountItem(v, p);
             }
             center /= Mathf.Max(1, st.Step.Exploded.Count);
             Juice?.Chain(st.Depth, center);
-            Raise(TargetsChanged);
         }
 
         private void StartDrops(StepJob st)

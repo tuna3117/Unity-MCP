@@ -73,5 +73,98 @@ namespace Project.Tests
             hud.HideResult();
             Assert.IsFalse(panel.activeSelf, "HideResult must close the result panel");
         }
+
+        private static int Remaining(ColorHuntGame game, int color)
+        {
+            foreach (var t in game.Board.Targets) if (t.Color == color) return Mathf.Max(0, t.Remaining);
+            return 0;
+        }
+
+        /// <summary>The cheapest affordable block of a colour that is still wanted.</summary>
+        private static int CheapTargetCell(ColorHuntGame game, out int color)
+        {
+            int best = -1, bestHp = int.MaxValue;
+            color = -1;
+            var b = game.Board;
+            for (int i = 0; i < b.Cells.Length; i++)
+            {
+                var c = b.Cells[i];
+                if (c.Hp > b.Ammo || c.Hp >= bestHp || Remaining(game, c.Color) <= 0) continue;
+                bool wanted = false;
+                foreach (var t in b.Targets) wanted |= t.Color == c.Color;
+                if (!wanted) continue;
+                best = i; bestHp = c.Hp; color = c.Color;
+            }
+            return best;
+        }
+
+        [UnityTest]
+        public IEnumerator TargetCount_DropsPerArrival_ThenMatchesTheRules()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return LoadPlaying((g, h) => { game = g; hud = h; });
+            int cell = CheapTargetCell(game, out int color);
+            Assert.GreaterOrEqual(cell, 0, "no affordable target block on this board");
+            int before = game.ShownTarget(color);
+            Assert.AreEqual("broken", game.Tap(cell));
+            bool lagged = false, flew = false;
+            float t = 0f;
+            while ((game.Busy || game.ItemsInFlight > 0) && t < 8f)
+            {
+                int rules = Remaining(game, color), shown = game.ShownTarget(color);
+                Assert.GreaterOrEqual(shown, rules, "the shown count never goes below the rules");
+                Assert.LessOrEqual(shown, before);
+                lagged |= shown > rules;
+                flew |= hud.FlyingCount > 0;
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            yield return null;
+            Assert.IsTrue(flew, "the sticker flew to the HUD");
+            Assert.IsTrue(lagged, "the count waits for the sticker (renkAviFaz.ts hedefAzalt)");
+            Assert.AreEqual(Remaining(game, color), game.ShownTarget(color), "settled and nothing flying: shown = rules");
+            Assert.AreEqual(game.ShownTarget(color).ToString(), hud.TargetText(color));
+        }
+
+        [UnityTest]
+        public IEnumerator NewRound_WhileAStickerFlies_KeepsTheNewCounts()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return LoadPlaying((g, h) => { game = g; hud = h; });
+            int cell = CheapTargetCell(game, out _);
+            Assert.GreaterOrEqual(cell, 0);
+            game.Tap(cell);
+            yield return WaitUntil(() => hud.FlyingCount > 0, 4f);
+            Assert.Greater(hud.FlyingCount, 0);
+            game.NewRound();
+            float t0 = Time.unscaledTime;
+            while (Time.unscaledTime - t0 < 0.8f) yield return null;
+            foreach (var tg in game.Board.Targets)
+                Assert.AreEqual(Mathf.Max(0, tg.Remaining), game.ShownTarget(tg.Color), "an old flight must not lower the new board's count");
+        }
+
+        [UnityTest]
+        public IEnumerator Layout_IsPotas_CountersOnTop_ArrowsRightUnderTheBackboard()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return LoadPlaying((g, h) => { game = g; hud = h; });
+            yield return null;
+            float k = ColorHuntHud.Css;
+            var ammo = (RectTransform)hud.transform.Find("AmmoPanel");
+            var targets = (RectTransform)hud.transform.Find("TargetPanel");
+            var right = (RectTransform)hud.transform.Find("RotateRight");
+            var left = (RectTransform)hud.transform.Find("RotateLeft");
+            Assert.AreEqual(14f * k, ammo.anchoredPosition.x, 0.5f, "14 px from the left");
+            Assert.AreEqual(-14f * k, targets.anchoredPosition.x, 0.5f, "14 px from the right");
+            Assert.AreEqual(63f * k, ammo.sizeDelta.y, 1f, ".sayac height");
+            Assert.AreEqual(64f * k, right.sizeDelta.x, 0.5f, ".dondur 64 px");
+            Assert.AreEqual(-14f * k, right.anchoredPosition.x, 0.5f);
+            Assert.AreEqual(right.anchoredPosition.y - 72f * k, left.anchoredPosition.y, 0.5f, "stacked: right on top, 8 px gap");
+            var cam = game.Cam;
+            var vp = cam.WorldToViewportPoint(game.transform.TransformPoint(new Vector3(0f, -4.75f, -0.45f)));
+            float canvasH = ((RectTransform)hud.transform).rect.height;
+            float expectedTop = Mathf.Min((1f - vp.y) * canvasH / k + 34f, canvasH / k - 150f);
+            Assert.AreEqual(-expectedTop * k, right.anchoredPosition.y, 2f * k, "34 px under the backboard (index.html #yAlt)");
+        }
     }
 }

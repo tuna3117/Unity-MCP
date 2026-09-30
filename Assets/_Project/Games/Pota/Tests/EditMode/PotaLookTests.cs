@@ -95,5 +95,34 @@ namespace Project.Tests
             var shortC = PotaLook.BlockColor(tone, 0f, true);
             Assert.AreEqual(Mathf.Lerp(lin.g, PotaLook.ShortGrey.linear.g, 0.5f) * 0.62f, shortC.g, 1e-5f, "yapbozSahne.ts ornekYaz: soluk last");
         }
+
+        [Test]
+        public void CubicBezier_IsCssTiming()
+        {
+            Assert.AreEqual(0f, PotaLook.CubicBezier(0.45f, 0f, 0.55f, 1f, 0f), 1e-5f);
+            Assert.AreEqual(1f, PotaLook.CubicBezier(0.45f, 0f, 0.55f, 1f, 1f), 1e-5f);
+            Assert.AreEqual(0.5f, PotaLook.CubicBezier(0.45f, 0f, 0.55f, 1f, 0.5f), 1e-4f, "symmetric ease-in-out");
+            Assert.Less(PotaLook.CubicBezier(0.45f, 0f, 0.55f, 1f, 0.25f), 0.2f, "slow start");
+            Assert.AreEqual(0.25f, PotaLook.CubicBezier(1f / 3f, 1f / 3f, 2f / 3f, 2f / 3f, 0.25f), 1e-4f, "control points on the diagonal = linear");
+        }
+
+        [Test]
+        public void ItemFlight_FollowsPotasKeyframes()
+        {
+            var a = PotaLook.ItemFlight(0f);
+            Assert.AreEqual(0f, a.Along, 1e-6f);
+            Assert.AreEqual(0.9f, a.Scale, 1e-5f);
+            Assert.AreEqual(0f, a.Lift, 1e-5f);
+            var b = PotaLook.ItemFlight(1f);
+            Assert.AreEqual(1f, b.Along, 1e-4f);
+            Assert.AreEqual(0.5f, b.Scale, 1e-3f);
+            Assert.AreEqual(0f, b.Lift, 1e-2f);
+            float t = 0f;
+            while (PotaLook.CubicBezier(0.45f, 0f, 0.55f, 1f, t) < 0.3f) t += 1e-4f;
+            var k = PotaLook.ItemFlight(t);
+            Assert.AreEqual(0.3f, k.Along, 2e-3f, "30 % of the way at the 0.3 keyframe");
+            Assert.AreEqual(40f, k.Lift, 0.3f, "40 px up");
+            Assert.AreEqual(1.35f, k.Scale, 3e-3f);
+        }
     }
 }

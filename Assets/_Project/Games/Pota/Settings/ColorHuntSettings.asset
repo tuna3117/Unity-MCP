@@ -85,6 +85,7 @@ MonoBehaviour:
   WinWait: 0.85
   LoseWait: 0.45
   InsufficientShake: 0.3
+  ItemFlyTime: 0.55
   HitStopTap: 0.05
   HitStopChainBase: 0.09
   HitStopChainPerDepth: 0.02

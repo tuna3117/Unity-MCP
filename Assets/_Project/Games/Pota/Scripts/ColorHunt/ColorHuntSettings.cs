@@ -73,6 +73,8 @@ namespace Project.ColorHunt
         public float LoseWait = 0.45f;
         [Tooltip("renkAviFaz.ts HIS.titrem.sure: shiver of a block the ammo does not cover.")]
         public float InsufficientShake = 0.3f;
+        [Tooltip("renkAviFaz.ts RENK_AVI_HIS.esyaUcus: sticker flight to the HUD, real time.")]
+        public float ItemFlyTime = 0.55f;
 
         [Header("Juice")]
         public float HitStopTap = 0.05f;
