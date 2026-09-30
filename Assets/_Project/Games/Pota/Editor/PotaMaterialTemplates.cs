@@ -33,13 +33,14 @@ namespace Project.Editor.AITools
             var flipbook = Template("PotaFlipbook", RuntimeMaterial.From(null, "Project/PotaFlipbook"));
             var candyShard = Template("CandyShard", RuntimeMaterial.From(null, "Project/CandyShard"));
             var piece = Template("PotaPiece", RuntimeMaterial.From(null, "Project/PotaPiece"));
+            var shock = Template("PotaShockRing", RuntimeMaterial.From(null, "Project/PotaShockRing"));
 
             int colorHunt = 0, basket = 0;
             foreach (var guid in AssetDatabase.FindAssets("t:" + nameof(ColorHuntSettings)))
             {
                 var s = AssetDatabase.LoadAssetAtPath<ColorHuntSettings>(AssetDatabase.GUIDToAssetPath(guid));
                 s.LabelTemplate = label; s.AdditiveTemplate = additive; s.ParticleLitTemplate = particleLit; s.SelectionTemplate = selection;
-                s.FlipbookTemplate = flipbook; s.CandyShardTemplate = candyShard; s.PieceTemplate = piece;
+                s.FlipbookTemplate = flipbook; s.CandyShardTemplate = candyShard; s.PieceTemplate = piece; s.ShockTemplate = shock;
                 EditorUtility.SetDirty(s);
                 colorHunt++;
             }
@@ -51,7 +52,7 @@ namespace Project.Editor.AITools
                 basket++;
             }
             AssetDatabase.SaveAssets();
-            report.Add($"material templates: 9 in {Folder}, wired into {colorHunt} ColorHuntSettings + {basket} BasketSettings");
+            report.Add($"material templates: 10 in {Folder}, wired into {colorHunt} ColorHuntSettings + {basket} BasketSettings");
             return report;
         }
 

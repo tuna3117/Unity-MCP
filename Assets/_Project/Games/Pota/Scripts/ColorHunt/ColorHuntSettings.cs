@@ -81,6 +81,8 @@ namespace Project.ColorHunt
         public Material CandyShardTemplate;
         [Tooltip("Project/PotaPiece: B's lit pieces with the sticker.")]
         public Material PieceTemplate;
+        [Tooltip("Project/PotaShockRing: B's heat-haze ring.")]
+        public Material ShockTemplate;
 
         [Header("Studio looks (Blender hand-offs, ai_studio_import)")]
         [Tooltip("A: vfx_flipbook puff_toon, 4×4 frames of 256 px.")]

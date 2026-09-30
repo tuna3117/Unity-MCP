@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Project.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Project.ColorHunt
 {
@@ -14,7 +15,7 @@ namespace Project.ColorHunt
     /// </summary>
     public class ShatterBurst : MonoBehaviour, IBurstStyle
     {
-        public const int PieceMax = 160, SmokeMax = 24, SparkMax = 96;
+        public const int PieceMax = 160, SmokeMax = 24, SparkMax = 96, ShockMax = 16;
 
         /// <summary>BlockView's label placement in the pieces' face UV (0..1 across the 0.9 m face): centre xy, size zw.</summary>
         public static readonly Vector4 ItemPlace = new Vector4(0.5f, 0.5f + PotaLook.ItemOffsetY / PotaLook.Block,
@@ -40,14 +41,15 @@ namespace Project.ColorHunt
         private readonly Stack<Piece> _pool = new Stack<Piece>();
         private Material _pieceMat;
         private MaterialPropertyBlock _mpb;
-        private ParticleSystem _smoke, _sparks;
+        private ParticleSystem _smoke, _sparks, _shock;
         private readonly System.Random _rng = new System.Random(17);
 
         public bool Ready { get; private set; }
         public bool ShowsChainNumber => true;
         public int ActivePieces => _live.Count;
+        public int ShockLive => _shock != null ? _shock.particleCount : 0;
         public IEnumerable<Vector3> PiecePositions { get { foreach (var p in _live) yield return p.D.P; } }
-        public int LiveCount => _live.Count + StudioParticles.Count(_smoke, _sparks)
+        public int LiveCount => _live.Count + StudioParticles.Count(_smoke, _sparks, _shock)
                                 + (_game != null && _game.Fx != null ? _game.Fx.LiveCount : 0);
 
         /// <summary>A usable fractured block: 4+ child meshes, each carrying the front-flag UV set (UV1).</summary>
@@ -85,6 +87,14 @@ namespace Project.ColorHunt
             sr.velocityScale = 0.06f;
             sr.lengthScale = 1.2f;
             StudioParticles.SizeOverLife(_sparks, u => 1f - u);
+            if (s.ShockRing != null)
+            {
+                var shock = RuntimeMaterial.From(s.ShockTemplate, "Project/PotaShockRing", "PotaShockRing");
+                shock.SetTexture("_BaseMap", s.ShockRing);
+                _shock = StudioParticles.System(transform, "ShatterShock", shock, ParticleSystemRenderMode.Billboard, ShockMax, 10);
+                StudioParticles.Sheet(_shock, 4, 4);
+                StudioParticles.AlphaOverLife(_shock, u => 1f - u * u);
+            }
             Activate(false);
         }
 
@@ -92,6 +102,8 @@ namespace Project.ColorHunt
         {
             if (!on) Clear();
             gameObject.SetActive(on);
+            var data = _game != null && _game.Cam != null ? _game.Cam.GetUniversalAdditionalCameraData() : null;
+            if (data != null) data.requiresColorOption = on && _shock != null ? CameraOverrideOption.On : CameraOverrideOption.UsePipelineSettings;
         }
 
         public void TapBurst(BlockView v, Color tone) => Shatter(v, tone, 0);
@@ -99,7 +111,11 @@ namespace Project.ColorHunt
 
         public void ChainPeak(int depth, Vector2 at, Color tone)
         {
-            if (!Ready || depth < 4) return;
+            if (!Ready) return;
+            float bs = _game.BoardRoot.lossyScale.x;
+            if (_shock != null)
+                StudioParticles.Emit(_shock, _game.BoardRoot.TransformPoint(new Vector3(at.x, at.y, -(PotaLook.FrontZ + 0.2f))), (3.2f + 0.4f * depth) * bs, 0.45f, Color.white);
+            if (depth < 4) return;
             _game.Juice?.TimeCtl?.SlowMo(0.4f, 0.3f);
             var cam = _game.Cam != null ? _game.Cam.GetComponent<ColorHuntCamera>() : null;
             if (cam != null) cam.Push(_game.BoardRoot.TransformPoint(new Vector3(at.x, at.y, -PotaLook.FrontZ)), 0.18f, 0.6f);
@@ -111,6 +127,7 @@ namespace Project.ColorHunt
             _live.Clear();
             if (_smoke != null) _smoke.Clear();
             if (_sparks != null) _sparks.Clear();
+            if (_shock != null) _shock.Clear();
         }
 
         private void Update()
@@ -158,6 +175,7 @@ namespace Project.ColorHunt
                 var jitter = new Vector3((R() - 0.5f) * 0.3f, (R() - 0.5f) * 0.3f, 0f) * bs;
                 StudioParticles.Emit(_smoke, at + jitter, (2.2f + 0.3f * k + 0.1f * depth) * bs, 0.9f, smokeTint, new Vector3(0f, 0.5f * bs, 0f), R() * 360f);
             }
+            if (_shock != null && depth == 0) StudioParticles.Emit(_shock, at, 3.2f * bs, 0.4f, Color.white);
             StudioParticles.Gravity(_sparks, 8f * bs);
             int sparks = Mathf.Min(14, 8 + depth);
             for (int k = 0; k < sparks; k++)

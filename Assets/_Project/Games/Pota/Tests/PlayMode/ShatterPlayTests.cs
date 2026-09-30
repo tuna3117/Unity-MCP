@@ -2,6 +2,7 @@ using System.Collections;
 using NUnit.Framework;
 using Project.ColorHunt;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.TestTools;
 
 namespace Project.Tests
@@ -30,7 +31,7 @@ namespace Project.Tests
             yield return StudioLookPlayTests.WaitUntil(() => shatter.ActivePieces > 0, 1.5f);
             Assert.Greater(shatter.ActivePieces, 0);
             float t = 0f;
-            while (shatter.ActivePieces > 0 && t < 4f)
+            while (shatter.ActivePieces > 0 && t < 8f)           // the hint's longest chain keeps breaking blocks for ~3 s
             {
                 AssertInsideTheFrame(shatter);
                 Assert.LessOrEqual(shatter.LiveCount, BurstBudget.Max);
@@ -86,6 +87,28 @@ namespace Project.Tests
             yield return null;
             Assert.Less(Time.timeScale, 0.99f);
             Assert.IsTrue(game.Cam.GetComponent<ColorHuntCamera>().Pushing);
+        }
+
+        [UnityTest]
+        public IEnumerator Shatter_TurnsTheOpaqueTextureOn_OnlyWhileActive()
+        {
+            ColorHuntGame game = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Shatter, (g, h) => game = g);
+            var data = game.Cam.GetUniversalAdditionalCameraData();
+            Assert.AreEqual(CameraOverrideOption.On, data.requiresColorOption);
+            game.SetLook(PuzzleLook.Pota);
+            Assert.AreEqual(CameraOverrideOption.UsePipelineSettings, data.requiresColorOption);
+        }
+
+        [UnityTest]
+        public IEnumerator Tap_SendsAShockRing()
+        {
+            ColorHuntGame game = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Shatter, (g, h) => game = g);
+            var shatter = (ShatterBurst)game.Style;
+            Assert.AreEqual("broken", game.Tap(ColorHuntHint.Best(game.Board)));
+            yield return StudioLookPlayTests.WaitUntil(() => shatter.ShockLive > 0, 1.5f);
+            Assert.Greater(shatter.ShockLive, 0);
         }
     }
 }
