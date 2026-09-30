@@ -39,7 +39,7 @@ MonoBehaviour:
   BlockDepth: 0.55
   BlockRadius: 0.16
   BlockFace: {fileID: 2800000, guid: 60eff7e55aa6b41ffa63304f34641f10, type: 3}
-  Font: {fileID: 12800000, guid: 7181214f7ac4d41448dd33944c414135, type: 3}
+  Font: {fileID: 12800000, guid: 7640cc1b4d6424a6291580a4262bff67, type: 3}
   ArrowIcon: {fileID: 2800000, guid: e29169b82b746471798daaba2fcace0a, type: 3}
   ItemIcons:
   - {fileID: 2800000, guid: 738b492f0b35f40c2ab853c70f80e520, type: 3}
@@ -53,6 +53,38 @@ MonoBehaviour:
   NumberScale: 0.56
   BallMaterial: {fileID: 2100000, guid: 09d2f7edb93bb45d2b3942f87cf151cc, type: 2}
   DimAmount: 0.55
+  LabelAtlas: {fileID: 2800000, guid: 1dfe51a4f10b946608609a2bae4f10c9, type: 3}
+  StarSprite: {fileID: 2800000, guid: 7ac5a724b87ae4a15a72c94239c7d4b2, type: 3}
+  TrailSprite: {fileID: 2800000, guid: 76f723ba5667d4949912f14ad6696346, type: 3}
+  SoftDisc: {fileID: 2800000, guid: f8eedd1aaf3e845f5ae05f0720830897, type: 3}
+  SoftRing: {fileID: 2800000, guid: 82ec8b5ba1f764a53b321d1bb8d2b1dd, type: 3}
+  Backboard: {fileID: 2800000, guid: a549ace5ccc164516a7399e50668510d, type: 3}
+  SalvoBall: {fileID: 2100000, guid: 1a8d27c8b3299477c8a560ab53f87b78, type: 2}
+  PuzzleProfile: {fileID: 11400000, guid: ee4f757aad3a541bfa4dfb2804c03023, type: 2}
+  SfxBreak: {fileID: 8300000, guid: be2f046b62b124065853f5dd728ef915, type: 3}
+  SfxSalvo: {fileID: 8300000, guid: 53751424256314226ad9388279f7ba73, type: 3}
+  SfxDrop: {fileID: 8300000, guid: 5fbe3602331d548c38db42e5daf94249, type: 3}
+  SfxRotate: {fileID: 8300000, guid: f5cce16bb146543568c3267c11fec8cf, type: 3}
+  SfxMinus: {fileID: 8300000, guid: 2552c37167a5042bbac6dc5efed5d574, type: 3}
+  SfxWin: {fileID: 8300000, guid: e1c362ffc47ff42288f47fa74cba8d8b, type: 3}
+  SfxLose: {fileID: 8300000, guid: d69d6a9836e9843ff888478a9540d69a, type: 3}
+  SfxCombo:
+  - {fileID: 8300000, guid: 45502e8a724a5455ca43fe9d48ed82c4, type: 3}
+  - {fileID: 8300000, guid: 1569f859d35174b9c80688cd8919d461, type: 3}
+  - {fileID: 8300000, guid: 5e858d5cd73044bc7aa6ce00e7c50d22, type: 3}
+  - {fileID: 8300000, guid: 438121009c7434fc29051356e42884e5, type: 3}
+  - {fileID: 8300000, guid: dad06c0b9398046f78e0287598e7204e, type: 3}
+  - {fileID: 8300000, guid: ee5b3879a8ea44807bdc86c33a1ac268, type: 3}
+  - {fileID: 8300000, guid: 1e070a6d547c647cbb8a527463770a36, type: 3}
+  - {fileID: 8300000, guid: 1a39a52a5eec946b08da4d609b2a43ce, type: 3}
+  - {fileID: 8300000, guid: 6b3767f4539d749f0b2173982c2a55bc, type: 3}
+  - {fileID: 8300000, guid: 4e50d006ad61d4bb8bc91f8e901b5082, type: 3}
+  - {fileID: 8300000, guid: b9dfda1d793344e1a9fb6f8cf5e23fbb, type: 3}
+  SfxHit:
+  - {fileID: 8300000, guid: 0db36181550dc455ca98dbb33a0c0bf0, type: 3}
+  - {fileID: 8300000, guid: 0435796b701b148cbada67c8fc0f5738, type: 3}
+  - {fileID: 8300000, guid: 55a7b2c81f53548f6b7a86a88972e367, type: 3}
+  SfxSelect: {fileID: 8300000, guid: 228498913cc8a4adeba44ae61a388f8c, type: 3}
   SalvoDuration: 0.5
   SalvoLaunchFraction: 0.55
   SalvoFlightFraction: 0.42

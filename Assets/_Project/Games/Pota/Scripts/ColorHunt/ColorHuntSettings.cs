@@ -53,6 +53,32 @@ namespace Project.ColorHunt
         [Tooltip("Ammo does not cover this block: colour fades toward grey by this amount.")]
         [Range(0f, 1f)] public float DimAmount = 0.55f;
 
+        [Header("Pota look assets (Tools/potalook/run_export.sh + ai_potalook_import)")]
+        [Tooltip("yapbozSahne.ts EtiketAtlasi: 2048², 11 columns × 186 px; numbers 1–99 = cells 0–98, star 99, items 100–104.")]
+        public Texture2D LabelAtlas;
+        [Tooltip("patlamaEfekt.ts yildizKivilcim(128): four-point star + soft core.")]
+        public Texture2D StarSprite;
+        [Tooltip("patlamaEfekt.ts izDokusu(64): soft across, fading toward the tail.")]
+        public Texture2D TrailSprite;
+        [Tooltip("patlamaEfekt.ts yumusakDaire(128): the flash sprite.")]
+        public Texture2D SoftDisc;
+        [Tooltip("patlamaEfekt.ts yumusakDaire(128, 0.62, 0.98): the ring sprite.")]
+        public Texture2D SoftRing;
+        [Tooltip("public/assets/pano-a.png: the giant hoop's glass backboard.")]
+        public Texture2D Backboard;
+        [Tooltip("Salvo ball: efekt.ts topKureDokusu() skin, yapbozSahne.ts roughness 0.55, emissive #2a1200.")]
+        public Material SalvoBall;
+        [Tooltip("efekt.ts SonIslem: Neutral ×1.12, bloom 0.28 / 0.45 / 0.86, vignette 0.32 / 0.55.")]
+        public UnityEngine.Rendering.VolumeProfile PuzzleProfile;
+        [Tooltip("ses.ts samples (kirildi, kuleAt, dustu, dondur, eksi, kazandi, kaybetti) rendered through Pota's effect chain.")]
+        public AudioClip SfxBreak, SfxSalvo, SfxDrop, SfxRotate, SfxMinus, SfxWin, SfxLose;
+        [Tooltip("ses.ts kombo: MERDIVEN[0..10], index = chain depth.")]
+        public AudioClip[] SfxCombo;
+        [Tooltip("ses.ts carpma (guc 0.8) at r = 0.92, 1.00, 1.08.")]
+        public AudioClip[] SfxHit;
+        [Tooltip("ses.ts dokun: a block gets selected under the finger.")]
+        public AudioClip SfxSelect;
+
         [Header("Timing (seconds)")]
         public float SalvoDuration = 0.5f;
         [Range(0f, 1f)] public float SalvoLaunchFraction = 0.55f;
