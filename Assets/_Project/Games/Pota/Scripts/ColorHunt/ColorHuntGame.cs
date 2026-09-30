@@ -85,10 +85,10 @@ namespace Project.ColorHunt
 
             _blockMesh = PillowBlockMesh.Create();
             _blockMat = BlockView.BodyMaterial();
-            _labelMat = BlockView.LabelMaterial(S.LabelAtlas);
+            _labelMat = BlockView.LabelMaterial(S.LabelTemplate, S.LabelAtlas);
 
 
-            _selectionRing = RimMeshBuilder.MeshObject("SelectionRing", BoardRoot, RimMeshBuilder.Torus(0.46f, 0.055f, 26, 8), BlockView.RingMaterial());
+            _selectionRing = RimMeshBuilder.MeshObject("SelectionRing", BoardRoot, RimMeshBuilder.Torus(0.46f, 0.055f, 26, 8), BlockView.RingMaterial(S.SelectionTemplate));
             _selectionRing.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             _selectionRing.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _selectionRing.SetActive(false);
@@ -356,7 +356,7 @@ namespace Project.ColorHunt
                 }
                 Juice?.BallHit();
             });
-            if (view != null) { view.Flash = Mathf.Max(view.Flash, 0.4f); view.Squash = 0.35f; }
+            if (view != null) { view.Flash = Mathf.Max(view.Flash, 0.4f); view.Squash = 0.35f; view.Exploding = true; }   // never soluk (i !== salvoHucresi)
             ShowRing(s.Cell);
             Juice?.SalvoStart();
         }
@@ -374,6 +374,7 @@ namespace Project.ColorHunt
             {
                 _views.Remove(s.Cell);
                 _loose.Add(view);
+                view.Dim = false;                                   // sonenler are drawn lit (soluk: false)
                 var tone = S.PaletteColor(view.Block.Color);
                 _swells.Start(view, S.TapSwellTime, S.TapSwell, true, () =>
                 {

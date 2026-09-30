@@ -96,5 +96,39 @@ namespace Project.Tests
             Assert.AreEqual(1.2f, game.BoardRoot.localScale.x, 1e-4f);
             Assert.AreEqual(0f, game.ViewAt(0).LabelAngle, 1e-4f, "new views after the turn");
         }
+
+
+        /// <summary>
+        /// renkAviFaz.ts: the salvo's own block is never "soluk" (<c>i !== salvoHucresi</c>) and the popping block is drawn lit. The HUD
+        /// ammo counts down during the salvo, so without that exception a block costing more than half the ammo greyed out mid-salvo.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SalvoTarget_StaysLit_WhenItCostsMoreThanHalfTheAmmo()
+        {
+            ColorHuntGame game = null;
+            yield return LoadPlaying(g => game = g);
+            int cell = -1;
+            for (uint seed = 1; seed < 40 && cell < 0; seed++)
+            {
+                game.Prepare(12, seed, null);
+                for (int i = 0; i < game.Board.Cells.Length; i++)
+                    if (game.Board.Cells[i].Hp >= 7 && game.Board.Cells[i].Hp <= 12) { cell = i; break; }
+            }
+            Assert.GreaterOrEqual(cell, 0, "a block costing 7–12 with 12 ammo");
+            game.Begin();
+            var view = game.ViewAt(cell);
+            int hp = game.Board.Cells[cell].Hp;
+            game.Tap(cell);
+            float start = Time.unscaledTime;
+            bool dimmed = false, sawLowAmmo = false;
+            while (view.gameObject.activeSelf && Time.unscaledTime - start < 2f)
+            {
+                sawLowAmmo |= game.DisplayedAmmo < hp;
+                dimmed |= view.Dim;
+                yield return null;
+            }
+            Assert.IsTrue(sawLowAmmo, "the counter dropped below the block's cost during the salvo");
+            Assert.IsFalse(dimmed, "the salvo's own block stays lit until it bursts");
+        }
     }
 }

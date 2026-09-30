@@ -12,10 +12,11 @@ namespace Project.Basket.Visual
         private static readonly List<(Font font, Material mat)> Materials = new List<(Font, Material)>();
         private static bool _subscribed;
 
-        public static Material Create(Font font)
+        /// <param name="template">BasketSettings.TextDepthTemplate: keeps the shader in player builds (a bare Shader.Find is null there).</param>
+        public static Material Create(Font font, Material template = null)
         {
-            var shader = Shader.Find("Project/TextDepth");
-            var mat = shader != null ? new Material(shader) : new Material(font.material);
+            var shader = template != null ? null : Shader.Find("Project/TextDepth");
+            var mat = template != null ? new Material(template) : shader != null ? new Material(shader) : new Material(font.material);
             mat.mainTexture = font.material.mainTexture;
             Materials.Add((font, mat));
             if (!_subscribed)

@@ -73,6 +73,10 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 55a7b2c81f53548f6b7a86a88972e367, type: 3}
   SfxSelect: {fileID: 8300000, guid: 228498913cc8a4adeba44ae61a388f8c, type: 3}
   RoomReflection: {fileID: 8900000, guid: 6a69c489249f8436e8ba99760eb60504, type: 3}
+  LabelTemplate: {fileID: 2100000, guid: aaaaf977caccf476a8d9a820ee0898cc, type: 2}
+  AdditiveTemplate: {fileID: 2100000, guid: 61b668239fb5c451aa174ce1cf2b426c, type: 2}
+  ParticleLitTemplate: {fileID: 2100000, guid: 22d373770c46f418495a18097c1edec0, type: 2}
+  SelectionTemplate: {fileID: 2100000, guid: 581b3969f237e4abd91984802fe09915, type: 2}
   SalvoDuration: 0.5
   SalvoLaunchFraction: 0.55
   SalvoFlightFraction: 0.42

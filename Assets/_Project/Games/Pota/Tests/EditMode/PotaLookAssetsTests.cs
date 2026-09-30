@@ -118,5 +118,14 @@ namespace Project.Tests
             Assert.AreEqual(TextureImporterShape.TextureCube, ts.textureShape);
             Assert.AreEqual(TextureImporterCubemapConvolution.Specular, ts.cubemapConvolution);
         }
+
+
+        [Test]
+        public void SelectClip_IsPotasDokunMp3_ThroughTheRoom()
+        {
+            var clip = Settings().SfxSelect;
+            Assert.IsNotNull(clip, Hint);
+            Assert.AreEqual(1.068f + 0.35f, clip.length, 0.03f, "public/assets/ses/dokun.mp3 (1.068 s) + the 0.35 s room tail, not the 0.4 s synth fallback");
+        }
     }
 }

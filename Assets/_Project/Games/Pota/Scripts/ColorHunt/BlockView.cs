@@ -1,3 +1,4 @@
+using Project.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -48,17 +49,18 @@ namespace Project.ColorHunt
             return m;
         }
 
-        public static Material LabelMaterial(Texture atlas)
+        public static Material LabelMaterial(Material template, Texture atlas)
         {
-            var m = new Material(Shader.Find("Project/PotaLabel")) { name = "PotaLabel", enableInstancing = true };
+            var m = RuntimeMaterial.From(template, "Project/PotaLabel", "PotaLabel");
+            m.enableInstancing = true;
             if (atlas != null) m.SetTexture("_BaseMap", atlas);
             return m;
         }
 
         /// <summary>yapbozSahne.ts secimHalka: white, opacity 0.9, unlit.</summary>
-        public static Material RingMaterial()
+        public static Material RingMaterial(Material template)
         {
-            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "PotaSelection" };
+            var m = RuntimeMaterial.From(template, "Universal Render Pipeline/Unlit", "PotaSelection");
             m.SetFloat("_Surface", 1f);
             m.SetFloat("_Blend", 0f);
             m.SetFloat("_ZWrite", 0f);

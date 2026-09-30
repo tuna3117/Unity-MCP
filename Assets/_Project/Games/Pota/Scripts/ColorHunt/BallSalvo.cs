@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Project.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -157,7 +158,7 @@ namespace Project.ColorHunt
         private Material TrailMaterial()
         {
             if (_trailMat != null) return _trailMat;
-            _trailMat = new Material(Shader.Find("Project/PotaAdditive")) { name = "PotaTrail" };
+            _trailMat = RuntimeMaterial.From(S.AdditiveTemplate, "Project/PotaAdditive", "PotaTrail");
             _trailMat.SetTexture("_BaseMap", S.TrailSprite != null ? S.TrailSprite : Texture2D.whiteTexture);
             _trailMat.SetFloat("_Intensity", PotaLook.TrailBrightness);
             _trailMat.SetFloat("_SwapUV", 1f);

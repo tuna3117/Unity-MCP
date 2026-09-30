@@ -59,6 +59,16 @@ namespace Project.ColorHunt
         [Tooltip("three.js RoomEnvironment baked by ai_potalook_import (PotaRoomBaker): the blocks' reflections, intensity 0.45.")]
         public Cubemap RoomReflection;
 
+        [Header("Material templates (ai_potalook_import): a player build keeps only the shaders an asset references")]
+        [Tooltip("Project/PotaLabel, GPU instancing on.")]
+        public Material LabelTemplate;
+        [Tooltip("Project/PotaAdditive: flashes, ring, stars, points, puff, salvo trail.")]
+        public Material AdditiveTemplate;
+        [Tooltip("URP Particles/Lit: glossy shards and paper confetti.")]
+        public Material ParticleLitTemplate;
+        [Tooltip("URP Unlit, transparent: the selection ring.")]
+        public Material SelectionTemplate;
+
         [Header("Timing (seconds)")]
         public float SalvoDuration = 0.5f;
         [Range(0f, 1f)] public float SalvoLaunchFraction = 0.55f;

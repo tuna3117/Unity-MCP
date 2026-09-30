@@ -100,5 +100,18 @@ namespace Project.Tests
             }
             Object.DestroyImmediate(m);
         }
+
+
+        /// <summary>
+        /// The shard material carries ShardHeadroom (vertex colours hold tone ÷ 1.35). _BaseColor is a Color property: Unity feeds the
+        /// shader its linear value (<c>GetColor(...).linear</c>) whichever setter wrote it — a raw SetVector(1.35) reached the GPU as 1.99.
+        /// </summary>
+        [Test]
+        public void ShardMaterial_FeedsTheShaderTheLinearHeadroom()
+        {
+            var m = ColorHuntFx.LitMaterial(null, 0.8f, 0f, ColorHuntFx.ShardHeadroom);
+            try { Assert.AreEqual(ColorHuntFx.ShardHeadroom, m.GetColor("_BaseColor").linear.r, 0.01f); }
+            finally { Object.DestroyImmediate(m); }
+        }
     }
 }

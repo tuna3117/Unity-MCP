@@ -115,13 +115,9 @@ async function sesler(): Promise<Disa> {
     m.gurultu(0.09, "bandpass", 900 * r, 0.3 * k, 500, 0, 3); m.ton(230 * r, 0.11, "sine", 0.2 * k, 95);
     out[`carpma-${i}.wav`] = wav(await m.c.startRendering());
   }
-  {
-    const m = new Cevrimdisi(0.4, 250);
-    m.ton(660, 0.07, "sine", 0.18, 990);                                                            // ses.ts case "dokun" (selection)
-    out["dokun.wav"] = wav(await m.c.startRendering());
-  }
   const cozucu = new OfflineAudioContext(2, RATE, RATE);
-  for (const ad of ["blok-pop", "salvo", "dustu", "dondur", "eksi", "kazandi", "kaybetti"]) {
+  // ses.ts ORNEK: these events play their mp3 (dokun too — the synth "dokun" is only the fallback when the sample is missing).
+  for (const ad of ["blok-pop", "salvo", "dustu", "dondur", "eksi", "kazandi", "kaybetti", "dokun"]) {
     const b = await cozucu.decodeAudioData(await (await fetch(`/assets/ses/${ad}.mp3`)).arrayBuffer());
     const m = new Cevrimdisi(b.duration + 0.35, 300);
     m.ornek(b);

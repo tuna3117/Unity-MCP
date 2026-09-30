@@ -1,4 +1,5 @@
 using System;
+using Project.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -58,10 +59,10 @@ namespace Project.ColorHunt
             _puff.GetComponent<ParticleSystemRenderer>().mesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
             SizeOverLife(_puff, a => 0.4f + 1.5f * a);
             AlphaOverLife(_puff, a => 0.9f * (1f - a));
-            _shards = System("Shards", Lit(0.8f, 0f, ShardHeadroom), ParticleSystemRenderMode.Mesh, 160, 7);
+            _shards = System("Shards", LitMaterial(S.ParticleLitTemplate, 0.8f, 0f, ShardHeadroom), ParticleSystemRenderMode.Mesh, 160, 7);
             _shards.GetComponent<ParticleSystemRenderer>().mesh = PotaFx.Icosphere(0.62f);
             SizeOverLife(_shards, PotaFx.ShardScale);
-            _confetti = System("Confetti", Lit(0.55f, 0.05f, 1f), ParticleSystemRenderMode.Mesh, 240, 7);
+            _confetti = System("Confetti", LitMaterial(S.ParticleLitTemplate, 0.55f, 0.05f, 1f), ParticleSystemRenderMode.Mesh, 240, 7);
             _confetti.GetComponent<ParticleSystemRenderer>().mesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             var lightGo = new GameObject("BurstLight");
             lightGo.transform.SetParent(transform, false);
@@ -281,21 +282,21 @@ namespace Project.ColorHunt
             return ps;
         }
 
-        private static Material Additive(Texture tex, float intensity)
+        private Material Additive(Texture tex, float intensity)
         {
-            var m = new Material(Shader.Find("Project/PotaAdditive"));
+            var m = RuntimeMaterial.From(S.AdditiveTemplate, "Project/PotaAdditive");
             m.SetTexture("_BaseMap", tex != null ? tex : Texture2D.whiteTexture);
             m.SetFloat("_Intensity", intensity);
             return m;
         }
 
         /// <summary>URP Particles/Lit (Pota MeshStandard: shards roughness 0.2, confetti 0.45 / metalness 0.05), colour ×<paramref name="scale"/>.</summary>
-        private static Material Lit(float smoothness, float metallic, float scale)
+        public static Material LitMaterial(Material template, float smoothness, float metallic, float scale)
         {
-            var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Lit"));
+            var m = RuntimeMaterial.From(template, "Universal Render Pipeline/Particles/Lit");
             m.SetFloat("_Smoothness", smoothness);
             m.SetFloat("_Metallic", metallic);
-            m.SetVector("_BaseColor", new Vector4(scale, scale, scale, 1f));      // a vector: no gamma conversion of the >1 factor
+            m.SetColor("_BaseColor", new Color(scale, scale, scale, 1f).gamma);   // a Color property reaches the shader as .linear (even via SetVector)
             return m;
         }
 

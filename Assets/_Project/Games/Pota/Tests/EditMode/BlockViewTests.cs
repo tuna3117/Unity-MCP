@@ -26,7 +26,7 @@ namespace Project.Tests
         private BlockView Make(Block b)
         {
             var v = _go.AddComponent<BlockView>();
-            v.Init(_s, PillowBlockMesh.Create(), BlockView.BodyMaterial(), BlockView.LabelMaterial(null));
+            v.Init(_s, PillowBlockMesh.Create(), BlockView.BodyMaterial(), BlockView.LabelMaterial(null, null));
             v.SetBlock(b, 0);
             v.Tick(0f);
             return v;

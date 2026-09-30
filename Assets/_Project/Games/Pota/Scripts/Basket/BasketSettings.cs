@@ -59,6 +59,12 @@ namespace Project.Basket
         public Material WallVisualMaterial;
         public Material NetVisualMaterial;
 
+        [Header("Material templates (ai_potalook_import): a player build keeps only the shaders an asset references")]
+        [Tooltip("URP Unlit, opaque: the sky plate behind the city.")]
+        public Material SkyTemplate;
+        [Tooltip("Project/TextDepth: hoop badge numbers hidden behind the backboard.")]
+        public Material TextDepthTemplate;
+
         [Header("Art (assigned by the scene tool)")]
         public Texture2D FacadeTexture;     // kule-cam.jpg, tiled 3.2 x 5.7 m
         public Texture2D WingTexture;       // kule-renkli.jpg

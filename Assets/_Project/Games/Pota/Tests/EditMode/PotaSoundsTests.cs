@@ -28,5 +28,14 @@ namespace Project.Tests
             Assert.AreEqual(10, PotaSounds.ComboIndex(15), "MERDIVEN has 11 steps");
             Assert.AreEqual(0, PotaSounds.ComboIndex(-1));
         }
+
+
+        [Test]
+        public void Select_IsPotasDokunSample_WithPitchJitter()
+        {
+            Assert.IsTrue(PotaSounds.IsSample("dokun"), "ses.ts ORNEK dokun → dokun.mp3 (played at 0.97–1.03)");
+            foreach (var id in new[] { "kuleAt", "kirildi", "dustu", "dondur", "eksi", "kazandi", "kaybetti" }) Assert.IsTrue(PotaSounds.IsSample(id), id);
+            foreach (var id in new[] { "kombo", "carpma" }) Assert.IsFalse(PotaSounds.IsSample(id), id + " is synthesised in ses.ts");
+        }
     }
 }

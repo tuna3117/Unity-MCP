@@ -181,7 +181,7 @@ namespace Project.Basket
             if (font != null)
             {
                 tm.font = font;
-                textGo.GetComponent<MeshRenderer>().sharedMaterial = DepthTextMaterial.Create(font);
+                textGo.GetComponent<MeshRenderer>().sharedMaterial = DepthTextMaterial.Create(font, _s.TextDepthTemplate);
             }
         }
 

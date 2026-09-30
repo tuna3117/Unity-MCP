@@ -62,6 +62,8 @@ namespace Project.Editor.AITools
                 imp.SaveAndReimport();
             }
             report.Add($"layer {RoomLayer} = {EnsureLayer(RoomLayer)}");
+            report.Add(KhronosTonemap.Apply());                          // three's NeutralToneMapping for the puzzle profile's "Neutral"
+            report.AddRange(PotaMaterialTemplates.Ensure());
 
             var room = PotaRoomBaker.Bake(report);
             var s = ColorHuntSceneTool.EnsureSettings(report);

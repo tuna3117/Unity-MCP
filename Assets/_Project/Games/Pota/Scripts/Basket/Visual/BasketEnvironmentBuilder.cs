@@ -1,3 +1,4 @@
+using Project.Rendering;
 using UnityEngine;
 
 namespace Project.Basket.Visual
@@ -83,7 +84,7 @@ namespace Project.Basket.Visual
                 sky.transform.position = new Vector3(0f, 44f, -60f);
                 sky.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
                 sky.transform.localScale = new Vector3(45f * 2.2f, 80f, 1f);
-                var skyMat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                var skyMat = RuntimeMaterial.From(s.SkyTemplate, "Universal Render Pipeline/Unlit");
                 skyMat.SetTexture("_BaseMap", s.SkyTexture);
                 sky.GetComponent<MeshRenderer>().sharedMaterial = skyMat;
             }

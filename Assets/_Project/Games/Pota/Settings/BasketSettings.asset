@@ -51,6 +51,8 @@ MonoBehaviour:
   BackboardVisualMaterial: {fileID: 0}
   WallVisualMaterial: {fileID: 0}
   NetVisualMaterial: {fileID: 0}
+  SkyTemplate: {fileID: 2100000, guid: 6e2d4d45e5ce64889b8f89eb155a7bc3, type: 2}
+  TextDepthTemplate: {fileID: 2100000, guid: 6801e4d7863584bd0b5aa90c4933526c, type: 2}
   FacadeTexture: {fileID: 2800000, guid: 3cdabfb32b8e944839dcf57d1ed01af5, type: 3}
   WingTexture: {fileID: 2800000, guid: fdac50450b8b749a8b7ff58e4475a09e, type: 3}
   CityTexture: {fileID: 2800000, guid: 06ea1e3bfe6824fe686fe43d9d44bd72, type: 3}
