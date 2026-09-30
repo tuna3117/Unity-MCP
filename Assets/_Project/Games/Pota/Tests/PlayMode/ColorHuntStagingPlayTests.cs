@@ -29,7 +29,7 @@ namespace Project.Tests
             ready(game, Object.FindAnyObjectByType<ColorHuntHud>());
         }
 
-        private static Text AmmoText(ColorHuntHud hud) => hud.transform.Find("AmmoPanel/Ammo").GetComponent<Text>();
+        private static Text AmmoText(ColorHuntHud hud) => hud.transform.Find("AmmoPanel/AmmoWindow/Ammo").GetComponent<Text>();
 
         [UnityTest]
         public IEnumerator Prepare_StagesALockedBoard_ThenBeginPlaysIt()

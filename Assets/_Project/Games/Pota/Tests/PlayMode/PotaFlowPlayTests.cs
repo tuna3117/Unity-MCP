@@ -61,7 +61,7 @@ namespace Project.Tests
             Assert.AreEqual(ColorHuntGame.State.Playing, d.Game.Current);
             Assert.AreEqual(158, d.Game.Board.Ammo);
             Assert.AreEqual(158, d.Game.DisplayedAmmo);
-            Assert.AreEqual("158", d.Hud.transform.Find("AmmoPanel/Ammo").GetComponent<Text>().text);
+            Assert.AreEqual("158", d.Hud.transform.Find("AmmoPanel/AmmoWindow/Ammo").GetComponent<Text>().text);
             Assert.IsTrue(d.BoardInput.enabled, "board input on");
             Assert.IsFalse(d.Shot.InputEnabled, "basket input off");
             Assert.IsFalse(d.RoundCam.enabled);
