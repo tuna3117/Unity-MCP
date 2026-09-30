@@ -76,6 +76,10 @@ namespace Project.ColorHunt
         public float InsufficientShake = 0.3f;
         [Tooltip("renkAviFaz.ts RENK_AVI_HIS.esyaUcus: sticker flight to the HUD, real time.")]
         public float ItemFlyTime = 0.55f;
+        [Tooltip("RENK_AVI_HIS.balon: the tapped block swells to 1.18 in 0.11 s and bursts at 55 %; chain blocks to 1.24 in ChainTime.")]
+        public float TapSwellTime = 0.11f;
+        public float TapSwell = 1.18f;
+        public float ChainSwell = 1.24f;
 
         [Header("Juice (renkAviFaz.ts HIS)")]
         [Tooltip("hitStop: game time ×0.12 for 0.05 s at the tapped block's swell peak.")]

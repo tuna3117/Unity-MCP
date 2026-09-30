@@ -26,7 +26,7 @@ namespace Project.ColorHunt
         public State Current { get; private set; } = State.Idle;
         public Board Board { get; private set; }
         public Transform BoardRoot { get; private set; }
-        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy);
+        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose;
         public int DisplayedAmmo { get; private set; }
         public bool Won { get; private set; }
         public int Rotations { get; private set; }
@@ -55,7 +55,10 @@ namespace Project.ColorHunt
         private readonly Dictionary<int, BlockView> _views = new Dictionary<int, BlockView>();
         private readonly Stack<BlockView> _pool = new Stack<BlockView>();
         private readonly Dictionary<BlockView, DropState> _drops = new Dictionary<BlockView, DropState>();
-        private readonly Dictionary<BlockView, float> _explosions = new Dictionary<BlockView, float>();
+        private readonly SwellSet<BlockView> _swells = new SwellSet<BlockView>();
+        private readonly List<BlockView> _loose = new List<BlockView>();      // out of their cell, still swelling (Pota sonenler)
+        private readonly List<BlockView> _finished = new List<BlockView>();
+        private float _disperse = -1f;
         private class DropState { public float StartY, Distance, T; public bool Landed; }
 
         private Mesh _blockMesh;
@@ -65,7 +68,6 @@ namespace Project.ColorHunt
         private bool _targetsPending;
         private Transform _blocksRoot;
         private bool _checkNeeded;
-        private float _accel;
         private int _selected = -1;
         private GameObject _selectionRing;
         private float _resultTimer = -1f;
@@ -85,7 +87,6 @@ namespace Project.ColorHunt
             _blockMat = BlockView.BodyMaterial();
             _labelMat = BlockView.LabelMaterial(S.LabelAtlas);
 
-            _accel = 2f / (S.DropTimePerCell * S.DropTimePerCell);
 
             _selectionRing = RimMeshBuilder.MeshObject("SelectionRing", BoardRoot, RimMeshBuilder.Torus(0.46f, 0.055f, 26, 8), BlockView.RingMaterial());
             _selectionRing.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
@@ -244,6 +245,7 @@ namespace Project.ColorHunt
         private void TickViews(float dt)
         {
             foreach (var v in _views.Values) v.Tick(dt);
+            foreach (var v in _loose) v.Tick(dt);
         }
 
         private string _endReason = "";
@@ -262,11 +264,23 @@ namespace Project.ColorHunt
             _endReason = reason;
             Select(-1);
             Juice?.Result(won);
-            if (won && Fx != null)
-            {
-                Fx.Confetti(Board.Size, S.ConfettiCount);
-            }
+            if (won) Disperse();
             _resultTimer = won ? S.WinWait : S.LoseWait;
+        }
+
+        /// <summary>
+        /// renkAviFaz.ts tahtayiDagit: every block gives six hot points and swells to 1.24 over 0.5 s; the views go after 0.52 s. The paper
+        /// confetti comes too (Pota drops it at the dunk, which is a later step; the spec keeps it at the win).
+        /// </summary>
+        private void Disperse()
+        {
+            foreach (var v in _views.Values)
+            {
+                Fx?.Particles(v.Pos, S.PaletteColor(v.Block.Color), 6, 3.5f, 0.1f);
+                _swells.Start(v, 0.5f, S.ChainSwell, false, null);
+            }
+            Fx?.Confetti(Board.Size, S.ConfettiCount);
+            _disperse = 0.52f;
         }
 
         // ---------- jobs ----------
@@ -284,10 +298,15 @@ namespace Project.ColorHunt
                 case RotateJob r:
                     r.T += dt;
                     float u = Mathf.Min(1f, r.T / S.RotateTime);
-                    BoardRoot.localRotation = Quaternion.Euler(0f, 0f, r.Angle * (1f - Mathf.Pow(1f - u, 3f)));
+                    float angle = r.Angle * PotaLook.Smoothstep(u);                         // RENK_AVI_HIS.donus, smoothstep
+                    BoardRoot.localRotation = Quaternion.Euler(0f, 0f, angle);
+                    BoardRoot.localScale = Vector3.one * (PotaLook.GridScale(Board.Size) * PotaLook.RotationFit(Board.Size, angle * Mathf.Deg2Rad));
+                    float labels = PotaLook.LabelCounterAngle(angle, u);                     // ride the board, stand up after 70 %
+                    foreach (var v in _views.Values) v.LabelAngle = labels;
                     if (u >= 1f)
                     {
                         BoardRoot.localRotation = Quaternion.identity;
+                        BoardRoot.localScale = Vector3.one * PotaLook.GridScale(Board.Size);
                         _jobs.RemoveAt(0);
                         var pending = new List<Job>(_jobs);
                         ClearViews();
@@ -343,24 +362,31 @@ namespace Project.ColorHunt
             Juice?.SalvoStart();
         }
 
+        /// <summary>
+        /// renkAviFaz.ts salvoBitir: the tapped block leaves its cell and swells to 1.18 in 0.11 s; at the peak — shake, ×0.12 dip,
+        /// kirildi, puff 1.15, 14 hot points, the burst, the sticker. Its four neighbours flinch now. The steps queue behind it.
+        /// </summary>
         private void FinishSalvo(SalvoJob s)
         {
             Salvo?.Clear();
             ShowRing(-1);
             var view = ViewAt(s.Cell);
-            var pos = CellWorld(s.Cell);
             if (view != null)
             {
-                var tone = S.PaletteColor(view.Block.Color);
-                Fx?.Burst(view.Pos, tone, 0);
-                Fx?.Puff(view.Pos, 1.15f);
-                Fx?.Particles(view.Pos, tone, S.PointsBase + 4, 2.6f, 0.12f);
-                CountItem(view, pos);
-                RippleNeighbours(s.Cell);
-                Recycle(view);
                 _views.Remove(s.Cell);
+                _loose.Add(view);
+                var tone = S.PaletteColor(view.Block.Color);
+                _swells.Start(view, S.TapSwellTime, S.TapSwell, true, () =>
+                {
+                    Juice?.Break();
+                    Fx?.Puff(view.Pos, 1.15f);
+                    Fx?.Particles(view.Pos, tone, S.PointsBase + 4, 2.6f, 0.12f);
+                    Fx?.Burst(view.Pos, tone, 0);
+                    CountItem(view, BoardRoot.TransformPoint(new Vector3(view.Pos.x, view.Pos.y, -PotaLook.FrontZ)));
+                });
+                RippleNeighbours(s.Cell);
             }
-            Juice?.Break();
+            else Juice?.Break();
             DisplayedAmmo = Board.Ammo;
             Raise(AmmoChanged);
             _jobs.RemoveAt(0);
@@ -447,27 +473,42 @@ namespace Project.ColorHunt
             }
         }
 
+        /// <summary>
+        /// renkAviFaz.ts adimBaslat: depth 0 drops at once; deeper steps swell every matched block to 1.24 over ChainTime. The first peak
+        /// carries the step's feedback (shake, ×0.06 dip, kombo, "×d"); each block's peak its own puff, points, burst and sticker.
+        /// </summary>
         private void StartStep(StepJob st)
         {
             st.Started = true;
             if (st.Depth == 0 || st.Step.Exploded.Count == 0) { StartDrops(st); return; }
+            int d = st.Depth;
+            bool peaked = false;
             BlockView first = null;
+            void StepPeak()
+            {
+                if (peaked) return;
+                peaked = true;
+                var at = first != null ? first.Pos : Vector2.zero;
+                Juice?.Chain(d, BoardRoot.TransformPoint(new Vector3(at.x, at.y + 0.5f, -PotaLook.LabelZ)));
+            }
+            int points = PotaFx.PointCount(S, d);
             foreach (int i in st.Step.Exploded)
             {
                 var v = ViewAt(i);
                 if (v == null) continue;
-                _explosions[v] = 0f;
-                v.Exploding = true;
-                var p = CellWorld(i);
                 if (first == null) first = v;
+                v.Exploding = true;
                 var tone = S.PaletteColor(v.Block.Color);
-                Fx?.Burst(v.Pos, tone, st.Depth);
-                Fx?.Puff(v.Pos, 1f + st.Depth * 0.12f);
-                Fx?.Particles(v.Pos, tone, PotaFx.PointCount(S, st.Depth), 2.2f + st.Depth * 0.3f, 0.1f);
-                CountItem(v, p);
+                _swells.Start(v, S.ChainTime, S.ChainSwell, false, () =>
+                {
+                    StepPeak();
+                    Fx?.Puff(v.Pos, 1f + d * 0.12f);
+                    Fx?.Particles(v.Pos, tone, points, 2.2f + d * 0.3f, 0.1f);
+                    Fx?.Burst(v.Pos, tone, d);
+                    CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
+                });
             }
-            var at = first != null ? first.Pos : Vector2.zero;
-            Juice?.Chain(st.Depth, BoardRoot.TransformPoint(new Vector3(at.x, at.y + 0.5f, -PotaLook.LabelZ)));
+            if (first == null) StepPeak();
         }
 
         private void StartDrops(StepJob st)
@@ -476,7 +517,7 @@ namespace Project.ColorHunt
             {
                 var v = ViewAt(i);
                 if (v == null) continue;
-                _explosions.Remove(v);
+                _swells.End(v);                 // gorselSil: a burst that has not peaked yet runs now
                 Recycle(v);
                 _views.Remove(i);
             }
@@ -508,25 +549,24 @@ namespace Project.ColorHunt
             foreach (var kv in moved) _views[kv.Key] = kv.Value;
             st.Dropping = true;
             st.T = 0f;
-            st.DropTime = longest > 0f ? S.DropTimePerCell * Mathf.Sqrt(longest) + 0.06f : 0f;
+            st.DropTime = PotaLook.StepDropTime(longest, S.DropTimePerCell);
         }
 
         private void AdvanceViews(float dt)
         {
-            var explodingKeys = new List<BlockView>(_explosions.Keys);
-            foreach (var v in explodingKeys)
+            _finished.Clear();
+            _swells.Advance(dt, (v, scale, o) => { v.Swell = scale; v.Flash = Mathf.Max(v.Flash, o * o); }, _finished);
+            foreach (var v in _finished) { _loose.Remove(v); Recycle(v); }
+            if (_disperse >= 0f)
             {
-                float t = _explosions[v] + dt;
-                _explosions[v] = t;
-                float u = Mathf.Min(1f, t / S.ChainTime);
-                v.Scale = Mathf.Max(0.01f, 1f + 0.28f * u - 1.28f * u * u);
-                v.Flash = Mathf.Max(v.Flash, u);
+                _disperse -= dt;
+                if (_disperse < 0f) { foreach (var v in _views.Values) Recycle(v); _views.Clear(); _swells.Clear(); }
             }
             foreach (var kv in _drops)
             {
                 var v = kv.Key; var d = kv.Value;
                 d.T += dt;
-                float travelled = Mathf.Min(d.Distance, 0.5f * _accel * d.T * d.T);
+                float travelled = Mathf.Min(d.Distance, PotaLook.DropTravel(d.T, S.DropTimePerCell));
                 v.Pos = new Vector2(v.Home.x, d.StartY - travelled);
                 if (!d.Landed && travelled >= d.Distance)
                 {
@@ -586,7 +626,10 @@ namespace Project.ColorHunt
             foreach (var v in _views.Values) Recycle(v);
             _views.Clear();
             _drops.Clear();
-            _explosions.Clear();
+            _swells.Clear();
+            foreach (var v in _loose) Recycle(v);
+            _loose.Clear();
+            _disperse = -1f;
             _jobs.Clear();
             Salvo?.Clear();
             Select(-1);

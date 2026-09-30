@@ -51,5 +51,50 @@ namespace Project.Tests
             yield return WaitUntil(() => !game.Salvo.Busy, 2f);
             Assert.IsFalse(game.Salvo.Busy, "all balls land within the 0.5 s salvo");
         }
+
+        [UnityTest]
+        public IEnumerator TappedBlock_SwellsTo1Point18_AndBurstsAtItsPeak()
+        {
+            ColorHuntGame game = null;
+            yield return LoadPlaying(g => game = g);
+            int cell = Affordable(game, 1);
+            var view = game.ViewAt(cell);
+            var flash = game.Fx.transform.Find("FlashWhite").GetComponent<ParticleSystem>();
+            game.Tap(cell);
+            yield return WaitUntil(() => view.Swell >= 0f, 3f);
+            float start = Time.time, maxScale = 0f, burstAt = -1f;
+            while (view.Swell >= 0f && view.gameObject.activeSelf && Time.time - start < 1f)
+            {
+                maxScale = Mathf.Max(maxScale, view.transform.localScale.x);
+                if (burstAt < 0f && flash.particleCount > 0) burstAt = Time.time - start;
+                yield return null;
+            }
+            Assert.That(maxScale, Is.InRange(1.1f, 1.181f), "balon.dokunusSisme 1.18");
+            Assert.That(burstAt, Is.InRange(0.03f, 0.1f), "the burst waits for the peak (0.0605 s of game time; frame granularity)");
+        }
+
+        [UnityTest]
+        public IEnumerator Rotation_ShrinksToFit_LabelsRideThenStandUp()
+        {
+            ColorHuntGame game = null;
+            yield return LoadPlaying(g => game = g);
+            var v = game.ViewAt(0);
+            Assert.IsTrue(game.Rotate(Rotation.Clockwise));
+            float minScale = 10f, t0 = Time.time;
+            bool rodeEarly = true, stoodLate = false;
+            while (game.Busy && Time.time - t0 < 2f)
+            {
+                float u = (Time.time - t0) / game.S.RotateTime;
+                minScale = Mathf.Min(minScale, game.BoardRoot.localScale.x);
+                if (u < 0.65f && game.ViewAt(0) == v) rodeEarly &= Mathf.Abs(v.LabelAngle) < 1e-3f;
+                if (u > 0.85f && u < 1f && game.ViewAt(0) == v) stoodLate |= Mathf.Abs(v.LabelAngle) > 30f;
+                yield return null;
+            }
+            Assert.Less(minScale, 1.2f * 0.85f, "donusSigdirma ≈ 0.8 at 45°");
+            Assert.IsTrue(rodeEarly, "labels ride the board for the first 70 %");
+            Assert.IsTrue(stoodLate, "then turn upright");
+            Assert.AreEqual(1.2f, game.BoardRoot.localScale.x, 1e-4f);
+            Assert.AreEqual(0f, game.ViewAt(0).LabelAngle, 1e-4f, "new views after the turn");
+        }
     }
 }
