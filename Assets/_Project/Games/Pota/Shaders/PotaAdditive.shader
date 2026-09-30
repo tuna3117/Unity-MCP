@@ -6,6 +6,7 @@ Shader "Project/PotaAdditive"
     {
         _BaseMap ("Sprite", 2D) = "white" {}
         _Intensity ("Intensity", Float) = 1
+        [Toggle] _SwapUV ("Swap UV (Pota's trail texture runs along v)", Float) = 0
     }
     SubShader
     {
@@ -27,6 +28,7 @@ Shader "Project/PotaAdditive"
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseMap_ST;
                 float _Intensity;
+                float _SwapUV;
             CBUFFER_END
 
             struct Attributes { float4 positionOS : POSITION; half4 color : COLOR; float2 uv : TEXCOORD0; };
@@ -43,7 +45,8 @@ Shader "Project/PotaAdditive"
 
             half4 frag(Varyings i) : SV_Target
             {
-                half4 t = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv);
+                float2 uv = lerp(i.uv, i.uv.yx, _SwapUV);
+                half4 t = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv);
                 return half4(t.rgb * i.color.rgb * _Intensity, t.a * i.color.a);
             }
             ENDHLSL

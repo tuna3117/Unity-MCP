@@ -3,64 +3,68 @@ using UnityEngine;
 
 namespace Project.ColorHunt
 {
-    /// <summary>Feel layer: camera shake, hit-stop, popups and synth sounds, reusing the basket round's helpers.</summary>
+    /// <summary>
+    /// Feel of Pota's puzzle (renkAviFaz.ts HIS): additive shake (sars), game-time dips (zamanDusur), Pota's sounds, the "×d" and
+    /// "Yetmiyor" popups. The game calls these at Pota's moments (the swell peaks, ball arrivals, landings).
+    /// </summary>
     public class ColorHuntJuice : MonoBehaviour
     {
         public ColorHuntSettings S;
         public CameraShake Shake;
         public TimeScaleController TimeCtl;
         public PopupText Popups;
-        public SynthSfx Sfx;
+        public PotaSounds Sounds;
 
-        public void BallHit()
+        /// <summary>secimiSur: a block comes under the finger.</summary>
+        public void Select() => Sounds?.Select();
+
+        /// <summary>salvoBaslat: kuleAt.</summary>
+        public void SalvoStart() => Sounds?.Salvo();
+
+        /// <summary>topVardi: carpma (guc 0.8).</summary>
+        public void BallHit() => Sounds?.Hit();
+
+        /// <summary>salvoBitir kirilma (at the tapped block's swell peak): shake 0.08, ×0.12 for 0.05 s, kirildi.</summary>
+        public void Break()
         {
-            Shake?.Kick(S.ShakeBallHit);
-            Sfx?.Play("rim", Random.Range(1.3f, 1.7f), 0.35f);
+            Shake?.Add(S.ShakeTap);
+            TimeCtl?.Dip(S.HitStopTapScale, S.HitStopTap);
+            Sounds?.Break();
         }
 
-        public void Tap(Vector3 pos, int cost)
+        /// <summary>adimBaslat adimTepe (a chain step's first peak): shake, ×0.06 dip, kombo(d), "×d" from depth 2.</summary>
+        public void Chain(int depth, Vector3 at)
         {
-            Shake?.Kick(S.ShakeTap);
-            TimeCtl?.HitStop(S.HitStopTap);
-            Sfx?.Play("shot", 1.1f, 0.9f);
-            Popups?.Show(pos + Vector3.up * 0.3f, $"-{cost}", S.GoldColor, 52);
+            Shake?.Add(S.ShakeChain + (depth - 1) * S.ShakeChainPerDepth);
+            TimeCtl?.Dip(S.HitStopChainScale, Mathf.Min(S.HitStopChainMax, S.HitStopChainBase + depth * S.HitStopChainPerDepth));
+            Sounds?.Combo(depth);
+            // index.html .patlama.kombo: gold 44 px; ≥ 4: .kombo.buyuk 62 px #ff7a3d.
+            if (depth >= 2) Popups?.Show(at, $"×{depth}", depth >= 4 ? PotaLook.Hex(0xff7a3d) : PotaLook.HudGold, depth >= 4 ? 96 : 72, false, 0.9f);
         }
 
-        public void Chain(int depth, Vector3 pos)
+        /// <summary>gorselleriIlerlet: dustu from a fall of one cell or more, louder with the distance.</summary>
+        public void Landed(float cells)
         {
-            Shake?.Kick(S.ShakeChain + (depth - 1) * S.ShakeChainPerDepth);
-            TimeCtl?.HitStop(Mathf.Min(S.HitStopChainMax, S.HitStopChainBase + depth * S.HitStopChainPerDepth));
-            Sfx?.Play("multiply", 1f + depth * 0.18f, 0.9f);
-            Sfx?.Play("add", 1f + depth * 0.1f, 0.5f);
-            if (depth >= 2) Popups?.Show(pos + Vector3.up * 0.5f, $"x{depth}", depth >= 4 ? S.RedColor : S.GoldColor, depth >= 4 ? 96 : 72, false, 1f);
-        }
-
-        public void Landed(float distance)
-        {
-            Sfx?.Play("land", Random.Range(0.9f, 1.1f), Mathf.Min(1f, 0.3f + distance * 0.2f));
+            if (cells >= 1f) Sounds?.Drop(Mathf.Min(1f, 0.3f + cells * 0.2f));
         }
 
         public void Rotate()
         {
-            Shake?.Kick(0.05f);
-            Sfx?.Play("swish", 1.2f, 0.6f);
+            Shake?.Add(S.ShakeRotate);
+            Sounds?.Rotate();
         }
 
-        public void Insufficient(Vector3 pos, int cost)
+        /// <summary>dokunmaReddi: eksi and "Yetmiyor · n top" (red, rising).</summary>
+        public void Insufficient(Vector3 at, int cost)
         {
-            Sfx?.Play("miss", 1.4f, 0.6f);
-            Popups?.Show(pos + Vector3.up * 0.55f, $"{cost} top gerek", S.RedColor, 44);
-        }
-
-        public void Select()
-        {
-            Sfx?.Play("rim", 2.2f, 0.12f);
+            Sounds?.Minus();
+            Popups?.Show(at, $"Yetmiyor · {cost} top", PotaLook.HudRed, 44);
         }
 
         public void Result(bool won)
         {
-            if (won) { Shake?.Kick(S.ShakeWin); Sfx?.Play("add", 1.2f, 1f); Sfx?.Play("swish", 1f, 1f); }
-            else Sfx?.Play("miss", 0.8f, 1f);
+            if (won) { Shake?.Add(S.ShakeWin); Sounds?.Win(); }
+            else Sounds?.Lose();
         }
     }
 }

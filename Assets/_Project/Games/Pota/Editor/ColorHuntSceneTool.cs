@@ -125,7 +125,7 @@ namespace Project.Editor.AITools
             salvoGo.transform.SetParent(gameGo.transform, false);
             var salvo = salvoGo.AddComponent<BallSalvo>();
             salvo.S = settings;
-            salvo.BallMaterial = settings.BallMaterial;
+            salvo.BallMaterial = settings.SalvoBall;
             if (juice == null)
             {
                 var juiceGo = new GameObject("Juice");
@@ -133,7 +133,12 @@ namespace Project.Editor.AITools
                 juice = JuiceSet.Create(juiceGo, cam, shake, settings.Font);
             }
             var chJuice = juice.Host.AddComponent<ColorHuntJuice>();
-            chJuice.S = settings; chJuice.Shake = juice.Shake; chJuice.TimeCtl = juice.TimeCtl; chJuice.Popups = juice.Popups; chJuice.Sfx = juice.Sfx;
+            chJuice.S = settings; chJuice.Shake = juice.Shake; chJuice.TimeCtl = juice.TimeCtl; chJuice.Popups = juice.Popups;
+            var soundsGo = new GameObject("PotaSounds");
+            soundsGo.transform.SetParent(juice.Host.transform, false);
+            var sounds = soundsGo.AddComponent<PotaSounds>();
+            sounds.S = settings;
+            chJuice.Sounds = sounds;
             game.Fx = fx; game.Salvo = salvo; game.Juice = chJuice;
             var input = gameGo.AddComponent<ColorHuntInput>();
             input.Game = game; input.Cam = cam;

@@ -124,5 +124,19 @@ namespace Project.Tests
             Assert.AreEqual(40f, k.Lift, 0.3f, "40 px up");
             Assert.AreEqual(1.35f, k.Scale, 3e-3f);
         }
+
+        [Test]
+        public void Salvo_BowsTowardTheCamera_AndSwells()
+        {
+            var a = new Vector2(0f, -3.95f); var b = new Vector2(1f, 2f);
+            Assert.AreEqual(new Vector3(0f, -3.95f, 0f), PotaLook.SalvoPoint(a, b, 0f));
+            Assert.Less(Vector3.Distance(new Vector3(1f, 2f, 0f), PotaLook.SalvoPoint(a, b, 1f)), 1e-5f);
+            var mid = PotaLook.SalvoPoint(a, b, 0.5f);
+            Assert.AreEqual(0.9f, mid.z, 1e-5f, "sin(π·0.5)·0.9 toward the camera");
+            Assert.AreEqual(0.7f, PotaLook.SalvoScale(0f), 1e-6f);
+            Assert.AreEqual(1.2f, PotaLook.SalvoScale(0.5f / 1.15f), 1e-5f);
+            Assert.AreEqual(0.7f, PotaLook.SalvoScale(1f), 1e-5f);
+            Assert.AreEqual(new Vector2(0f, -3.5f - 0.45f), PotaLook.SalvoSource(7), "topKaynagi: altKenar − TOP_PAYI·0.75");
+        }
     }
 }

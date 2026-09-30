@@ -1,44 +1,60 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Project.ColorHunt
 {
     /// <summary>
-    /// The ball rain of a tap: pooled basketballs leave the launcher strip one after another and fly to the
-    /// block on an arched smoothstep path with a trail. Arrival is reported so the block can flinch.
+    /// Pota's salvo (renkAviFaz.ts salvoBaslat / toplariIlerlet / topVardi, yapbozSahne.ts cizToplar, patlamaEfekt.ts cizIzler): up to 24
+    /// skinned balls (r 0.19) leave the strip under the frame over the first 55 % of the salvo; each flies 42 % of it on a smoothstep
+    /// path bowing sin(πo)·0.9 toward the camera, swells 0.7 → 1.2 → 0.7, spins 14 rad/s on three axes and drags a soft #ffa040
+    /// ribbon over its last 10 positions (one every 0.14 cells). Positions are board cells: balls and ribbons are children of the board.
     /// </summary>
     public class BallSalvo : MonoBehaviour
     {
         public ColorHuntSettings S;
         public Material BallMaterial;
+        [Tooltip("The board the balls fly over (ColorHuntGame sets its BoardRoot).")]
+        public Transform Board;
 
         private class Ball
         {
-            public Transform T; public TrailRenderer Trail;
-            public Vector3 From, To; public float Delay, Flight, T0; public bool Flying, Done;
+            public Transform T;
+            public LineRenderer Trail;
+            public Vector2 From, To;
+            public float Delay, Flight, Clock, Spin, Scale;
+            public readonly List<Vector3> Points = new List<Vector3>(PotaLook.TrailPoints);
         }
 
         private readonly List<Ball> _active = new List<Ball>();
         private readonly Stack<Ball> _pool = new Stack<Ball>();
-        private System.Action<Vector3> _onArrive;
-        private float _clock;
+        private readonly System.Random _rng = new System.Random();
+        private Action<Vector2> _onArrive;
+        private Material _trailMat;
 
         public bool Busy => _active.Count > 0;
 
-        public void Fire(Vector3 source, Vector3 target, int count, float duration, System.Action<Vector3> onArrive)
+        public void Fire(Vector2 source, Vector2 target, int cost, float duration, Action<Vector2> onArrive)
         {
             _onArrive = onArrive;
-            int n = Mathf.Max(1, Mathf.Min(S.SalvoMaxBalls, count));
+            int n = Mathf.Max(1, Mathf.Min(S.SalvoMaxBalls, cost));
             float launch = duration * S.SalvoLaunchFraction, flight = duration * S.SalvoFlightFraction;
             for (int i = 0; i < n; i++)
             {
                 float o = n == 1 ? 0f : (float)i / (n - 1);
                 var b = _pool.Count > 0 ? _pool.Pop() : Create();
-                b.From = source + new Vector3((Random.value - 0.5f) * S.SalvoSpread, 0f, -0.3f);
-                b.To = target + new Vector3((Random.value - 0.5f) * S.SalvoScatter, (Random.value - 0.5f) * S.SalvoScatter, -PotaLook.FrontZ - 0.18f);
-                b.Delay = o * launch; b.Flight = flight; b.T0 = _clock; b.Flying = false; b.Done = false;
-                b.T.position = b.From;
+                b.From = new Vector2(source.x + (R() - 0.5f) * S.SalvoSpread, source.y);
+                b.To = new Vector2(target.x + (R() - 0.5f) * S.SalvoScatter, target.y + (R() - 0.5f) * S.SalvoScatter);
+                b.Delay = o * launch;
+                b.Flight = flight;
+                b.Clock = 0f;
+                b.Spin = R() * 6f;
+                b.Scale = 1f;
+                b.Points.Clear();
+                b.Trail.positionCount = 0;
                 b.T.gameObject.SetActive(false);
+                b.Trail.gameObject.SetActive(true);
                 _active.Add(b);
             }
         }
@@ -51,70 +67,101 @@ namespace Project.ColorHunt
 
         public void Tick(float dt)
         {
-            _clock += dt;
             for (int i = _active.Count - 1; i >= 0; i--)
             {
                 var b = _active[i];
-                float u = (_clock - b.T0 - b.Delay) / b.Flight;
-                if (u < 0f) continue;
-                if (u >= 1f)
+                b.Clock += dt;
+                float o = (b.Clock - b.Delay) / b.Flight;
+                if (o < 0f) continue;
+                if (o >= 1f)
                 {
                     _active.RemoveAt(i);
                     Recycle(b);
                     _onArrive?.Invoke(b.To);
                     continue;
                 }
-                if (!b.Flying)
+                if (!b.T.gameObject.activeSelf) b.T.gameObject.SetActive(true);
+                var p = PotaLook.SalvoPoint(b.From, b.To, o);
+                b.Scale = PotaLook.SalvoScale(o);
+                b.Spin += dt * PotaLook.SalvoSpin;
+                b.T.localPosition = Local(p);
+                b.T.localScale = Vector3.one * (0.38f * b.Scale);                  // sphere r 0.19 · olcek
+                b.T.localRotation = Quaternion.Euler(new Vector3(b.Spin, b.Spin * 0.6f, b.Spin * 0.3f) * Mathf.Rad2Deg);
+                if (b.Points.Count == 0 || Vector2.Distance(p, b.Points[0]) >= PotaLook.TrailSpacing)
                 {
-                    b.Flying = true;
-                    b.T.gameObject.SetActive(true);
-                    b.Trail.Clear();
+                    b.Points.Insert(0, p);
+                    if (b.Points.Count > PotaLook.TrailPoints) b.Points.RemoveAt(b.Points.Count - 1);
                 }
-                float e = u * u * (3f - 2f * u);
-                var p = Vector3.Lerp(b.From, b.To, e);
-                p.z -= Mathf.Sin(Mathf.PI * u) * 0.9f; // arc toward the viewer
-                b.T.position = p;
-                float sc = 0.7f + 0.5f * Mathf.Sin(Mathf.PI * Mathf.Min(1f, u * 1.15f));
-                b.T.localScale = Vector3.one * (0.36f * sc);
-                b.T.Rotate(0f, 0f, -720f * dt, Space.Self);
+                DrawTrail(b);
             }
         }
+
+        private static Vector3 Local(Vector3 pota) => new Vector3(pota.x, pota.y, -(PotaLook.FrontZ + 0.2f + pota.z));   // cizToplar z
+
+        /// <summary>cizIzler: width 0.34·max(0.3, scale)·(1 − age)^0.6, brightness 1.35·(1 − age)^0.8, #ffa040, izDokusu.</summary>
+        private void DrawTrail(Ball b)
+        {
+            int n = b.Points.Count;
+            if (n < 2) { b.Trail.positionCount = 0; return; }
+            b.Trail.positionCount = n;
+            for (int i = 0; i < n; i++) b.Trail.SetPosition(i, Local(b.Points[i]));
+            b.Trail.widthMultiplier = PotaLook.TrailWidth * Mathf.Max(0.3f, b.Scale) * (Board != null ? Board.lossyScale.x : 1f);
+        }
+
+        private float R() => (float)_rng.NextDouble();
 
         private void Recycle(Ball b)
         {
             b.T.gameObject.SetActive(false);
+            b.Trail.positionCount = 0;
+            b.Trail.gameObject.SetActive(false);
             _pool.Push(b);
         }
 
         private Ball Create()
         {
+            var parent = Board != null ? Board : transform;
             var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             go.name = "Ball";
             Destroy(go.GetComponent<Collider>());
-            go.transform.SetParent(transform, false);
+            go.transform.SetParent(parent, false);
             var r = go.GetComponent<MeshRenderer>();
             if (BallMaterial != null) r.sharedMaterial = BallMaterial;
-            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-            var trail = go.AddComponent<TrailRenderer>();
-            trail.time = 0.14f;
-            trail.startWidth = 0.16f;
-            trail.endWidth = 0f;
-            trail.minVertexDistance = 0.03f;
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
-            mat.SetFloat("_Surface", 1f); mat.SetFloat("_Blend", 2f); mat.SetFloat("_ZWrite", 0f);
-            mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
-            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            mat.renderQueue = 3000;
-            mat.SetColor("_BaseColor", Color.white);
-            trail.sharedMaterial = mat;
-            var g = new Gradient();
-            g.SetKeys(new[] { new GradientColorKey(new Color(1f, 0.75f, 0.35f), 0f), new GradientColorKey(new Color(1f, 0.45f, 0.1f), 1f) },
-                      new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
-            trail.colorGradient = g;
-            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.shadowCastingMode = ShadowCastingMode.Off;
             go.SetActive(false);
-            return new Ball { T = go.transform, Trail = trail };
+
+            var trailGo = new GameObject("Trail");
+            trailGo.transform.SetParent(parent, false);
+            var line = trailGo.AddComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.alignment = LineAlignment.View;
+            line.textureMode = LineTextureMode.Stretch;
+            line.numCapVertices = 0;
+            line.shadowCastingMode = ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.sortingOrder = 1;
+            line.sharedMaterial = TrailMaterial();
+            var width = new AnimationCurve();
+            var alphas = new GradientAlphaKey[8];
+            for (int i = 0; i <= 10; i++) width.AddKey(i / 10f, Mathf.Pow(1f - i / 10f, 0.6f));
+            for (int i = 0; i < 8; i++) alphas[i] = new GradientAlphaKey(Mathf.Pow(1f - i / 7f, 0.8f), i / 7f);
+            line.widthCurve = width;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(PotaLook.TrailColor, 0f), new GradientColorKey(PotaLook.TrailColor, 1f) }, alphas);
+            line.colorGradient = g;
+            line.positionCount = 0;
+            trailGo.SetActive(false);
+            return new Ball { T = go.transform, Trail = line };
+        }
+
+        private Material TrailMaterial()
+        {
+            if (_trailMat != null) return _trailMat;
+            _trailMat = new Material(Shader.Find("Project/PotaAdditive")) { name = "PotaTrail" };
+            _trailMat.SetTexture("_BaseMap", S.TrailSprite != null ? S.TrailSprite : Texture2D.whiteTexture);
+            _trailMat.SetFloat("_Intensity", PotaLook.TrailBrightness);
+            _trailMat.SetFloat("_SwapUV", 1f);
+            return _trailMat;
         }
     }
 }

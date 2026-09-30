@@ -73,6 +73,7 @@ namespace Project.Editor.AITools
             s.Backboard = Load<Texture2D>(LookFolder + "/pano-a.png");
             s.Font = Load<Font>(FontPath);
             s.Palette = (Color[])PotaLook.Tones.Clone();
+            s.RotateTime = 0.42f;   // RENK_AVI_HIS.donus (the asset still had 0.34)
             s.RoomReflection = room;
             s.SalvoBall = BallMaterial(Load<Texture2D>(LookFolder + "/ball-skin.png"));
             s.PuzzleProfile = Profile();

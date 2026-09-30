@@ -8,8 +8,6 @@ namespace Project.ColorHunt
     /// </summary>
     public static class BoardBuilder
     {
-        public const float Margin = 0.42f;
-
         public static Vector2 CellPosition(int n, int row, int col) => new Vector2(col - (n - 1) * 0.5f, (n - 1) * 0.5f - row);
     }
 }

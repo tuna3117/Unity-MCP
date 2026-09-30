@@ -194,5 +194,27 @@ namespace Project.ColorHunt
             float u = 1f - s;
             return 3f * u * u * s * a + 3f * u * s * s * b + s * s * s;
         }
+
+        // renkAviFaz.ts RENK_AVI_HIS.iz, salvo; patlamaEfekt.ts cizIzler
+        public const float SalvoArc = 0.9f;             // iz.kavis
+        public const float SalvoSpin = 14f;             // iz.donus (rad/s)
+        public const float TrailSpacing = 0.14f;        // iz.aralik (cells)
+        public const int TrailPoints = 10;              // iz.adet
+        public const float TrailWidth = 0.34f;
+        public const float TrailBrightness = 1.35f;
+        public static readonly Color TrailColor = Hex(0xffa040);
+
+        /// <summary>toplariIlerlet: smoothstep path in the board plane, bowing sin(πo)·0.9 toward the camera (z, Pota axes).</summary>
+        public static Vector3 SalvoPoint(Vector2 from, Vector2 to, float o)
+        {
+            var p = Vector2.LerpUnclamped(from, to, Smoothstep(o));
+            return new Vector3(p.x, p.y, Mathf.Sin(Mathf.PI * Mathf.Clamp01(o)) * SalvoArc);
+        }
+
+        /// <summary>toplariIlerlet: 0.7 + 0.5·sin(π·min(1, 1.15o)).</summary>
+        public static float SalvoScale(float o) => 0.7f + 0.5f * Mathf.Sin(Mathf.PI * Mathf.Min(1f, Mathf.Clamp01(o) * 1.15f));
+
+        /// <summary>yapbozSahne.ts topKaynagi: (0, altKenar − TOP_PAYI·0.75), altKenar = −n/2.</summary>
+        public static Vector2 SalvoSource(int n) => new Vector2(0f, -n * 0.5f - BallPad * 0.75f);
     }
 }

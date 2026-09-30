@@ -81,24 +81,31 @@ MonoBehaviour:
   SalvoScatter: 0.46
   DropTimePerCell: 0.25
   ChainTime: 0.15
-  RotateTime: 0.34
+  RotateTime: 0.42
   WinWait: 0.85
   LoseWait: 0.45
   InsufficientShake: 0.3
   ItemFlyTime: 0.55
+  HitStopTapScale: 0.12
   HitStopTap: 0.05
+  HitStopChainScale: 0.06
   HitStopChainBase: 0.09
   HitStopChainPerDepth: 0.02
   HitStopChainMax: 0.18
-  ShakeBallHit: 0.015
   ShakeTap: 0.08
   ShakeChain: 0.07
   ShakeChainPerDepth: 0.03
   ShakeWin: 0.14
-  NeighbourRipple: 0.16
+  ShakeRotate: 0.05
   ShardsBase: 14
   ShardsPerDepth: 5
   ShardsMax: 34
-  SparksBase: 16
   LightFlashIntensity: 6
   LightFlashTime: 0.18
+  FlashSize: 1.3
+  FlashSizePerDepth: 0.15
+  LightIntensityScale: 0.44
+  PointsBase: 10
+  PointsPerDepth: 4
+  PointsMax: 26
+  ConfettiCount: 220

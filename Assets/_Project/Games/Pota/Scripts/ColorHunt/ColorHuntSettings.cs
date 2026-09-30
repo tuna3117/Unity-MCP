@@ -68,7 +68,8 @@ namespace Project.ColorHunt
         public float SalvoScatter = 0.46f;
         public float DropTimePerCell = 0.25f;
         public float ChainTime = 0.15f;
-        public float RotateTime = 0.34f;
+        [Tooltip("renkAviFaz.ts RENK_AVI_HIS.donus: smoothstep turn.")]
+        public float RotateTime = 0.42f;
         public float WinWait = 0.85f;
         public float LoseWait = 0.45f;
         [Tooltip("renkAviFaz.ts HIS.titrem.sure: shiver of a block the ammo does not cover.")]
@@ -76,17 +77,21 @@ namespace Project.ColorHunt
         [Tooltip("renkAviFaz.ts RENK_AVI_HIS.esyaUcus: sticker flight to the HUD, real time.")]
         public float ItemFlyTime = 0.55f;
 
-        [Header("Juice")]
+        [Header("Juice (renkAviFaz.ts HIS)")]
+        [Tooltip("hitStop: game time ×0.12 for 0.05 s at the tapped block's swell peak.")]
+        public float HitStopTapScale = 0.12f;
         public float HitStopTap = 0.05f;
+        [Tooltip("zincirStop: ×0.06 for min(0.18, 0.09 + 0.02·depth) at a chain step's peak.")]
+        public float HitStopChainScale = 0.06f;
         public float HitStopChainBase = 0.09f;
         public float HitStopChainPerDepth = 0.02f;
         public float HitStopChainMax = 0.18f;
-        public float ShakeBallHit = 0.015f;
+        [Tooltip("sarsinti: additive, capped at 0.5, decays 2.2/s.")]
         public float ShakeTap = 0.08f;
         public float ShakeChain = 0.07f;
         public float ShakeChainPerDepth = 0.03f;
         public float ShakeWin = 0.14f;
-        public float NeighbourRipple = 0.16f;
+        public float ShakeRotate = 0.05f;
 
         [Header("Explosion")]
         public int ShardsBase = 14;

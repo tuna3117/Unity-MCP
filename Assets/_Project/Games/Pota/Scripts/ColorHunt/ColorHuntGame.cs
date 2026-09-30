@@ -68,7 +68,6 @@ namespace Project.ColorHunt
         private float _accel;
         private int _selected = -1;
         private GameObject _selectionRing;
-        private Vector3 _launcher;
         private float _resultTimer = -1f;
         private bool _staged;
 
@@ -86,7 +85,6 @@ namespace Project.ColorHunt
             _blockMat = BlockView.BodyMaterial();
             _labelMat = BlockView.LabelMaterial(S.LabelAtlas);
 
-            _launcher = new Vector3(0f, -(S.Size * 0.5f + BoardBuilder.Margin + 0.55f), -0.1f);
             _accel = 2f / (S.DropTimePerCell * S.DropTimePerCell);
 
             _selectionRing = RimMeshBuilder.MeshObject("SelectionRing", BoardRoot, RimMeshBuilder.Torus(0.46f, 0.055f, 26, 8), BlockView.RingMaterial());
@@ -95,6 +93,7 @@ namespace Project.ColorHunt
             _selectionRing.SetActive(false);
 
             if (Fx != null) { Fx.Build(); Fx.SetBoard(BoardRoot); }
+            if (Salvo != null) Salvo.Board = BoardRoot;
             if (AutoStart) NewRound();
         }
 
@@ -163,12 +162,21 @@ namespace Project.ColorHunt
         {
             if (cell == _selected) return;
             _selected = cell;
+            ShowRing(cell);
+            if (cell >= 0 && _views.TryGetValue(cell, out var v))
+            {
+                v.Squash = Mathf.Max(v.Squash, 0.35f);
+                Juice?.Select();
+            }
+        }
+
+        /// <summary>yapbozSahne.ts secimGoster: the white ring on a cell (−1 hides it).</summary>
+        private void ShowRing(int cell)
+        {
             if (cell >= 0 && _views.TryGetValue(cell, out var v))
             {
                 _selectionRing.SetActive(true);
                 _selectionRing.transform.localPosition = new Vector3(v.Home.x, v.Home.y, -(PotaLook.FrontZ + 0.08f));
-                v.Squash = Mathf.Max(v.Squash, 0.35f);
-                Juice?.Select();
             }
             else _selectionRing.SetActive(false);
         }
@@ -182,8 +190,13 @@ namespace Project.ColorHunt
             var r = ColorHuntRules.Break(Board, cell);
             if (!r.Broken)
             {
-                if (_views.TryGetValue(cell, out var v)) v.Shiver = S.InsufficientShake;
-                Juice?.Insufficient(CellWorld(cell), r.Cost);
+                var at = CellWorld(cell);
+                if (_views.TryGetValue(cell, out var v))
+                {
+                    v.Shiver = S.InsufficientShake;
+                    at = BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y + 0.55f, -PotaLook.LabelZ));   // dokunmaReddi: y + 0.55
+                }
+                Juice?.Insufficient(at, r.Cost);
                 return "insufficient";
             }
             Board = r.Board;
@@ -311,10 +324,9 @@ namespace Project.ColorHunt
         private void StartSalvo(SalvoJob s)
         {
             s.Started = true;
-            var target = CellWorld(s.Cell);
-            var source = transform.TransformPoint(_launcher);
             var view = ViewAt(s.Cell);
-            Salvo?.Fire(source, target, s.Cost, S.SalvoDuration, hit =>
+            var target = view != null ? view.Home : BoardBuilder.CellPosition(Board.Size, ColorHuntRules.Row(Board.Size, s.Cell), ColorHuntRules.Col(Board.Size, s.Cell));
+            Salvo?.Fire(PotaLook.SalvoSource(Board.Size), target, s.Cost, S.SalvoDuration, hit =>
             {
                 s.Arrived++;
                 var v = ViewAt(s.Cell);
@@ -322,16 +334,19 @@ namespace Project.ColorHunt
                 {
                     v.Flash = Mathf.Max(v.Flash, 0.55f);
                     v.Squash = Mathf.Max(v.Squash, 0.5f);
-                    if (s.Arrived % 3 == 1) Fx?.Particles(BoardRoot.InverseTransformPoint(hit), S.PaletteColor(v.Block.Color), 3, 1.5f, 0.07f);
+                    if (s.Arrived % 3 == 1) Fx?.Particles(hit, S.PaletteColor(v.Block.Color), 3, 1.5f, 0.07f);
                 }
                 Juice?.BallHit();
             });
             if (view != null) { view.Flash = Mathf.Max(view.Flash, 0.4f); view.Squash = 0.35f; }
+            ShowRing(s.Cell);
+            Juice?.SalvoStart();
         }
 
         private void FinishSalvo(SalvoJob s)
         {
             Salvo?.Clear();
+            ShowRing(-1);
             var view = ViewAt(s.Cell);
             var pos = CellWorld(s.Cell);
             if (view != null)
@@ -345,7 +360,7 @@ namespace Project.ColorHunt
                 Recycle(view);
                 _views.Remove(s.Cell);
             }
-            Juice?.Tap(pos, s.Cost);
+            Juice?.Break();
             DisplayedAmmo = Board.Ammo;
             Raise(AmmoChanged);
             _jobs.RemoveAt(0);
@@ -428,7 +443,7 @@ namespace Project.ColorHunt
                 int rr = r + dr, cc = c + dc;
                 if (rr < 0 || rr >= n || cc < 0 || cc >= n) continue;
                 var v = ViewAt(ColorHuntRules.Index(n, rr, cc));
-                if (v != null) v.Squash = Mathf.Max(v.Squash, S.NeighbourRipple * 3f);
+                if (v != null) v.Squash = Mathf.Max(v.Squash, PotaLook.NeighbourSquash);
             }
         }
 
@@ -436,7 +451,7 @@ namespace Project.ColorHunt
         {
             st.Started = true;
             if (st.Depth == 0 || st.Step.Exploded.Count == 0) { StartDrops(st); return; }
-            Vector3 center = Vector3.zero;
+            BlockView first = null;
             foreach (int i in st.Step.Exploded)
             {
                 var v = ViewAt(i);
@@ -444,15 +459,15 @@ namespace Project.ColorHunt
                 _explosions[v] = 0f;
                 v.Exploding = true;
                 var p = CellWorld(i);
-                center += p;
+                if (first == null) first = v;
                 var tone = S.PaletteColor(v.Block.Color);
                 Fx?.Burst(v.Pos, tone, st.Depth);
                 Fx?.Puff(v.Pos, 1f + st.Depth * 0.12f);
                 Fx?.Particles(v.Pos, tone, PotaFx.PointCount(S, st.Depth), 2.2f + st.Depth * 0.3f, 0.1f);
                 CountItem(v, p);
             }
-            center /= Mathf.Max(1, st.Step.Exploded.Count);
-            Juice?.Chain(st.Depth, center);
+            var at = first != null ? first.Pos : Vector2.zero;
+            Juice?.Chain(st.Depth, BoardRoot.TransformPoint(new Vector3(at.x, at.y + 0.5f, -PotaLook.LabelZ)));
         }
 
         private void StartDrops(StepJob st)
