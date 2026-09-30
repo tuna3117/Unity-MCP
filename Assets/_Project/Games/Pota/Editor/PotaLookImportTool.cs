@@ -71,6 +71,7 @@ namespace Project.Editor.AITools
             s.SoftRing = Load<Texture2D>(LookFolder + "/soft-ring.png");
             s.Backboard = Load<Texture2D>(LookFolder + "/pano-a.png");
             s.Font = Load<Font>(FontPath);
+            s.Palette = (Color[])PotaLook.Tones.Clone();
             s.SalvoBall = BallMaterial(Load<Texture2D>(LookFolder + "/ball-skin.png"));
             s.PuzzleProfile = Profile();
             s.SfxBreak = Clip("blok-pop"); s.SfxSalvo = Clip("salvo"); s.SfxDrop = Clip("dustu"); s.SfxRotate = Clip("dondur");
@@ -81,7 +82,7 @@ namespace Project.Editor.AITools
             s.SfxSelect = Clip("dokun");
             EditorUtility.SetDirty(s);
             AssetDatabase.SaveAssets();
-            report.Add($"settings: atlas={s.LabelAtlas != null} font={(s.Font != null ? s.Font.name : "-")} profile={s.PuzzleProfile != null} " +
+            report.Add($"settings: atlas={s.LabelAtlas != null} palette=pota font={(s.Font != null ? s.Font.name : "-")} profile={s.PuzzleProfile != null} " +
                        $"combo={System.Array.FindAll(s.SfxCombo, c => c != null).Length}/11 hit={System.Array.FindAll(s.SfxHit, c => c != null).Length}/3");
             return report;
         }

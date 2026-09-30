@@ -1,186 +1,161 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Project.ColorHunt
 {
     /// <summary>
-    /// One block's visual: rounded box tinted per instance (MaterialPropertyBlock), the basket item sprite of its
-    /// colour on the upper face, a bold hp label in front of and below the item (Pota 2026-09-23 layout), and the
-    /// small animation state the game drives every frame (squash, flash, shiver, dimming).
+    /// One block in Pota's "balon" look: glossy pillow in its candy tone (linear colour per instance), the item sticker (72 %, centre,
+    /// +0.06) and the hp number (44 %, bottom-right) from the label atlas, and the state the game drives every frame: flash, uniform
+    /// squash, shiver, swell, the labels' counter-angle during rotation, dimming when the ammo does not cover the block.
     /// </summary>
     public class BlockView : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int UvRectId = Shader.PropertyToID("_UvRect");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static Mesh _quad;
 
         public Block Block { get; private set; }
         public int Cell;
-        /// <summary>Home position (board-local) and the animated one.</summary>
+        /// <summary>Home position (board-local cells) and the animated one.</summary>
         public Vector2 Home;
         public Vector2 Pos;
+        /// <summary>Entrance multiplier (PotaFlow's reveal); 1 in play.</summary>
         public float Scale = 1f;
         public float Flash;
         public float Squash;
         public float Shiver;
         public bool Dim;
         public bool Exploding;
+        /// <summary>Swell-then-burst scale while it runs (replaces the squash); −1 otherwise.</summary>
+        public float Swell = -1f;
+        /// <summary>Labels' angle relative to the board in degrees (Pota `donme`: rides the board, then stands up).</summary>
+        public float LabelAngle;
 
-        private MeshRenderer _renderer;
-        private MaterialPropertyBlock _mpb;
-        private TextMesh _label;
-        private TextMesh _shadow;
-        private MeshRenderer _item;
-        private MaterialPropertyBlock _itemMpb;
+        private MeshRenderer _body, _item, _number;
+        private MaterialPropertyBlock _bodyMpb, _itemMpb, _numberMpb;
         private ColorHuntSettings _s;
-        private Color _base;
-        private float _labelRed;
-        private bool _hasItem;
-        private float _labelBaseScale;
 
-        public void Init(ColorHuntSettings s, Mesh mesh, Material material, Font font, Material textMat, Material shadowMat, Material itemMat)
+        private static Mesh Quad => _quad != null ? _quad : (_quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx"));
+
+        /// <summary>yapbozSahne.ts renkliMat: white MeshStandard, roughness 0.16, metalness 0.02; the tone comes per block.</summary>
+        public static Material BodyMaterial()
         {
-            _s = s;
-            var mf = gameObject.AddComponent<MeshFilter>();
-            mf.sharedMesh = mesh;
-            _renderer = gameObject.AddComponent<MeshRenderer>();
-            _renderer.sharedMaterial = material;
-            _renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-            _renderer.receiveShadows = true;
-            var col = gameObject.AddComponent<BoxCollider>();
-            col.size = new Vector3(s.BlockSize, s.BlockSize, s.BlockDepth);
-            _mpb = new MaterialPropertyBlock();
-            _itemMpb = new MaterialPropertyBlock();
-
-            float face = -s.BlockDepth * 0.5f;
-            var itemGo = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            itemGo.name = "Item";
-            Destroy(itemGo.GetComponent<Collider>());
-            itemGo.transform.SetParent(transform, false);
-            itemGo.transform.localPosition = new Vector3(0f, 0f, face - 0.01f);
-            // Unity's Quad primitive already faces −z (the camera); no rotation needed.
-            _item = itemGo.GetComponent<MeshRenderer>();
-            _item.sharedMaterial = itemMat;
-            _item.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            _item.receiveShadows = false;
-
-            _shadow = MakeLabel("Shadow", font, shadowMat, new Vector3(0.03f, -0.035f, face - 0.022f), new Color(0.08f, 0.1f, 0.2f, 0.85f));
-            _label = MakeLabel("Label", font, textMat, new Vector3(0f, 0f, face - 0.03f), Color.white);
-            _labelBaseScale = _label.characterSize;
+            var m = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "PotaBlock" };
+            m.SetColor("_BaseColor", Color.white);
+            m.SetFloat("_Smoothness", 1f - 0.16f);
+            m.SetFloat("_Metallic", 0.02f);
+            return m;
         }
 
-        private TextMesh MakeLabel(string name, Font font, Material mat, Vector3 localPos, Color color)
+        public static Material LabelMaterial(Texture atlas)
+        {
+            var m = new Material(Shader.Find("Project/PotaLabel")) { name = "PotaLabel", enableInstancing = true };
+            if (atlas != null) m.SetTexture("_BaseMap", atlas);
+            return m;
+        }
+
+        /// <summary>yapbozSahne.ts secimHalka: white, opacity 0.9, unlit.</summary>
+        public static Material RingMaterial()
+        {
+            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "PotaSelection" };
+            m.SetFloat("_Surface", 1f);
+            m.SetFloat("_Blend", 0f);
+            m.SetFloat("_ZWrite", 0f);
+            m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = (int)RenderQueue.Transparent;
+            m.SetColor("_BaseColor", new Color(1f, 1f, 1f, 0.9f));
+            return m;
+        }
+
+        public void Init(ColorHuntSettings s, Mesh body, Material bodyMat, Material labelMat)
+        {
+            _s = s;
+            gameObject.AddComponent<MeshFilter>().sharedMesh = body;
+            _body = gameObject.AddComponent<MeshRenderer>();
+            _body.sharedMaterial = bodyMat;
+            _body.shadowCastingMode = ShadowCastingMode.On;
+            _body.receiveShadows = true;
+            gameObject.AddComponent<BoxCollider>().size = Vector3.one * PotaLook.Block;
+            _bodyMpb = new MaterialPropertyBlock();
+            _itemMpb = new MaterialPropertyBlock();
+            _numberMpb = new MaterialPropertyBlock();
+            _item = Label("Item", labelMat, 2);
+            _number = Label("Number", labelMat, 3);
+        }
+
+        private MeshRenderer Label(string name, Material mat, int order)
         {
             var go = new GameObject(name);
             go.transform.SetParent(transform, false);
-            go.transform.localPosition = localPos;
-            var tm = go.AddComponent<TextMesh>();
-            tm.font = font;
-            tm.fontSize = 96;
-            tm.characterSize = 0.062f;
-            tm.fontStyle = FontStyle.Bold;
-            tm.anchor = TextAnchor.MiddleCenter;
-            tm.alignment = TextAlignment.Center;
-            tm.color = color;
-            go.GetComponent<MeshRenderer>().sharedMaterial = mat;
-            return tm;
+            go.AddComponent<MeshFilter>().sharedMesh = Quad;       // Unity's quad faces −z, the camera
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            r.lightProbeUsage = LightProbeUsage.Off;
+            r.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            r.sortingOrder = order;                                // number after item (same block overlaps)
+            return r;
         }
 
         public void SetBlock(Block b, int cell)
         {
             Block = b;
             Cell = cell;
-            _base = _s.PaletteColor(b.Color);
-            _label.font.RequestCharactersInTexture(b.Hp.ToString(), _label.fontSize, _label.fontStyle);
-            _label.text = b.Hp.ToString();
-            _shadow.text = _label.text;
-
-            var icon = _s.ItemIcon(b.Color);
-            _hasItem = icon != null;
-            _item.enabled = _hasItem;
-            if (_hasItem)
-            {
-                _itemMpb.SetTexture("_BaseMap", icon);
-                _item.SetPropertyBlock(_itemMpb);
-                float aspect = icon.width / (float)icon.height;
-                float size = _s.BlockSize * _s.ItemScale;
-                _item.transform.localScale = new Vector3(size * Mathf.Min(1f, aspect), size * Mathf.Min(1f, 1f / aspect), 1f);
-                _item.transform.localPosition = new Vector3(0f, _s.ItemOffsetY, _item.transform.localPosition.z);
-            }
-            float numberScale = _hasItem ? _s.NumberScale : 1f;
-            float ny = _hasItem ? _s.NumberOffsetY : 0f;
-            _label.characterSize = _labelBaseScale * numberScale;
-            _shadow.characterSize = _labelBaseScale * numberScale;
-            _label.transform.localPosition = new Vector3(0f, ny, _label.transform.localPosition.z);
-            _shadow.transform.localPosition = new Vector3(0.03f * numberScale, ny - 0.035f * numberScale, _shadow.transform.localPosition.z);
+            _itemMpb.SetVector(UvRectId, LabelAtlas.UvRect(LabelAtlas.ItemCell(b.Color)));
+            _numberMpb.SetVector(UvRectId, LabelAtlas.UvRect(LabelAtlas.NumberCell(b.Hp)));
             Apply();
         }
 
         public Texture2D ItemIcon => _s.ItemIcon(Block.Color);
 
-        public void FlashRedLabel() => _labelRed = 1f;
-
-        private void OnEnable() { Font.textureRebuilt += OnFontRebuilt; }
-        private void OnDisable() { Font.textureRebuilt -= OnFontRebuilt; }
-
-        /// <summary>The dynamic font atlas was rebuilt: TextMesh keeps stale glyph UVs until its text is reassigned.</summary>
-        private void OnFontRebuilt(Font f)
+        /// <summary>Advance the transient state and write transform and colours (renkAviFaz.ts gorselleriIlerlet).</summary>
+        public void Tick(float dt)
         {
-            if (_label == null || f != _label.font) return;
-            string t = _label.text;
-            _label.text = string.Empty; _label.text = t;
-            _shadow.text = string.Empty; _shadow.text = t;
-        }
-
-        /// <summary>Advance the transient state and write the transform/material.</summary>
-        public void Tick(float dt, float rotationCompensation)
-        {
-            Flash = Mathf.Max(0f, Flash - dt * 4.5f);
-            Squash = Mathf.Max(0f, Squash - dt * 6f);
+            Flash = Mathf.Max(0f, Flash - dt * PotaLook.FlashDecay);
+            Squash = Mathf.Max(0f, Squash - dt * PotaLook.SquashDecay);
             Shiver = Mathf.Max(0f, Shiver - dt);
-            _labelRed = Mathf.Max(0f, _labelRed - dt * 3f);
-            float shiverX = Shiver > 0f ? Mathf.Sin((_s.InsufficientShake - Shiver) * 68f) * 0.075f * (Shiver / _s.InsufficientShake) : 0f;
+            float t = _s.InsufficientShake;
+            float shiverX = Shiver > 0f ? Mathf.Sin((t - Shiver) * 68f) * PotaLook.ShiverAmount * (Shiver / t) : 0f;
             transform.localPosition = new Vector3(Pos.x + shiverX, Pos.y, 0f);
-            float sq = 1f - 0.12f * Squash;
-            transform.localScale = new Vector3(Scale * (2f - sq) * 0.5f + Scale * 0.5f, Scale * sq, Scale);
-            // Labels and the item stay upright while the board rotates (rotate about the block centre).
-            var q = Quaternion.Euler(0f, 0f, rotationCompensation);
-            RotateAbout(_label.transform, q, _label.transform.localPosition.z);
-            RotateAbout(_shadow.transform, q, _shadow.transform.localPosition.z);
-            if (_hasItem)
-            {
-                _item.transform.localRotation = q;
-                var p = q * new Vector3(0f, _s.ItemOffsetY, 0f);
-                _item.transform.localPosition = new Vector3(p.x, p.y, _item.transform.localPosition.z);
-            }
+            float own = Mathf.Max(0.001f, Swell >= 0f ? Swell : 1f - PotaLook.LandSquash * Squash);
+            transform.localScale = Vector3.one * Mathf.Max(0.001f, own * Scale);
+            PlaceLabels(own);
             Apply();
         }
 
-        private void RotateAbout(Transform t, Quaternion q, float z)
+        /// <summary>
+        /// yapbozSahne.ts etiketleriYaz: the plane sits at (Z_ON + 0.03 + bulge)·max(1, scale), the quads grow with the block, the offsets
+        /// do not (they are divided by the block's own scale here because the labels are its children).
+        /// </summary>
+        private void PlaceLabels(float own)
         {
-            t.localRotation = q;
-            float ny = _hasItem ? _s.NumberOffsetY : 0f;
-            float ox = t == _shadow.transform ? 0.03f * (_hasItem ? _s.NumberScale : 1f) : 0f;
-            float oy = t == _shadow.transform ? -0.035f * (_hasItem ? _s.NumberScale : 1f) : 0f;
-            var p = q * new Vector3(ox, ny + oy, 0f);
-            t.localPosition = new Vector3(p.x, p.y, z);
+            float a = LabelAngle * Mathf.Deg2Rad, cs = Mathf.Cos(a), sn = Mathf.Sin(a);
+            float z = -PotaLook.LabelZ * Mathf.Max(1f, own) / own;
+            var rot = Quaternion.Euler(0f, 0f, LabelAngle);
+            float ey = PotaLook.ItemOffsetY;
+            var it = _item.transform;
+            it.localPosition = new Vector3(-ey * sn / own, ey * cs / own, z);
+            it.localRotation = rot;
+            it.localScale = Vector3.one * (PotaLook.LabelQuad * PotaLook.ItemScale);
+            var o = PotaLook.NumberOffset;
+            var nt = _number.transform;
+            nt.localPosition = new Vector3((o.x * cs - o.y * sn) / own, (o.x * sn + o.y * cs) / own, z - 0.01f / own);
+            nt.localRotation = rot;
+            nt.localScale = Vector3.one * (PotaLook.LabelQuad * PotaLook.NumberScale);
         }
 
         private void Apply()
         {
-            var c = Color.Lerp(_base, Color.white, Mathf.Min(1f, Flash));
-            if (Dim) c = Color.Lerp(c, new Color(0.55f, 0.55f, 0.58f), _s.DimAmount) * 0.72f;
-            c.a = 1f;
-            _mpb.SetColor(BaseColorId, c);
-            _mpb.SetColor(EmissionId, Color.white * (Flash * 1.6f));
-            _renderer.SetPropertyBlock(_mpb);
-            var lc = Color.Lerp(Color.white, _s.RedColor, _labelRed);
-            if (Dim) lc = Color.Lerp(lc, new Color(0.8f, 0.8f, 0.85f), 0.5f);
-            _label.color = lc;
-            if (_hasItem)
-            {
-                var ic = Dim ? new Color(0.48f, 0.52f, 0.58f, 1f) : Color.Lerp(Color.white, new Color(1.6f, 1.6f, 1.6f, 1f), Flash);
-                _itemMpb.SetColor(BaseColorId, ic);
-                _item.SetPropertyBlock(_itemMpb);
-            }
+            _bodyMpb.SetVector(BaseColorId, PotaLook.BlockColor(_s.PaletteColor(Block.Color), Flash, Dim));
+            _body.SetPropertyBlock(_bodyMpb);
+            _itemMpb.SetVector(ColorId, Dim ? PotaLook.ItemShort.linear : Color.white);
+            _item.SetPropertyBlock(_itemMpb);
+            _numberMpb.SetVector(ColorId, Dim ? PotaLook.NumberShort.linear : Color.white);
+            _number.SetPropertyBlock(_numberMpb);
         }
     }
 }

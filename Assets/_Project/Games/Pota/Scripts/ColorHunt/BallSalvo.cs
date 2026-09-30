@@ -35,7 +35,7 @@ namespace Project.ColorHunt
                 float o = n == 1 ? 0f : (float)i / (n - 1);
                 var b = _pool.Count > 0 ? _pool.Pop() : Create();
                 b.From = source + new Vector3((Random.value - 0.5f) * S.SalvoSpread, 0f, -0.3f);
-                b.To = target + new Vector3((Random.value - 0.5f) * S.SalvoScatter, (Random.value - 0.5f) * S.SalvoScatter, -S.BlockDepth * 0.5f - 0.18f);
+                b.To = target + new Vector3((Random.value - 0.5f) * S.SalvoScatter, (Random.value - 0.5f) * S.SalvoScatter, -PotaLook.FrontZ - 0.18f);
                 b.Delay = o * launch; b.Flight = flight; b.T0 = _clock; b.Flying = false; b.Done = false;
                 b.T.position = b.From;
                 b.T.gameObject.SetActive(false);

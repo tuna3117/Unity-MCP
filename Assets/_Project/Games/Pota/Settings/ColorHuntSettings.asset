@@ -22,11 +22,11 @@ MonoBehaviour:
   - {x: 1, y: 16}
   Seed: 0
   Palette:
-  - {r: 0.91, g: 0.271, b: 0.235, a: 1}
-  - {r: 0.184, g: 0.498, b: 0.847, a: 1}
-  - {r: 0.235, g: 0.729, b: 0.431, a: 1}
-  - {r: 1, g: 0.69, b: 0.227, a: 1}
-  - {r: 0.659, g: 0.392, b: 0.847, a: 1}
+  - {r: 0.9098039, g: 0.20784314, b: 0.18039216, a: 1}
+  - {r: 0.16470589, g: 0.50980395, b: 0.9098039, a: 1}
+  - {r: 0.27450982, g: 0.7490196, b: 0.21176471, a: 1}
+  - {r: 0.972549, g: 0.7607843, b: 0.16470589, a: 1}
+  - {r: 0.63529414, g: 0.27450982, b: 0.85882354, a: 1}
   FrameColor: {r: 1, g: 0.541, b: 0.165, a: 1}
   PlateColor: {r: 0.106, g: 0.208, b: 0.373, a: 1}
   SkyTop: {r: 0.62, g: 0.8, b: 0.93, a: 1}
@@ -35,10 +35,6 @@ MonoBehaviour:
   GoldColor: {r: 1, g: 0.78, b: 0.24, a: 1}
   GreenColor: {r: 0.3, g: 0.85, b: 0.45, a: 1}
   RedColor: {r: 1, g: 0.42, b: 0.42, a: 1}
-  BlockSize: 0.92
-  BlockDepth: 0.55
-  BlockRadius: 0.16
-  BlockFace: {fileID: 2800000, guid: 60eff7e55aa6b41ffa63304f34641f10, type: 3}
   Font: {fileID: 12800000, guid: 7640cc1b4d6424a6291580a4262bff67, type: 3}
   ArrowIcon: {fileID: 2800000, guid: e29169b82b746471798daaba2fcace0a, type: 3}
   ItemIcons:
@@ -47,12 +43,7 @@ MonoBehaviour:
   - {fileID: 2800000, guid: b069a9c9ae0a5420d92b09f7e3c72291, type: 3}
   - {fileID: 2800000, guid: 10fbc9ee4087744439d6cf87ec1f4407, type: 3}
   - {fileID: 2800000, guid: 38be11dd0fc9b44909c2763979072e68, type: 3}
-  ItemOffsetY: 0.13
-  ItemScale: 0.62
-  NumberOffsetY: -0.2
-  NumberScale: 0.56
   BallMaterial: {fileID: 2100000, guid: 09d2f7edb93bb45d2b3942f87cf151cc, type: 2}
-  DimAmount: 0.55
   LabelAtlas: {fileID: 2800000, guid: 1dfe51a4f10b946608609a2bae4f10c9, type: 3}
   StarSprite: {fileID: 2800000, guid: 7ac5a724b87ae4a15a72c94239c7d4b2, type: 3}
   TrailSprite: {fileID: 2800000, guid: 76f723ba5667d4949912f14ad6696346, type: 3}

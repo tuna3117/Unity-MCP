@@ -17,15 +17,8 @@ namespace Project.ColorHunt
         [Tooltip("0 = new random board every round; otherwise the same board every time.")]
         public uint Seed = 0;
 
-        [Header("Palette (Pota RENKLER order: red, blue, green, yellow, purple)")]
-        public Color[] Palette =
-        {
-            new Color(0.910f, 0.271f, 0.235f),
-            new Color(0.184f, 0.498f, 0.847f),
-            new Color(0.235f, 0.729f, 0.431f),
-            new Color(1.000f, 0.690f, 0.227f),
-            new Color(0.659f, 0.392f, 0.847f),
-        };
+        [Header("Palette (Pota SEKER_TONU: red, blue, green, yellow, purple)")]
+        public Color[] Palette = (Color[])PotaLook.Tones.Clone();
         public Color FrameColor = new Color(1f, 0.541f, 0.165f);
         public Color PlateColor = new Color(0.106f, 0.208f, 0.373f);
         public Color SkyTop = new Color(0.62f, 0.80f, 0.93f);
@@ -36,22 +29,11 @@ namespace Project.ColorHunt
         public Color RedColor = new Color(1f, 0.42f, 0.42f);
 
         [Header("Block")]
-        public float BlockSize = 0.92f;
-        public float BlockDepth = 0.55f;
-        public float BlockRadius = 0.16f;
-        public Texture2D BlockFace;
         public Font Font;
         public Texture2D ArrowIcon;
         [Tooltip("Item sprite per colour (Pota ESYALAR order: forma, ayakkabı, şapka, çorap, bileklik). Empty = number only.")]
         public Texture2D[] ItemIcons;
-        [Tooltip("Item placement on the block face (Pota: item at +0.13 scale 0.62, number at −0.2 scale 0.56).")]
-        public float ItemOffsetY = 0.13f;
-        public float ItemScale = 0.62f;
-        public float NumberOffsetY = -0.2f;
-        public float NumberScale = 0.56f;
         public Material BallMaterial;
-        [Tooltip("Ammo does not cover this block: colour fades toward grey by this amount.")]
-        [Range(0f, 1f)] public float DimAmount = 0.55f;
 
         [Header("Pota look assets (Tools/potalook/run_export.sh + ai_potalook_import)")]
         [Tooltip("yapbozSahne.ts EtiketAtlasi: 2048², 11 columns × 186 px; numbers 1–99 = cells 0–98, star 99, items 100–104.")]
@@ -91,6 +73,7 @@ namespace Project.ColorHunt
         public float RotateTime = 0.34f;
         public float WinWait = 0.85f;
         public float LoseWait = 0.45f;
+        [Tooltip("renkAviFaz.ts HIS.titrem.sure: shiver of a block the ammo does not cover.")]
         public float InsufficientShake = 0.3f;
 
         [Header("Juice")]

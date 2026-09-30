@@ -23,7 +23,6 @@ namespace Project.Editor.AITools
         public const string ScenePath = "Assets/_Project/Games/Pota/Scenes/ColorHunt.unity";
         public const string SettingsPath = "Assets/_Project/Games/Pota/Settings/ColorHuntSettings.asset";
         public const string VolumeProfilePath = "Assets/Settings/SampleSceneProfile.asset";
-        public const string BlockFacePath = "Assets/_Project/Games/Pota/Art/blok-a.jpg";
         public const string ArrowPath = "Assets/_Project/Games/Pota/Art/ok-a.png";
         public const string FontPath = "Assets/_Project/Games/Pota/Art/Fonts/ArialRoundedBold.ttf";
         public const string BallMaterialPath = "Assets/_Project/Games/Pota/Art/Generated/Basketball.mat";
@@ -172,7 +171,6 @@ namespace Project.Editor.AITools
                 AssetDatabase.CreateAsset(s, SettingsPath);
                 report.Add($"created {SettingsPath}");
             }
-            if (s.BlockFace == null) s.BlockFace = AssetDatabase.LoadAssetAtPath<Texture2D>(BlockFacePath);
             if (s.ArrowIcon == null) s.ArrowIcon = AssetDatabase.LoadAssetAtPath<Texture2D>(ArrowPath);
             if (s.Font == null) s.Font = AssetDatabase.LoadAssetAtPath<Font>(FontPath);
             if (s.BallMaterial == null) s.BallMaterial = AssetDatabase.LoadAssetAtPath<Material>(BallMaterialPath);
@@ -182,7 +180,7 @@ namespace Project.Editor.AITools
                 for (int i = 0; i < ItemNames.Length; i++) s.ItemIcons[i] = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/_Project/Games/Pota/Art/esya-{ItemNames[i]}.png");
             }
             EditorUtility.SetDirty(s);
-            report.Add($"settings: face={(s.BlockFace != null)} arrow={(s.ArrowIcon != null)} font={(s.Font != null)} ball={(s.BallMaterial != null)} items={System.Array.FindAll(s.ItemIcons, t => t != null).Length}/{ItemNames.Length}");
+            report.Add($"settings: arrow={(s.ArrowIcon != null)} font={(s.Font != null)} ball={(s.BallMaterial != null)} items={System.Array.FindAll(s.ItemIcons, t => t != null).Length}/{ItemNames.Length}");
             return s;
         }
     }

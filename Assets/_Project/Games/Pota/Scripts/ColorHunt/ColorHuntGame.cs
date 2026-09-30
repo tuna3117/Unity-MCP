@@ -59,8 +59,7 @@ namespace Project.ColorHunt
         private class DropState { public float StartY, Distance, T; public bool Landed; }
 
         private Mesh _blockMesh, _shardMesh;
-        private Material _blockMat, _textMat, _shadowMat, _itemMat;
-        private Font _font;
+        private Material _blockMat, _labelMat, _itemMat;
         private Transform _blocksRoot;
         private bool _checkNeeded;
         private float _accel;
@@ -79,12 +78,6 @@ namespace Project.ColorHunt
             _blocksRoot = new GameObject("Blocks").transform;
             _blocksRoot.SetParent(BoardRoot, false);
 
-            _font = S.Font != null ? S.Font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _textMat = DepthTextMaterial.Create(_font);
-            _textMat.renderQueue = 3002;
-            _shadowMat = DepthTextMaterial.Create(_font);
-            _shadowMat.renderQueue = 3001;
-            _font.RequestCharactersInTexture("0123456789", 96, FontStyle.Bold);
             _itemMat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             _itemMat.SetFloat("_Surface", 1f); _itemMat.SetFloat("_Blend", 0f); _itemMat.SetFloat("_ZWrite", 0f);
             _itemMat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
@@ -92,23 +85,18 @@ namespace Project.ColorHunt
             _itemMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             _itemMat.renderQueue = 3000;
             if (Fx != null) Fx.ItemMaterial = _itemMat;
-            _blockMesh = RoundedBoxMesh.Create(new Vector3(S.BlockSize, S.BlockSize, S.BlockDepth), S.BlockRadius, 6);
+            _blockMesh = PillowBlockMesh.Create();
             _shardMesh = RoundedBoxMesh.Create(Vector3.one, 0.22f, 3);
-            _blockMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            if (S.BlockFace != null) _blockMat.SetTexture("_BaseMap", S.BlockFace);
-            _blockMat.SetFloat("_Smoothness", 0.55f);
-            _blockMat.EnableKeyword("_EMISSION");
-            _blockMat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            _blockMat = BlockView.BodyMaterial();
+            _labelMat = BlockView.LabelMaterial(S.LabelAtlas);
 
             BoardBuilder.Build(transform, S, S.Size);
             _launcher = new Vector3(0f, -(S.Size * 0.5f + BoardBuilder.Margin + 0.55f), -0.1f);
             _accel = 2f / (S.DropTimePerCell * S.DropTimePerCell);
 
-            var ringMat = RimMeshBuilder.UrpLit(S.GoldColor, 0.7f);
-            ringMat.EnableKeyword("_EMISSION");
-            ringMat.SetColor("_EmissionColor", S.GoldColor * 0.6f);
-            _selectionRing = RimMeshBuilder.MeshObject("SelectionRing", BoardRoot, RimMeshBuilder.Torus(0.56f, 0.06f, 32, 8), ringMat);
+            _selectionRing = RimMeshBuilder.MeshObject("SelectionRing", BoardRoot, RimMeshBuilder.Torus(0.46f, 0.055f, 26, 8), BlockView.RingMaterial());
             _selectionRing.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            _selectionRing.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _selectionRing.SetActive(false);
 
             if (Fx != null) Fx.Build(_shardMesh);
@@ -184,7 +172,7 @@ namespace Project.ColorHunt
             if (cell >= 0 && _views.TryGetValue(cell, out var v))
             {
                 _selectionRing.SetActive(true);
-                _selectionRing.transform.localPosition = new Vector3(v.Home.x, v.Home.y, -S.BlockDepth * 0.5f);
+                _selectionRing.transform.localPosition = new Vector3(v.Home.x, v.Home.y, -(PotaLook.FrontZ + 0.08f));
                 v.Squash = Mathf.Max(v.Squash, 0.35f);
                 Juice?.Select();
             }
@@ -200,7 +188,7 @@ namespace Project.ColorHunt
             var r = ColorHuntRules.Break(Board, cell);
             if (!r.Broken)
             {
-                if (_views.TryGetValue(cell, out var v)) { v.Shiver = S.InsufficientShake; v.FlashRedLabel(); }
+                if (_views.TryGetValue(cell, out var v)) v.Shiver = S.InsufficientShake;
                 Juice?.Insufficient(CellWorld(cell), r.Cost);
                 return "insufficient";
             }
@@ -246,8 +234,7 @@ namespace Project.ColorHunt
 
         private void TickViews(float dt)
         {
-            float comp = -BoardRoot.localEulerAngles.z;
-            foreach (var v in _views.Values) v.Tick(dt, comp);
+            foreach (var v in _views.Values) v.Tick(dt);
         }
 
         private string _endReason = "";
@@ -488,7 +475,7 @@ namespace Project.ColorHunt
                     {
                         v.Squash = 1f;
                         Juice?.Landed(d.Distance);
-                        Fx?.Puff(BoardRoot.TransformPoint(new Vector3(v.Home.x, v.Home.y - S.BlockSize * 0.5f, 0f)), Mathf.Min(1f, d.Distance / 4f));
+                        Fx?.Puff(BoardRoot.TransformPoint(new Vector3(v.Home.x, v.Home.y - PotaLook.Block * 0.5f, 0f)), Mathf.Min(1f, d.Distance / 4f));
                     }
                 }
             }
@@ -519,9 +506,9 @@ namespace Project.ColorHunt
                 var go = new GameObject("Block");
                 go.transform.SetParent(_blocksRoot, false);
                 v = go.AddComponent<BlockView>();
-                v.Init(S, _blockMesh, _blockMat, _font, _textMat, _shadowMat, _itemMat);
+                v.Init(S, _blockMesh, _blockMat, _labelMat);
             }
-            v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false;
+            v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false; v.Swell = -1f; v.LabelAngle = 0f;
             v.SetBlock(block, cell);
             v.transform.localPosition = new Vector3(home.x, home.y, 0f);
             v.transform.localScale = Vector3.one;
