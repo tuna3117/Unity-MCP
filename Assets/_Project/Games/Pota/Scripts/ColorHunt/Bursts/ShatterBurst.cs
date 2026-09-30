@@ -42,6 +42,7 @@ namespace Project.ColorHunt
         private Material _pieceMat;
         private MaterialPropertyBlock _mpb;
         private ParticleSystem _smoke, _sparks, _shock;
+        private bool _opaqueOn;
         private readonly System.Random _rng = new System.Random(17);
 
         public bool Ready { get; private set; }
@@ -91,7 +92,8 @@ namespace Project.ColorHunt
             {
                 var shock = RuntimeMaterial.From(s.ShockTemplate, "Project/PotaShockRing", "PotaShockRing");
                 shock.SetTexture("_BaseMap", s.ShockRing);
-                _shock = StudioParticles.System(transform, "ShatterShock", shock, ParticleSystemRenderMode.Billboard, ShockMax, 10);
+                // order 1: drawn before the labels (2/3) and the other effects, which then sit on top of the bent scene unbent
+                _shock = StudioParticles.System(transform, "ShatterShock", shock, ParticleSystemRenderMode.Billboard, ShockMax, 1);
                 StudioParticles.Sheet(_shock, 4, 4);
                 StudioParticles.AlphaOverLife(_shock, u => 1f - u * u);
             }
@@ -102,8 +104,22 @@ namespace Project.ColorHunt
         {
             if (!on) Clear();
             gameObject.SetActive(on);
+            Opaque(false);
+        }
+
+        /// <summary>The ring reads the camera's opaque texture: a full-screen copy per frame, so it is on only while a ring lives.</summary>
+        private void Opaque(bool on)
+        {
+            _opaqueOn = on;
             var data = _game != null && _game.Cam != null ? _game.Cam.GetUniversalAdditionalCameraData() : null;
-            if (data != null) data.requiresColorOption = on && _shock != null ? CameraOverrideOption.On : CameraOverrideOption.UsePipelineSettings;
+            if (data != null) data.requiresColorOption = on ? CameraOverrideOption.On : CameraOverrideOption.UsePipelineSettings;
+        }
+
+        private void EmitShock(Vector3 at, float size, float life)
+        {
+            if (_shock == null) return;
+            if (!_opaqueOn) Opaque(true);
+            StudioParticles.Emit(_shock, at, size, life, Color.white);
         }
 
         public void TapBurst(BlockView v, Color tone) => Shatter(v, tone, 0);
@@ -113,8 +129,7 @@ namespace Project.ColorHunt
         {
             if (!Ready) return;
             float bs = _game.BoardRoot.lossyScale.x;
-            if (_shock != null)
-                StudioParticles.Emit(_shock, _game.BoardRoot.TransformPoint(new Vector3(at.x, at.y, -(PotaLook.FrontZ + 0.2f))), (3.2f + 0.4f * depth) * bs, 0.45f, Color.white);
+            EmitShock(_game.BoardRoot.TransformPoint(new Vector3(at.x, at.y, -(PotaLook.FrontZ + 0.2f))), (3.2f + 0.4f * depth) * bs, 0.45f);
             if (depth < 4) return;
             _game.Juice?.TimeCtl?.SlowMo(0.4f, 0.3f);
             var cam = _game.Cam != null ? _game.Cam.GetComponent<ColorHuntCamera>() : null;
@@ -132,6 +147,7 @@ namespace Project.ColorHunt
 
         private void Update()
         {
+            if (_opaqueOn && ShockLive == 0) Opaque(false);
             float dt = Mathf.Min(Time.deltaTime, 0.05f);          // game time: dips and slow motion hold the pieces too
             for (int i = _live.Count - 1; i >= 0; i--)
             {
@@ -175,7 +191,7 @@ namespace Project.ColorHunt
                 var jitter = new Vector3((R() - 0.5f) * 0.3f, (R() - 0.5f) * 0.3f, 0f) * bs;
                 StudioParticles.Emit(_smoke, at + jitter, (2.2f + 0.3f * k + 0.1f * depth) * bs, 0.9f, smokeTint, new Vector3(0f, 0.5f * bs, 0f), R() * 360f);
             }
-            if (_shock != null && depth == 0) StudioParticles.Emit(_shock, at, 3.2f * bs, 0.4f, Color.white);
+            if (depth == 0) EmitShock(at, 3.2f * bs, 0.4f);
             StudioParticles.Gravity(_sparks, 8f * bs);
             int sparks = Mathf.Min(14, 8 + depth);
             for (int k = 0; k < sparks; k++)

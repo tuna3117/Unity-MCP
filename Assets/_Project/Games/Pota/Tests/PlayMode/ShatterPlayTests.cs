@@ -90,17 +90,6 @@ namespace Project.Tests
         }
 
         [UnityTest]
-        public IEnumerator Shatter_TurnsTheOpaqueTextureOn_OnlyWhileActive()
-        {
-            ColorHuntGame game = null;
-            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Shatter, (g, h) => game = g);
-            var data = game.Cam.GetUniversalAdditionalCameraData();
-            Assert.AreEqual(CameraOverrideOption.On, data.requiresColorOption);
-            game.SetLook(PuzzleLook.Pota);
-            Assert.AreEqual(CameraOverrideOption.UsePipelineSettings, data.requiresColorOption);
-        }
-
-        [UnityTest]
         public IEnumerator Tap_SendsAShockRing()
         {
             ColorHuntGame game = null;
@@ -109,6 +98,65 @@ namespace Project.Tests
             Assert.AreEqual("broken", game.Tap(ColorHuntHint.Best(game.Board)));
             yield return StudioLookPlayTests.WaitUntil(() => shatter.ShockLive > 0, 1.5f);
             Assert.Greater(shatter.ShockLive, 0);
+        }
+
+
+        [UnityTest]
+        public IEnumerator ShockRing_SortsBeforeTheLabelsAndEffects()
+        {
+            // the ring redraws the opaque-only scene inside its band: drawn later it would erase labels, smoke and sparks there
+            ColorHuntGame game = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Shatter, (g, h) => game = g);
+            var shatter = (ShatterBurst)game.Style;
+            int ring = shatter.transform.Find("ShatterShock").GetComponent<ParticleSystemRenderer>().sortingOrder;
+            int labels = 0;
+            foreach (var v in game.BoardRoot.GetComponentsInChildren<BlockView>())
+                foreach (var r in v.GetComponentsInChildren<MeshRenderer>(true))
+                    if (r.sharedMaterial != null && r.sharedMaterial.renderQueue >= 2500) { Assert.Less(ring, r.sortingOrder, r.name); labels++; }
+            Assert.Greater(labels, 0);
+            foreach (var ps in new[] { "ShatterSmoke", "ShatterSparks" })
+                Assert.Less(ring, shatter.transform.Find(ps).GetComponent<ParticleSystemRenderer>().sortingOrder, ps);
+        }
+
+        [UnityTest]
+        public IEnumerator OpaqueTexture_IsOnOnlyWhileARingLives()
+        {
+            ColorHuntGame game = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Shatter, (g, h) => game = g);
+            var data = game.Cam.GetUniversalAdditionalCameraData();
+            var shatter = (ShatterBurst)game.Style;
+            Assert.AreEqual(CameraOverrideOption.UsePipelineSettings, data.requiresColorOption, "idle: no extra full-screen copy");
+            shatter.TapBurst(game.ViewAt(0), PotaLook.Tones[0]);
+            Assert.AreEqual(CameraOverrideOption.On, data.requiresColorOption, "a ring is alive");
+            yield return StudioLookPlayTests.WaitUntil(() => shatter.ShockLive == 0, 2f);
+            yield return null;
+            Assert.AreEqual(CameraOverrideOption.UsePipelineSettings, data.requiresColorOption, "back off with the last ring");
+            game.SetLook(PuzzleLook.Pota);
+            Assert.AreEqual(CameraOverrideOption.UsePipelineSettings, data.requiresColorOption);
+        }
+
+        [UnityTest]
+        public IEnumerator Pieces_AreChildrenOfTheGameRoot_AndStayInTheFrameWhileTheBoardTurns()
+        {
+            ColorHuntGame game = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Shatter, (g, h) => game = g);
+            var shatter = (ShatterBurst)game.Style;
+            for (int i = 0; i < 3; i++) shatter.TapBurst(game.ViewAt(i), PotaLook.Tones[i]);
+            Assert.IsTrue(game.Rotate(Rotation.Clockwise));
+            float t = 0f;
+            while (t < 1f)
+            {
+                foreach (Transform piece in shatter.transform)
+                {
+                    if (!piece.gameObject.activeSelf || piece.GetComponent<MeshFilter>() == null) continue;
+                    Assert.AreSame(game.transform, piece.parent.parent, "not carried by the board");
+                    var p = game.transform.InverseTransformPoint(piece.position);
+                    Assert.LessOrEqual(Mathf.Abs(p.x), ShatterDebris.InnerHalf + 1e-3f);
+                    Assert.LessOrEqual(Mathf.Abs(p.y), ShatterDebris.InnerHalf + 1e-3f);
+                }
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
         }
     }
 }

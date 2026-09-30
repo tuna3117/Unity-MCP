@@ -41,6 +41,8 @@ Shader "Project/PotaPiece"
             #pragma fragment frag
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile_fog
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; float2 uv : TEXCOORD0; float2 front : TEXCOORD1; };
@@ -93,6 +95,17 @@ Shader "Project/PotaPiece"
                 color += lightColor * pow(saturate(dot(n, h)), exp2(10.0 * _Smoothness + 1.0)) * _Smoothness * 0.5h;
                 half fresnel = 0.04h + 0.96h * pow(1.0h - saturate(dot(n, viewDir)), 5.0h);
                 color += GlossyEnvironmentReflection(reflect(-viewDir, n), 1.0h - _Smoothness, 1.0h) * fresnel * _Reflection;
+            #if defined(_ADDITIONAL_LIGHTS) || USE_CLUSTER_LIGHT_LOOP
+                // the burst's point light (spec §2 B) lights the pieces as it lights the blocks around them
+                InputData inputData = (InputData)0;
+                inputData.positionWS = i.positionWS;
+                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(i.positionCS);
+                uint count = GetAdditionalLightsCount();
+                LIGHT_LOOP_BEGIN(count)
+                    Light extra = GetAdditionalLight(lightIndex, i.positionWS);
+                    color += albedo * extra.color * (extra.distanceAttenuation * saturate(dot(n, extra.direction)));
+                LIGHT_LOOP_END
+            #endif
                 return half4(MixFog(color, i.fog), 1);
             }
             ENDHLSL

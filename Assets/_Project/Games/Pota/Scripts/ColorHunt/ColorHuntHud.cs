@@ -325,7 +325,7 @@ namespace Project.ColorHunt
 
         private void Update()
         {
-            if (Game != null && Game.Busy && _hint != null) _hint.enabled = false;
+            if (Game != null && Game.Busy && !Game.Intro && _hint != null) _hint.enabled = false;   // the card waits for the first tap, not the intro
             float dt = Time.unscaledDeltaTime;
             for (int i = _flying.Count - 1; i >= 0; i--)
             {
@@ -589,7 +589,7 @@ namespace Project.ColorHunt
                     var fill = Color.Lerp(bottom, top, y / (size - 1f));
                     if (highlight > 0f && y >= size - borderWidth - highlightWidth) fill = Color.Lerp(fill, Color.white, highlight);
                     var c = Color.Lerp(border, fill, inner);
-                    c.a = aa;
+                    c.a = aa * Mathf.Lerp(border.a, fill.a, inner);      // a clear fill leaves only the border (the ✓ glow)
                     tex.SetPixel(x, y, c);
                 }
             tex.Apply();

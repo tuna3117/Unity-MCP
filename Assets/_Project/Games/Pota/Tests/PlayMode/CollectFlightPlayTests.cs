@@ -61,7 +61,23 @@ namespace Project.Tests
         {
             ColorHuntGame game = null; ColorHuntHud hud = null;
             yield return StudioLookPlayTests.LoadLook(look, (g, h) => { game = g; hud = h; });
-            Assert.AreEqual("broken", game.Tap(ColorHuntHint.Best(game.Board)));
+            game.Prepare(game.S.Ammo, 7, null);                    // a fixed deal: seed 7's longest chain
+            game.Begin();
+            yield return null;
+            int cell = -1, most = 0;                                // the affordable tap whose chain breaks the most target blocks
+            for (int i = 0; i < game.Board.Cells.Length; i++)
+            {
+                if (game.Board.Cells[i].Hp > game.Board.Ammo) continue;
+                var r = ColorHuntRules.Break(game.Board, i);
+                int hits = 0;
+                for (int k = 0; k < r.Board.Targets.Length; k++) hits += game.Board.Targets[k].Remaining - r.Board.Targets[k].Remaining;
+                if (r.Steps.Count >= 3 && hits > most) { most = hits; cell = i; }
+            }
+            Assert.GreaterOrEqual(cell, 0, "seed 7 has a 3+ step chain through target blocks");
+            var before = new System.Collections.Generic.Dictionary<int, int>();
+            foreach (var target in game.Board.Targets) before[target.Color] = target.Remaining;
+            int arrived = hud.Collect.Arrived;
+            Assert.AreEqual("broken", game.Tap(cell));
             float t = 0f;
             while ((game.Busy || game.ItemsInFlight > 0 || hud.FlyingCount > 0) && t < 10f)
             {
@@ -74,6 +90,10 @@ namespace Project.Tests
             foreach (var target in game.Board.Targets)
                 Assert.AreEqual(Rules(game, target.Color), game.ShownTarget(target.Color), "settled: shown = rules");
             Assert.AreEqual(0, hud.FlyingCount);
+            int broken = 0;
+            foreach (var target in game.Board.Targets) broken += before[target.Color] - target.Remaining;
+            Assert.Greater(broken, 0, "the chain broke target blocks");
+            Assert.AreEqual(broken, hud.Collect.Arrived - arrived, "every sticker arrives exactly once");
         }
 
         [UnityTest]
@@ -136,6 +156,53 @@ namespace Project.Tests
             int before = hud.Collect.Arrived;
             yield return StudioLookPlayTests.WaitUntil(() => hud.Collect.Arrived > before, 4f);
             Assert.IsTrue(hud.Collect.RowClipped(color), "the rolling count stays under the HEDEF label");
+        }
+
+
+        private static IEnumerator WinThenNewRound(PuzzleLook look)
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(look, (g, h) => { game = g; hud = h; });
+            var design = game.S.ToDesign();
+            design.Targets = new[] { (0, 1) };                   // one red: the first affordable red wins (the recorder's win)
+            game.Prepare(game.S.Ammo, 7, design);
+            game.Begin();
+            yield return null;
+            int red = -1;
+            for (int i = 0; i < game.Board.Cells.Length && red < 0; i++)
+                if (game.Board.Cells[i].Color == 0 && game.Board.Cells[i].Hp <= game.Board.Ammo) red = i;
+            Assert.AreEqual("broken", game.Tap(red));
+            yield return StudioLookPlayTests.WaitUntil(() => game.Current == ColorHuntGame.State.Ended && hud.FlyingCount == 0 && !hud.Collect.Animating(0), 8f);
+            Assert.IsTrue(game.Won, $"the {look} look plays the win");
+            game.NewRound();
+            yield return null;
+            yield return null;
+            foreach (var t in game.Board.Targets)
+                Assert.IsFalse(hud.Collect.Animating(t.Color), "a new round neither stamps nor rolls the fresh counts");
+        }
+
+        [UnityTest]
+        public IEnumerator Win_ThenNewRound_DoesNotReplayTheStamp_Candy() => WinThenNewRound(PuzzleLook.Candy);
+
+        [UnityTest]
+        public IEnumerator Win_ThenNewRound_DoesNotReplayTheStamp_Shatter() => WinThenNewRound(PuzzleLook.Shatter);
+
+        [UnityTest]
+        public IEnumerator SwitchingToPota_WhileStickersFly_EndsOnTheRules()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Candy, (g, h) => { game = g; hud = h; });
+            int cell = TargetCell(game, out _);
+            Assert.AreEqual("broken", game.Tap(cell));
+            yield return StudioLookPlayTests.WaitUntil(() => hud.Collect.Flying > 0, 3f);
+            Assert.Greater(hud.Collect.Flying, 0);
+            game.SetLook(PuzzleLook.Pota);
+            float t = 0f;
+            while ((game.Busy || game.ItemsInFlight > 0 || hud.FlyingCount > 0) && t < 10f) { t += Time.unscaledDeltaTime; yield return null; }
+            yield return null;
+            Assert.AreEqual(0, hud.FlyingCount, "no orphaned sticker");
+            foreach (var target in game.Board.Targets)
+                Assert.AreEqual(Rules(game, target.Color), game.ShownTarget(target.Color), "settled: shown = rules");
         }
     }
 }

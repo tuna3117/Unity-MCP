@@ -137,9 +137,10 @@ namespace Project.ColorHunt
             _checkNeeded = true;
             _resultTimer = -1f;
             BoardRoot.localRotation = Quaternion.identity;
+            ResetShownTargets(false);                   // before RoundStarted: the HUD builds its rows from the new counts, not the last round's
             Raise(RoundStarted);
             Raise(AmmoChanged);
-            ResetShownTargets();
+            Raise(TargetsChanged);
         }
 
         /// <summary>Shows a different number on the ammo counter while the board is staged (transition count-up).</summary>
@@ -483,14 +484,14 @@ namespace Project.ColorHunt
             return 0;
         }
 
-        private void ResetShownTargets()
+        private void ResetShownTargets(bool raise = true)
         {
             _shown.Clear();
             _flights = 0;
             _flightGen++;                              // a sticker still flying from the old board changes nothing
             _targetsPending = false;
             if (Board != null) foreach (var t in Board.Targets) _shown[t.Color] = Mathf.Max(0, t.Remaining);
-            Raise(TargetsChanged);
+            if (raise) Raise(TargetsChanged);
         }
 
         /// <summary>A burst block of a target colour: its sticker flies to the HUD and lowers the count on arrival (at once if it cannot fly).</summary>

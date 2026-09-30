@@ -169,5 +169,21 @@ namespace Project.Tests
             yield return Wait(StudioCurves.HintDelay + 0.6f);
             Assert.AreEqual(-1, game.HintCell);
         }
+
+
+        [UnityTest]
+        public IEnumerator HowToPlayCard_StaysThroughTheIntro()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Candy, (g, h) => { game = g; hud = h; });
+            game.NewRound();
+            yield return null;
+            yield return null;
+            Assert.IsTrue(game.Intro);
+            Assert.IsTrue(hud.transform.Find("Hint").GetComponent<UnityEngine.UI.Text>().enabled, "the card waits for the first tap");
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 1f);
+            yield return null;
+            Assert.IsTrue(hud.transform.Find("Hint").GetComponent<UnityEngine.UI.Text>().enabled);
+        }
     }
 }

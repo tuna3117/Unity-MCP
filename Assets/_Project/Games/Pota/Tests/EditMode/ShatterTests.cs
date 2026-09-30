@@ -118,5 +118,16 @@ namespace Project.Tests
             float cov = xu / n - (mx / n) * (mu / n);
             Assert.Greater(cov, 0f, "u grows to the right: the item is not mirrored");
         }
+
+
+        [Test]
+        public void PieceShader_TakesTheBurstsPointLight()
+        {
+            // spec §2 B: the point light lights the pieces (Forward: _ADDITIONAL_LIGHTS, Forward+: the cluster loop)
+            var shader = Shader.Find("Project/PotaPiece");
+            Assert.IsNotNull(shader);
+            Assert.IsTrue(shader.keywordSpace.FindKeyword("_ADDITIONAL_LIGHTS").isValid, "_ADDITIONAL_LIGHTS");
+            Assert.IsTrue(shader.keywordSpace.FindKeyword("_CLUSTER_LIGHT_LOOP").isValid, "_CLUSTER_LIGHT_LOOP");
+        }
     }
 }
