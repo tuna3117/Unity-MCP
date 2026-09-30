@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ColorHuntSettings
   m_EditorClassIdentifier: Project.Runtime::Project.ColorHunt.ColorHuntSettings
   Look: 0
+  StudioFlight: 1
   Size: 7
   ColorCount: 5
   HpMin: 3
