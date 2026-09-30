@@ -19,6 +19,9 @@ namespace Project.Editor.AITools
         private readonly RenderTexture _rt;
         private readonly Texture2D _tex;
         private readonly List<Canvas> _moved = new List<Canvas>();
+        private readonly List<int> _orders = new List<int>();
+        /// <summary>On the camera a canvas sorts with the world's transparents; this lifts it over every effect as the overlay was.</summary>
+        private const int AboveWorld = 1000;
 
         public int Width => _rt.width;
         public int Height => _rt.height;
@@ -39,6 +42,8 @@ namespace Project.Editor.AITools
                 c.renderMode = RenderMode.ScreenSpaceCamera;
                 c.worldCamera = _cam;
                 c.planeDistance = _cam.nearClipPlane + 0.05f;
+                _orders.Add(c.sortingOrder);
+                c.sortingOrder += AboveWorld;
                 _moved.Add(c);
             }
         }
@@ -60,13 +65,16 @@ namespace Project.Editor.AITools
 
         public void Dispose()
         {
-            foreach (var c in _moved)
+            for (int i = 0; i < _moved.Count; i++)
             {
+                var c = _moved[i];
                 if (c == null) continue;
                 c.renderMode = RenderMode.ScreenSpaceOverlay;
                 c.worldCamera = null;
+                c.sortingOrder = _orders[i];
             }
             _moved.Clear();
+            _orders.Clear();
             if (_cam != null && _cam.targetTexture == _rt) _cam.targetTexture = null;
             _rt.Release();
             UnityEngine.Object.DestroyImmediate(_rt);

@@ -84,5 +84,38 @@ namespace Project.Tests
                 Object.DestroyImmediate(camGo);
             }
         }
+
+
+        [Test]
+        public void WithUi_MovedCanvasesStayAboveWorldEffects_AndKeepTheirOrder()
+        {
+            // an overlay HUD draws over every world particle; on the camera it must still, whatever the particles' sorting order
+            var camGo = new GameObject("RecCam");
+            var cam = camGo.AddComponent<Camera>();
+            var hudGo = new GameObject("Hud", typeof(Canvas));
+            var hud = hudGo.GetComponent<Canvas>();
+            hud.renderMode = RenderMode.ScreenSpaceOverlay;
+            hud.sortingOrder = 0;
+            var cardGo = new GameObject("Card", typeof(Canvas));
+            var card = cardGo.GetComponent<Canvas>();
+            card.renderMode = RenderMode.ScreenSpaceOverlay;
+            card.sortingOrder = 5;
+            try
+            {
+                using (new FrameRecorder(cam, 64, 1f, true, new[] { hud, card }))
+                {
+                    Assert.GreaterOrEqual(hud.sortingOrder, 1000, "above the effects' orders (5–9)");
+                    Assert.Greater(card.sortingOrder, hud.sortingOrder, "overlay order kept");
+                }
+                Assert.AreEqual(0, hud.sortingOrder);
+                Assert.AreEqual(5, card.sortingOrder);
+            }
+            finally
+            {
+                Object.DestroyImmediate(hudGo);
+                Object.DestroyImmediate(cardGo);
+                Object.DestroyImmediate(camGo);
+            }
+        }
     }
 }

@@ -75,6 +75,10 @@ namespace Project.ColorHunt
         public Material ParticleLitTemplate;
         [Tooltip("URP Unlit, transparent: the selection ring.")]
         public Material SelectionTemplate;
+        [Tooltip("Project/PotaFlipbook: the studio flipbooks (puff, ring, smoke).")]
+        public Material FlipbookTemplate;
+        [Tooltip("Project/CandyShard: A's inked candy chunks.")]
+        public Material CandyShardTemplate;
 
         [Header("Studio looks (Blender hand-offs, ai_studio_import)")]
         [Tooltip("A: vfx_flipbook puff_toon, 4×4 frames of 256 px.")]
