@@ -88,7 +88,7 @@ namespace Project.ColorHunt
             if (!Ready) return;
             float s = Scale;
             Vector3 at = World(pos, PotaLook.FrontZ + 0.25f);
-            StudioParticles.Emit(_puff, at, (2.2f + 0.1f * depth) * s, 0.35f, Color.Lerp(Color.white, tone, 0.25f), Vector3.zero, R() * 360f);
+            StudioParticles.Emit(_puff, at, (2.8f + 0.1f * depth) * s, 0.35f, Color.Lerp(Color.white, tone, 0.45f), Vector3.zero, R() * 360f);
             // a random twist per flash: neighbours bursting together must not line their rays up into a lattice
             StudioParticles.Emit(_flash, World(pos, PotaLook.FrontZ + 0.35f), (2.1f + 0.15f * depth) * s, 0.12f, Color.white, Vector3.zero, R() * 45f);
             StudioParticles.Gravity(_chunks, 12f * s);

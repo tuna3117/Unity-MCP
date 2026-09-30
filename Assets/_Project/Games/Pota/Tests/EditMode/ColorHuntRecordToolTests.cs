@@ -1,5 +1,6 @@
 using System;
 using NUnit.Framework;
+using Project.ColorHunt;
 using Project.Editor.AITools;
 
 namespace Project.Tests
@@ -23,5 +24,29 @@ namespace Project.Tests
 
         [Test]
         public void Parse_RejectsUnknownVerbs() => Assert.Throws<ArgumentException>(() => ColorHuntRecordTool.Parse("jump 3"));
+
+        [Test]
+        public void TryLook_KnowsTheThreeLooks_AndTheirLetters()
+        {
+            Assert.IsTrue(ColorHuntRecordTool.TryLook("pota", out var pota));
+            Assert.AreEqual(PuzzleLook.Pota, pota);
+            Assert.IsTrue(ColorHuntRecordTool.TryLook("Candy", out var candy));
+            Assert.AreEqual(PuzzleLook.Candy, candy);
+            Assert.IsTrue(ColorHuntRecordTool.TryLook("a", out var a));
+            Assert.AreEqual(PuzzleLook.Candy, a);
+            Assert.IsTrue(ColorHuntRecordTool.TryLook("B", out var b));
+            Assert.AreEqual(PuzzleLook.Shatter, b);
+            Assert.IsFalse(ColorHuntRecordTool.TryLook("fire", out _));
+            Assert.IsFalse(ColorHuntRecordTool.TryLook(null, out _));
+        }
+
+
+        [Test]
+        public void CloseupFocus_IsTheFirstTapsCell()
+        {
+            Assert.AreEqual("43", ColorHuntRecordTool.FirstTap(ColorHuntRecordTool.Parse("wait 0.3; select 5; tap 43; tap auto")));
+            Assert.AreEqual("auto", ColorHuntRecordTool.FirstTap(ColorHuntRecordTool.Parse("wait 0.3; tap auto")));
+            Assert.AreEqual("auto", ColorHuntRecordTool.FirstTap(ColorHuntRecordTool.Parse("wait 1")), "no tap: the hint's block");
+        }
     }
 }

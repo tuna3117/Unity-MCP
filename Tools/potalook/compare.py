@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Pota | Unity at matched moments (spec 2026-09-30 §2.1).
+"""Pota | Unity looks at matched moments (spec 2026-09-30 studio polish §1.2).
 
-Usage: uv run --with pillow Tools/potalook/compare.py OUT_PREFIX POTA_VIDEO POTA_EVENTS UNITY_FRAMES UNITY_EVENTS
-For each anchor in both events files ("tap", "rotate", "win") writes OUT_PREFIX-<anchor>.jpg: two rows (Pota, Unity), one column per
-moment (seconds after the anchor; the sheet labels them +1 s). Pota frames are extracted from the video at 30 fps with ffmpeg.
+Usage: uv run --with pillow Tools/potalook/compare.py OUT_PREFIX POTA_VIDEO POTA_EVENTS LABEL=UNITY_DIR [LABEL=UNITY_DIR ...]
+Each UNITY_DIR holds ai_colorhunt_record frames and events.json. For each moment whose anchor is in every events file ("tap", "chain",
+"rotate", "win") writes OUT_PREFIX-<moment>.jpg: one row for Pota, one per Unity dir, one column per time after the anchor (the
+sheet labels them +1 s). Pota frames are extracted from the video at 30 fps with ffmpeg; Pota's anchors come from its sync marker.
 """
 import json
 import os
@@ -16,12 +17,30 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import frame_sheet  # noqa: E402  (Tools/frame_sheet.py)
 
 FFMPEG = "/opt/homebrew/bin/ffmpeg"
-# idle, salvo mid, tapped block's swell peak (0.5 + 0.11·0.55), burst +0.08 / +0.16, a landing, the sticker home (peak + 0.55)
+# idle, salvo mid, tapped block's swell peak (0.5 + 0.11·0.55), burst +0.08 / +0.16, a landing, the sticker home (peak + 0.55);
+# chain: the steps after the tap (the tapped block is the longest chain's, "tap auto")
 MOMENTS = {
     "tap": [-0.3, 0.25, 0.5605, 0.64, 0.72, 0.9, 1.11],
+    "chain": [0.72, 0.87, 1.02, 1.17, 1.32, 1.5],
     "rotate": [0.0, 0.21, 0.33, 0.5],
     "win": [0.56, 0.9, 1.5],
 }
+ANCHORS = {"chain": "tap"}
+
+
+def anchor_of(moment):
+    return ANCHORS.get(moment, moment)
+
+
+def parse_rows(args):
+    """["A (Candy)=Temp/record/a", …] → [("A (Candy)", "Temp/record/a"), …]."""
+    rows = []
+    for arg in args:
+        label, sep, folder = arg.partition("=")
+        if not sep or not label or not folder:
+            raise ValueError(f"expected LABEL=DIR, got '{arg}'")
+        rows.append((label, folder))
+    return rows
 WINDOW = 1.0   # frames from 1 s before the anchor; names carry t − anchor + 1 so frame_sheet's regex sees no minus sign
 
 
@@ -68,27 +87,36 @@ def aligned(frames, anchor, folder):
     return folder
 
 
+def pota_anchor_times(video, events_path, work):
+    """Pota's frames (30 fps) and its anchor times: from the sync marker when every event has one, else the events file."""
+    events = json.load(open(events_path))
+    frames = extract(video, work)
+    synced = marker_events(frames, sorted(events, key=events.get))
+    if synced:
+        print(f"pota anchors from the marker: {synced} (events file: {events})")
+        return frames, synced
+    print("pota marker not found for every event: using the events file (video start latency not corrected)")
+    return frames, events
+
+
 def main(argv):
-    if len(argv) != 5:
+    if len(argv) < 4:
         sys.exit(__doc__)
-    prefix, video, pota_events, unity_dir, unity_events = argv
-    pe, ue = json.load(open(pota_events)), json.load(open(unity_events))
+    prefix, video, pota_events = argv[:3]
+    rows = parse_rows(argv[3:])
     work = tempfile.mkdtemp(prefix="potalook-")
     try:
-        pota = extract(video, work)
-        synced = marker_events(pota, sorted(pe, key=pe.get))
-        if synced:
-            print(f"pota anchors from the marker: {synced} (events file: {pe})")
-            pe = synced
-        else:
-            print("pota marker not found for every event: using the events file (video start latency not corrected)")
-        unity = frame_sheet.load_frames(unity_dir)
-        for anchor, times in MOMENTS.items():
-            if anchor not in pe or anchor not in ue:
+        pota, pe = pota_anchor_times(video, pota_events, work)
+        unity = [(label, frame_sheet.load_frames(folder), json.load(open(os.path.join(folder, "events.json"))))
+                 for label, folder in rows]
+        for moment, times in MOMENTS.items():
+            anchor = anchor_of(moment)
+            if anchor not in pe or any(anchor not in ev for _, _, ev in unity):
                 continue
-            a = aligned(pota, pe[anchor], os.path.join(work, f"pota-{anchor}"))
-            b = aligned(unity, ue[anchor], os.path.join(work, f"unity-{anchor}"))
-            frame_sheet.main([f"{prefix}-{anchor}.jpg", f"Pota={a}", f"Unity={b}",
+            columns = [f"Pota={aligned(pota, pe[anchor], os.path.join(work, f'pota-{moment}'))}"]
+            for i, (label, frames, ev) in enumerate(unity):
+                columns.append(f"{label}={aligned(frames, ev[anchor], os.path.join(work, f'unity{i}-{moment}'))}")
+            frame_sheet.main([f"{prefix}-{moment}.jpg", *columns,
                               "--times", ",".join(f"{t + WINDOW:.4f}" for t in times), "--height", "640"])
     finally:
         shutil.rmtree(work, ignore_errors=True)

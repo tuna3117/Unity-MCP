@@ -36,10 +36,27 @@ namespace Project.Editor.AITools
             [ToolParameter("Frame aspect w/h (default 0.5625)", Required = false)] public float? aspect { get; set; }
             [ToolParameter("Seconds after the script (default 1.5)", Required = false)] public float? tail { get; set; }
             [ToolParameter("Folder under Temp/record (default 'colorhunt')", Required = false)] public string name { get; set; }
+            [ToolParameter("pota | candy (a) | shatter (b); default: the game's current look", Required = false)] public string look { get; set; }
+            [ToolParameter("zoom ×2.4 on the first tap's block and play at ×0.3", Required = false)] public bool? closeup { get; set; }
         }
 
         public const string DefaultScript = "wait 0.6; select auto; wait 0.3; tap auto; settle; wait 0.4; rotate cw; settle; wait 0.3; tap auto; settle";
         public const string WinScript = "wait 0.6; tap auto; wait 2.5";
+        public const float CloseupZoom = 2.4f, CloseupTimeScale = 0.3f;
+        private static PuzzleLook _previousLook;
+        private static bool _closeup, _restoreLook;
+
+        /// <summary>"pota" | "candy" / "a" | "shatter" / "b", any case.</summary>
+        public static bool TryLook(string s, out PuzzleLook look)
+        {
+            switch ((s ?? "").Trim().ToLowerInvariant())
+            {
+                case "pota": look = PuzzleLook.Pota; return true;
+                case "candy": case "a": look = PuzzleLook.Candy; return true;
+                case "shatter": case "b": look = PuzzleLook.Shatter; return true;
+                default: look = PuzzleLook.Pota; return false;
+            }
+        }
 
         private static readonly HashSet<string> Verbs = new HashSet<string> { "wait", "select", "tap", "rotate", "settle" };
         private static List<Step> _steps;
@@ -66,6 +83,13 @@ namespace Project.Editor.AITools
             return steps;
         }
 
+        /// <summary>The first tap's cell argument ("auto" when the script taps nothing): the close-up zooms on it.</summary>
+        public static string FirstTap(List<Step> steps)
+        {
+            foreach (var s in steps) if (s.Verb == "tap") return string.IsNullOrEmpty(s.Arg) ? "auto" : s.Arg;
+            return "auto";
+        }
+
         public static object HandleCommand(JObject p)
         {
             string action = (AIToolsCommon.GetString(p, "action", "start") ?? "start").ToLowerInvariant();
@@ -78,6 +102,13 @@ namespace Project.Editor.AITools
             _win = p["win"] != null && p["win"].Type == JTokenType.Boolean && p["win"].Value<bool>();
             try { _steps = Parse(AIToolsCommon.GetString(p, "script", _win ? WinScript : DefaultScript)); }
             catch (Exception e) { return new ErrorResponse(e.Message); }
+            string lookArg = AIToolsCommon.GetString(p, "look", null);
+            if (!string.IsNullOrEmpty(lookArg) && !TryLook(lookArg, out _))
+                return new ErrorResponse($"unknown look '{lookArg}' (pota, candy/a, shatter/b)");
+            _previousLook = game.Look;
+            _restoreLook = true;
+            if (!string.IsNullOrEmpty(lookArg) && TryLook(lookArg, out var look)) game.SetLook(look);
+            _closeup = AIToolsCommon.GetBool(p, "closeup", false);
             _seed = AIToolsCommon.GetInt(p, "seed", 7);
             _ammo = AIToolsCommon.GetInt(p, "ammo", game.S.Ammo);
             _width = Mathf.Clamp(AIToolsCommon.GetInt(p, "width", 540), 120, 2160);
@@ -99,6 +130,16 @@ namespace Project.Editor.AITools
 
         private static void Stop(string why)
         {
+            var game = Object.FindAnyObjectByType<ColorHuntGame>();
+            if (game != null && _restoreLook)
+            {
+                game.SetLook(_previousLook);
+                var fit = game.Cam != null ? game.Cam.GetComponent<ColorHuntCamera>() : null;
+                if (fit != null) fit.Zoom = 1f;
+                if (_closeup) game.Juice?.TimeCtl?.Clear();
+            }
+            _closeup = false;
+            _restoreLook = false;
             _running = false;
             _result = why;
             EditorApplication.update -= Tick;
@@ -145,6 +186,13 @@ namespace Project.Editor.AITools
                 game.Prepare(_ammo, (uint)_seed, design);
                 game.StartIntro();                                  // studio looks deal like NewRound
                 game.Begin();
+                if (_closeup)
+                {
+                    var fit = game.Cam.GetComponent<ColorHuntCamera>();
+                    int focus = Cell(game, FirstTap(_steps));
+                    if (fit != null && focus >= 0) { fit.Zoom = CloseupZoom; fit.ZoomFocus = game.CellWorld(focus); }
+                    game.Juice?.TimeCtl?.SlowMo(CloseupTimeScale, 3600f);
+                }
                 _recorder = new FrameRecorder(game.Cam, _width, _aspect, true);
                 _t0 = Time.unscaledTime;
                 _dealt = true;
@@ -207,6 +255,6 @@ namespace Project.Editor.AITools
             _captured++;
         }
 
-        private static object Status() => new { running = _running, step = _index, steps = _steps?.Count ?? 0, frames = _captured, dir = _dir, result = _result, events = _events, gameTime = Time.time, frameCount = Time.frameCount, timeScale = Time.timeScale, captureDeltaTime = Time.captureDeltaTime };
+        private static object Status() => new { running = _running, step = _index, steps = _steps?.Count ?? 0, frames = _captured, dir = _dir, result = _result, events = _events, look = Object.FindAnyObjectByType<ColorHuntGame>()?.Look.ToString(), closeup = _closeup, gameTime = Time.time, frameCount = Time.frameCount, timeScale = Time.timeScale, captureDeltaTime = Time.captureDeltaTime };
     }
 }
