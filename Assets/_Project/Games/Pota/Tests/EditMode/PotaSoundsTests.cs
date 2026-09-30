@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using Project.ColorHunt;
+using UnityEngine;
 
 namespace Project.Tests
 {
@@ -36,6 +37,29 @@ namespace Project.Tests
             Assert.IsTrue(PotaSounds.IsSample("dokun"), "ses.ts ORNEK dokun → dokun.mp3 (played at 0.97–1.03)");
             foreach (var id in new[] { "kuleAt", "kirildi", "dustu", "dondur", "eksi", "kazandi", "kaybetti" }) Assert.IsTrue(PotaSounds.IsSample(id), id);
             foreach (var id in new[] { "kombo", "carpma" }) Assert.IsFalse(PotaSounds.IsSample(id), id + " is synthesised in ses.ts");
+        }
+
+        private static float Peak(AudioClip c)
+        {
+            var d = new float[c.samples];
+            c.GetData(d, 0);
+            float m = 0f;
+            foreach (float s in d) m = Mathf.Max(m, Mathf.Abs(s));
+            return m;
+        }
+
+        [Test]
+        public void CollectAndDone_AreShortAudibleSynths()
+        {
+            var collect = PotaSounds.MakeCollect();
+            Assert.AreEqual("topla", collect.name);
+            Assert.AreEqual(0.14f, collect.length, 0.01f);
+            Assert.Greater(Peak(collect), 0.2f);
+            var done = PotaSounds.MakeDone();
+            Assert.AreEqual("tamam", done.name);
+            Assert.AreEqual(0.42f, done.length, 0.01f);
+            Assert.Greater(Peak(done), 0.2f);
+            Assert.LessOrEqual(Peak(done), 1f);
         }
     }
 }

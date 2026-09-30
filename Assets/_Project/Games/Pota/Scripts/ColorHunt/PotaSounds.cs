@@ -14,7 +14,7 @@ namespace Project.ColorHunt
         /// <summary>ses.ts SINIR (seconds).</summary>
         private static readonly Dictionary<string, float> Limits = new Dictionary<string, float>
         {
-            { "carpma", 0.06f }, { "eksi", 0.06f }, { "kirildi", 0.05f }, { "kombo", 0.08f }, { "dustu", 0.045f },
+            { "carpma", 0.06f }, { "eksi", 0.06f }, { "kirildi", 0.05f }, { "kombo", 0.08f }, { "dustu", 0.045f }, { "topla", 0.03f },
         };
 
         /// <summary>ses.ts ORNEK: the events that play an mp3 sample (rate jitter 0.97–1.03); the rest are synthesised.</summary>
@@ -27,6 +27,44 @@ namespace Project.ColorHunt
 
         public AudioClip LastClip { get; private set; }
         public float LastVolume { get; private set; }
+
+        private const int Rate = 44100;
+        private AudioClip _collect, _done;
+
+        /// <summary>"topla": two bright blips (1320 then 1980 Hz) — a sticker lands in its box.</summary>
+        public static AudioClip MakeCollect() => Synth("topla", 0.14f,
+            t => 0.5f * Mathf.Sin(2f * Mathf.PI * 1320f * t) * Env(t, 0.09f, 30f)
+               + 0.35f * Mathf.Sin(2f * Mathf.PI * 1980f * t) * Env(t - 0.03f, 0.1f, 34f));
+
+        /// <summary>"tamam": a rising triangle arpeggio G5–B5–E6 — a target is done.</summary>
+        public static AudioClip MakeDone() => Synth("tamam", 0.42f, t =>
+        {
+            float s = 0f;
+            float[] f = { 784f, 988f, 1319f };
+            for (int k = 0; k < f.Length; k++) { float tk = t - 0.06f * k; s += Tri(f[k] * tk) * Env(tk, 0.28f, 12f); }
+            return 0.35f * s;
+        });
+
+        public static AudioClip Synth(string name, float seconds, System.Func<float, float> fn)
+        {
+            int n = Mathf.CeilToInt(seconds * Rate);
+            var data = new float[n];
+            for (int i = 0; i < n; i++) data[i] = Mathf.Clamp(fn(i / (float)Rate), -1f, 1f);
+            var clip = AudioClip.Create(name, n, 1, Rate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private static float Env(float t, float dur, float decay) => t < 0f || t > dur ? 0f : Mathf.Min(1f, t / 0.004f) * Mathf.Exp(-decay * t);
+
+        private static float Tri(float cycles)
+        {
+            float f = cycles - Mathf.Floor(cycles);
+            return 4f * Mathf.Abs(f - 0.5f) - 1f;
+        }
+
+        public void Collect(int streak) => Play("topla", _collect, 0.8f, StudioCurves.CollectPitch(streak));
+        public void TargetDone() => Play("tamam", _done, 0.9f, 1f);
 
         private readonly Dictionary<string, float> _last = new Dictionary<string, float>();
         private AudioSource[] _voices;
@@ -63,9 +101,11 @@ namespace Project.ColorHunt
                 src.spatialBlend = 0f;
                 _voices[i] = src;
             }
+            _collect = MakeCollect();
+            _done = MakeDone();
         }
 
-        private void Play(string id, AudioClip clip, float volume)
+        private void Play(string id, AudioClip clip, float volume, float pitch = -1f)
         {
             if (clip == null || !Allow(_last, id, Time.unscaledTime)) return;
             LastClip = clip;
@@ -73,7 +113,7 @@ namespace Project.ColorHunt
             if (_voices == null) return;
             var src = _voices[_next];
             _next = (_next + 1) % _voices.Length;
-            src.pitch = IsSample(id) ? Random.Range(0.97f, 1.03f) : 1f;
+            src.pitch = pitch > 0f ? pitch : IsSample(id) ? Random.Range(0.97f, 1.03f) : 1f;
             src.clip = clip;
             src.volume = volume;
             src.Play();

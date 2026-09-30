@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d746d4f19999c46a590446964bb9b6f0, type: 3}
   m_Name: ColorHuntSettings
   m_EditorClassIdentifier: Project.Runtime::Project.ColorHunt.ColorHuntSettings
+  Look: 0
   Size: 7
   ColorCount: 5
   HpMin: 3
