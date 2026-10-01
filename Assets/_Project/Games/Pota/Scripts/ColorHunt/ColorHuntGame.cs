@@ -26,6 +26,8 @@ namespace Project.ColorHunt
         public State Current { get; private set; } = State.Idle;
         public Board Board { get; private set; }
         public Transform BoardRoot { get; private set; }
+        /// <summary>The golden ball's gate rings (yapbozSahne.ts gecisGoster), on the game root: they never turn with the board.</summary>
+        public GateRings Gates { get; private set; }
         public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _intro >= 0f;
 
         private float _intro = -1f, _idle, _hintT = -1f;
@@ -67,6 +69,8 @@ namespace Project.ColorHunt
         private readonly List<BlockView> _loose = new List<BlockView>();      // out of their cell, still swelling (Pota sonenler)
         private readonly List<BlockView> _finished = new List<BlockView>();
         private float _disperse = -1f;
+        /// <summary>The views' clock (s of game time): the golden pulse's phase, shared by every golden ball like Pota's `simdi`.</summary>
+        private float _clock;
         private class DropState { public float StartY, Distance, T; public bool Landed; }
 
         private Mesh _blockMesh;
@@ -101,6 +105,10 @@ namespace Project.ColorHunt
             _selectionRing.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _selectionRing.SetActive(false);
 
+            Gates = new GameObject("GateRings").AddComponent<GateRings>();
+            Gates.transform.SetParent(transform, false);
+            Gates.Build(this);
+
             if (Fx != null) { Fx.Build(); Fx.SetBoard(BoardRoot); }
             if (Salvo != null) Salvo.Board = BoardRoot;
             SetLook(S != null ? S.Look : PuzzleLook.Pota);
@@ -123,12 +131,31 @@ namespace Project.ColorHunt
         {
             ClearViews();
             Seed = seed != 0 ? seed : S.Seed != 0 ? S.Seed : (uint)UnityEngine.Random.Range(1, int.MaxValue);
-            Board = ColorHuntRules.Create(design ?? S.ToDesign(), ammo, Seed);
+            Deal(ColorHuntRules.Create(design ?? S.ToDesign(), ammo, Seed));
+        }
+
+        /// <summary>
+        /// Deals a given board (demo presets, rule fixtures) instead of a fresh one: a copy goes on the table with the same reset and the
+        /// same events as <see cref="Prepare(int, uint, LevelDesign)"/>, its gates show; <see cref="Seed"/> is 0. Call Begin to play.
+        /// </summary>
+        public void Stage(Board board)
+        {
+            if (board == null) throw new ArgumentNullException(nameof(board));
+            ClearViews();
+            Seed = 0;
+            Deal(board.Clone());
+        }
+
+        /// <summary>Puts a board on the table: views, grid scale, effects and styles cleared, gate rings, counters; then the round events.</summary>
+        private void Deal(Board board)
+        {
+            Board = board;
             BuildViews(Board);
             BoardRoot.localScale = Vector3.one * PotaLook.GridScale(Board.Size);
             Fx?.SetBoard(BoardRoot);
             Fx?.Clear();
             _style?.Clear();
+            Gates?.Show(Board.Gates);
             DisplayedAmmo = Board.Ammo;
             Current = State.Idle;
             _staged = true;
@@ -260,10 +287,24 @@ namespace Project.ColorHunt
             TickViews(dt);
         }
 
+        /// <summary>
+        /// Ticks every view. renkAviFaz.ts gorselleriIlerlet: a golden ball that neither drops nor bursts pulses
+        /// flas ≥ 0.08·(1 + sin 5t); the game owns the clock so all golden balls share the phase.
+        /// </summary>
         private void TickViews(float dt)
         {
-            foreach (var v in _views.Values) v.Tick(dt);
-            foreach (var v in _loose) v.Tick(dt);
+            _clock += dt;
+            float pulse = PotaLook.GoldenPulse(_clock);
+            foreach (var v in _views.Values)
+            {
+                v.Pulse = v.Block.Special == SpecialKind.Golden && !v.Exploding && !_drops.ContainsKey(v) ? pulse : 0f;
+                v.Tick(dt);
+            }
+            foreach (var v in _loose)
+            {
+                v.Pulse = 0f;
+                v.Tick(dt);
+            }
         }
 
         private string _endReason = "";
@@ -663,7 +704,7 @@ namespace Project.ColorHunt
             foreach (var v in _views.Values)
             {
                 bool ammoCovers = v.Block.Hp <= DisplayedAmmo;
-                v.Dim = Current == State.Playing && !ammoCovers && !v.Exploding;
+                v.Dim = Current == State.Playing && !ammoCovers && !v.Exploding && !v.Block.IsSpecial;   // soluk: … && !g.blok.ozel
             }
         }
 
@@ -689,7 +730,7 @@ namespace Project.ColorHunt
                 v = go.AddComponent<BlockView>();
                 v.Init(S, _blockMesh, _blockMat, _labelMat);
             }
-            v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false; v.Swell = -1f; v.LabelAngle = 0f;
+            v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false; v.Swell = -1f; v.LabelAngle = 0f; v.Pulse = 0f;
             v.ResetStudio();
             v.SetBlock(block, cell);
             v.transform.localPosition = new Vector3(home.x, home.y, 0f);

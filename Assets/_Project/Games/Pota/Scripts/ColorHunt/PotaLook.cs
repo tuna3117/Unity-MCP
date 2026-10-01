@@ -217,5 +217,81 @@ namespace Project.ColorHunt
 
         /// <summary>yapbozSahne.ts topKaynagi: (0, altKenar − TOP_PAYI·0.75), altKenar = −n/2.</summary>
         public static Vector2 SalvoSource(int n) => new Vector2(0f, -n * 0.5f - BallPad * 0.75f);
+
+        // yapbozSahne.ts special balls: OZEL_RENK_HEX → koyuDoygun → OZEL_BLOK_TONU; etiketleriYaz ozelOlcek. renkAviFaz.ts RENK_AVI_HIS.ozel.
+        public const float SpecialScale = 0.82f / 0.88f;        // ozelOlcek: 82 % of the block on screen, drawn into 88 % of its cell
+        public const float GoldenPulseAmount = 0.08f;           // ozel.altinNabiz
+        public const float GoldenPulseSpeed = 5f;               // ozel.altinHiz (rad/s)
+
+        /// <summary>yapbozSahne.ts OZEL_RENK_HEX: çizgi orange (both directions), bomba smoke, altın gold (sRGB).</summary>
+        public static uint SpecialHex(SpecialKind k)
+        {
+            switch (k)
+            {
+                case SpecialKind.LineV:
+                case SpecialKind.LineH: return 0xff8a2a;
+                case SpecialKind.Bomb: return 0x2a2d36;
+                case SpecialKind.Golden: return 0xffc93c;
+                default: throw new System.ArgumentOutOfRangeException(nameof(k), k, "not a special ball");
+            }
+        }
+
+        /// <summary>yapbozSahne.ts OZEL_BLOK_TONU = koyuDoygun(OZEL_RENK_HEX), sRGB: lines #ec7b00, bomb #242732, golden #eeb900.</summary>
+        public static Color SpecialTone(SpecialKind k) => Hex(DarkSaturated(SpecialHex(k)));
+
+        /// <summary>renkAviFaz.ts gorselleriIlerlet: a golden ball's flash floor 0.08·(1 + sin(5t)), t = the phase clock in seconds.</summary>
+        public static float GoldenPulse(float t) => GoldenPulseAmount * (1f + Mathf.Sin(t * GoldenPulseSpeed));
+
+        /// <summary>
+        /// yapbozSahne.ts koyuDoygun in three.js's own arithmetic (doubles, like JS): hex → linear (SRGBToLinear), getHSL in that LINEAR
+        /// working space, s ×1.25 (≤ 1), l ×0.82, setHSL, back to sRGB (LinearToSRGB, exponent 0.41666) and Math.round to 8 bits (getHex).
+        /// </summary>
+        public static uint DarkSaturated(uint hex)
+        {
+            double r = SrgbToLinear(((hex >> 16) & 0xff) / 255.0), g = SrgbToLinear(((hex >> 8) & 0xff) / 255.0), b = SrgbToLinear((hex & 0xff) / 255.0);
+            double max = System.Math.Max(r, System.Math.Max(g, b)), min = System.Math.Min(r, System.Math.Min(g, b));
+            double h = 0.0, s = 0.0, l = (min + max) / 2.0;
+            if (max != min)
+            {
+                double d = max - min;
+                s = l <= 0.5 ? d / (max + min) : d / (2.0 - max - min);
+                if (max == r) h = (g - b) / d + (g < b ? 6.0 : 0.0);
+                else if (max == g) h = (b - r) / d + 2.0;
+                else h = (r - g) / d + 4.0;
+                h /= 6.0;
+            }
+            s = System.Math.Min(1.0, s * 1.25);
+            l *= 0.82;
+            h -= System.Math.Floor(h);                                           // setHSL: euclideanModulo(h, 1), clamp s and l
+            s = System.Math.Min(1.0, System.Math.Max(0.0, s));
+            l = System.Math.Min(1.0, System.Math.Max(0.0, l));
+            if (s == 0.0) r = g = b = l;
+            else
+            {
+                double hi = l <= 0.5 ? l * (1.0 + s) : l + s - l * s, lo = 2.0 * l - hi;
+                r = Hue(lo, hi, h + 1.0 / 3.0);
+                g = Hue(lo, hi, h);
+                b = Hue(lo, hi, h - 1.0 / 3.0);
+            }
+            return (Byte8(r) << 16) | (Byte8(g) << 8) | Byte8(b);
+        }
+
+        private static double SrgbToLinear(double c) => c < 0.04045 ? c * 0.0773993808 : System.Math.Pow(c * 0.9478672986 + 0.0521327014, 2.4);
+        private static double LinearToSrgb(double c) => c < 0.0031308 ? c * 12.92 : 1.055 * System.Math.Pow(c, 0.41666) - 0.055;
+
+        /// <summary>three.js hue2rgb(p = lo, q = hi, t).</summary>
+        private static double Hue(double lo, double hi, double t)
+        {
+            if (t < 0.0) t += 1.0;
+            if (t > 1.0) t -= 1.0;
+            if (t < 1.0 / 6.0) return lo + (hi - lo) * 6.0 * t;
+            if (t < 0.5) return hi;
+            if (t < 2.0 / 3.0) return lo + (hi - lo) * 6.0 * (2.0 / 3.0 - t);
+            return lo;
+        }
+
+        /// <summary>getHex: Math.round(clamp(sRGB·255, 0, 255)); JS rounds .5 up, so floor(v + 0.5).</summary>
+        private static uint Byte8(double linear) =>
+            (uint)System.Math.Floor(System.Math.Min(255.0, System.Math.Max(0.0, LinearToSrgb(linear) * 255.0)) + 0.5);
     }
 }

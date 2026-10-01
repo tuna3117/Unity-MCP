@@ -7,7 +7,9 @@ namespace Project.ColorHunt
     /// <summary>
     /// One block in Pota's "balon" look: glossy pillow in its candy tone (linear colour per instance), the item sticker (72 %, centre,
     /// +0.06) and the hp number (44 %, bottom-right) from the label atlas, and the state the game drives every frame: flash, uniform
-    /// squash, shiver, swell, the labels' counter-angle during rotation, dimming when the ammo does not cover the block.
+    /// squash, shiver, swell, the labels' counter-angle during rotation, dimming when the ammo does not cover the block. A special ball
+    /// (yapbozSahne.ts etiketleriYaz, `h.blok.ozel`) wears OZEL_BLOK_TONU and its sticker (atlas 105–107) centred at 82 %, the
+    /// horizontal line's turned 90°; it has no number and is never dimmed.
     /// </summary>
     public class BlockView : MonoBehaviour
     {
@@ -32,6 +34,12 @@ namespace Project.ColorHunt
         public float Swell = -1f;
         /// <summary>Labels' angle relative to the board in degrees (Pota `donme`: rides the board, then stands up).</summary>
         public float LabelAngle;
+        /// <summary>Flash floor applied after the decay this frame: the game's golden pulse (renkAviFaz.ts altinNabiz); 0 = none.</summary>
+        public float Pulse;
+        /// <summary>Style-driven idle offset added to the y position (board cells); 0 under the Pota look.</summary>
+        public float Bob;
+        /// <summary>Style-driven idle turn: degrees added to the sticker's angle; 0 under the Pota look.</summary>
+        public float StickerSpin;
 
         /// <summary>Studio press: the finger is on this block (the game sets it only for looks other than Pota).</summary>
         public bool Pressed;
@@ -45,6 +53,8 @@ namespace Project.ColorHunt
         {
             Pressed = false;
             Wiggle = 0f;
+            Bob = 0f;
+            StickerSpin = 0f;
             _press = 0f;
             _release = -1f;
             PressScale = 1f;
@@ -124,22 +134,28 @@ namespace Project.ColorHunt
         {
             Block = b;
             Cell = cell;
-            _itemMpb.SetVector(UvRectId, LabelAtlas.UvRect(LabelAtlas.ItemCell(b.Color)));
+            int sticker = b.IsSpecial ? LabelAtlas.SpecialCell(b.Special) : LabelAtlas.ItemCell(b.Color);
+            _itemMpb.SetVector(UvRectId, LabelAtlas.UvRect(sticker));
             _numberMpb.SetVector(UvRectId, LabelAtlas.UvRect(LabelAtlas.NumberCell(b.Hp)));
+            _number.enabled = !b.IsSpecial;                        // etiketleriYaz: özel top → rakam yok
             Apply();
         }
 
         public Texture2D ItemIcon => _s.ItemIcon(Block.Color);
 
+        /// <summary>The body tone (sRGB): OZEL_BLOK_TONU for a special, the palette colour otherwise (Pota blokRengi; bursts use it too).</summary>
+        public Color Tone => Block.IsSpecial ? PotaLook.SpecialTone(Block.Special) : _s.PaletteColor(Block.Color);
+
         /// <summary>Advance the transient state and write transform and colours (renkAviFaz.ts gorselleriIlerlet).</summary>
         public void Tick(float dt)
         {
             Flash = Mathf.Max(0f, Flash - dt * PotaLook.FlashDecay);
+            if (Pulse > 0f) Flash = Mathf.Max(Flash, Pulse);      // altinNabiz: after the decay, before drawing
             Squash = Mathf.Max(0f, Squash - dt * PotaLook.SquashDecay);
             Shiver = Mathf.Max(0f, Shiver - dt);
             float t = _s.InsufficientShake;
             float shiverX = Shiver > 0f ? Mathf.Sin((t - Shiver) * 68f) * PotaLook.ShiverAmount * (Shiver / t) : 0f;
-            transform.localPosition = new Vector3(Pos.x + shiverX, Pos.y, 0f);
+            transform.localPosition = new Vector3(Pos.x + shiverX, Pos.y + Bob, 0f);
             float own = Mathf.Max(0.001f, Swell >= 0f ? Swell : 1f - PotaLook.LandSquash * Squash);
             float press = 1f;
             if (Pressed)
@@ -165,18 +181,21 @@ namespace Project.ColorHunt
 
         /// <summary>
         /// yapbozSahne.ts etiketleriYaz: the plane sits at (Z_ON + 0.03 + bulge)·max(1, scale), the quads grow with the block, the offsets
-        /// do not (they are divided by the block's own scale here because the labels are its children).
+        /// do not (they are divided by the block's own scale here because the labels are its children). A special's sprite sits in the
+        /// middle at ozelOlcek, cizgiYatay's turned +π/2; <see cref="StickerSpin"/> turns the sticker further.
         /// </summary>
         private void PlaceLabels(float own)
         {
             float a = LabelAngle * Mathf.Deg2Rad, cs = Mathf.Cos(a), sn = Mathf.Sin(a);
             float z = -PotaLook.LabelZ * Mathf.Max(1f, own) / own;
             var rot = Quaternion.Euler(0f, 0f, LabelAngle);
-            float ey = PotaLook.ItemOffsetY;
+            bool special = Block.IsSpecial;
+            float ey = special ? 0f : PotaLook.ItemOffsetY;
+            float turn = (Block.Special == SpecialKind.LineH ? 90f : 0f) + StickerSpin;
             var it = _item.transform;
             it.localPosition = new Vector3(-ey * sn / own, ey * cs / own, z);
-            it.localRotation = rot;
-            it.localScale = Vector3.one * (PotaLook.LabelQuad * PotaLook.ItemScale);
+            it.localRotation = Quaternion.Euler(0f, 0f, LabelAngle + turn);
+            it.localScale = Vector3.one * (PotaLook.LabelQuad * (special ? PotaLook.SpecialScale : PotaLook.ItemScale));
             var o = PotaLook.NumberOffset;
             var nt = _number.transform;
             nt.localPosition = new Vector3((o.x * cs - o.y * sn) / own, (o.x * sn + o.y * cs) / own, z - 0.01f / own);
@@ -186,11 +205,12 @@ namespace Project.ColorHunt
 
         private void Apply()
         {
-            _bodyMpb.SetVector(BaseColorId, PotaLook.BlockColor(_s.PaletteColor(Block.Color), Flash, Dim));
+            bool dim = Dim && !Block.IsSpecial;                   // renkAviFaz.ts soluk: … && !g.blok.ozel
+            _bodyMpb.SetVector(BaseColorId, PotaLook.BlockColor(Tone, Flash, dim));
             _body.SetPropertyBlock(_bodyMpb);
-            _itemMpb.SetVector(ColorId, Dim ? PotaLook.ItemShort.linear : Color.white);
+            _itemMpb.SetVector(ColorId, dim ? PotaLook.ItemShort.linear : Color.white);
             _item.SetPropertyBlock(_itemMpb);
-            _numberMpb.SetVector(ColorId, Dim ? PotaLook.NumberShort.linear : Color.white);
+            _numberMpb.SetVector(ColorId, dim ? PotaLook.NumberShort.linear : Color.white);
             _number.SetPropertyBlock(_numberMpb);
         }
     }

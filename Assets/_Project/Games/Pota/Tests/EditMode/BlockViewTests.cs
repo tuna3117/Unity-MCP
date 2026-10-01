@@ -103,5 +103,94 @@ namespace Project.Tests
             v.Tick(0f);
             Assert.Less(Vector3.Distance(Vector3.one * 0.88f, _go.transform.localScale), 1e-5f, "olcek = 1 − 0.12·carpma on every axis");
         }
+
+        [Test]
+        public void Special_HidesTheNumber_WearsItsToneAndCentredSticker()
+        {
+            var v = Make(Block.MakeSpecial(SpecialKind.Bomb));
+            Assert.IsFalse(_go.transform.Find("Number").GetComponent<MeshRenderer>().enabled, "özel top: rakam yok");
+            var item = _go.transform.Find("Item");
+            Assert.AreEqual(LabelAtlas.UvRect(106), Prop(item, "_UvRect"));
+            Assert.AreEqual(0f, item.position.x, 1e-4f);
+            Assert.AreEqual(0f, item.position.y, 1e-4f, "centred: no 0.06 lift");
+            Assert.AreEqual(0.92f * 0.82f / 0.88f, item.lossyScale.x, 1e-4f, "ozelOlcek");
+            Assert.AreEqual(0f, item.localEulerAngles.z, 1e-3f);
+            Assert.AreEqual(PotaLook.SpecialTone(SpecialKind.Bomb), v.Tone);
+            Assert.AreEqual((Vector4)PotaLook.BlockColor(PotaLook.SpecialTone(SpecialKind.Bomb), 0f, false), Prop(_go.transform, "_BaseColor"));
+            Assert.AreEqual((Vector4)Color.white, Prop(item, "_Color"));
+        }
+
+        [Test]
+        public void LineH_TurnsTheLineSticker90_LineVDoesNot()
+        {
+            Make(Block.MakeSpecial(SpecialKind.LineH));
+            var item = _go.transform.Find("Item");
+            Assert.AreEqual(LabelAtlas.UvRect(105), Prop(item, "_UvRect"));
+            Assert.AreEqual(90f, item.localEulerAngles.z, 1e-3f, "cizgiYatay: donme + π/2");
+            var v = _go.GetComponent<BlockView>();
+            v.SetBlock(Block.MakeSpecial(SpecialKind.LineV), 0);
+            v.Tick(0f);
+            Assert.AreEqual(LabelAtlas.UvRect(105), Prop(item, "_UvRect"));
+            Assert.AreEqual(0f, item.localEulerAngles.z, 1e-3f);
+        }
+
+        [Test]
+        public void Special_IsNeverDimmed()
+        {
+            var v = Make(Block.MakeSpecial(SpecialKind.Golden));
+            v.Dim = true;
+            v.Tick(0f);
+            Assert.AreEqual((Vector4)PotaLook.BlockColor(PotaLook.SpecialTone(SpecialKind.Golden), 0f, false), Prop(_go.transform, "_BaseColor"),
+                "renkAviFaz.ts soluk: … && !g.blok.ozel");
+            Assert.AreEqual((Vector4)Color.white, Prop(_go.transform.Find("Item"), "_Color"));
+        }
+
+        [Test]
+        public void ANormalBlock_AfterASpecial_GetsItsNumberAndLiftBack()
+        {
+            var v = Make(Block.MakeSpecial(SpecialKind.Golden));
+            v.SetBlock(new Block(2, 9), 0);                                    // a pooled view reused
+            v.Tick(0f);
+            var item = _go.transform.Find("Item");
+            Assert.IsTrue(_go.transform.Find("Number").GetComponent<MeshRenderer>().enabled);
+            Assert.AreEqual(LabelAtlas.UvRect(102), Prop(item, "_UvRect"));
+            Assert.AreEqual(0.06f, item.position.y, 1e-4f);
+            Assert.AreEqual(0.92f * 0.72f / 0.88f, item.lossyScale.x, 1e-4f);
+            Assert.AreEqual(PotaLook.Tones[2], v.Tone);
+        }
+
+        [Test]
+        public void Pulse_FloorsTheFlash_AfterTheDecay()
+        {
+            var v = Make(Block.MakeSpecial(SpecialKind.Golden));
+            v.Pulse = 0.12f;
+            v.Tick(0.1f);
+            Assert.AreEqual(0.12f, v.Flash, 1e-6f);
+            v.Flash = 0.5f;
+            v.Tick(0.02f);
+            Assert.AreEqual(0.5f - 0.02f * PotaLook.FlashDecay, v.Flash, 1e-6f, "a stronger flash decays as before");
+            v.Pulse = 0f;
+            v.Flash = 0f;
+            v.Tick(0.02f);
+            Assert.AreEqual(0f, v.Flash, 1e-6f);
+        }
+
+        [Test]
+        public void BobAndStickerSpin_AddToTheIdlePose_AndResetStudioClearsThem()
+        {
+            var v = Make(Block.MakeSpecial(SpecialKind.LineH));
+            v.Bob = 0.1f;
+            v.StickerSpin = 30f;
+            v.Tick(0f);
+            var item = _go.transform.Find("Item");
+            Assert.AreEqual(0.1f, _go.transform.position.y, 1e-5f);
+            Assert.AreEqual(120f, item.localEulerAngles.z, 1e-3f, "90° LineH + 30° spin");
+            v.ResetStudio();
+            v.Tick(0f);
+            Assert.AreEqual(0f, v.Bob);
+            Assert.AreEqual(0f, v.StickerSpin);
+            Assert.AreEqual(0f, _go.transform.position.y, 1e-5f);
+            Assert.AreEqual(90f, item.localEulerAngles.z, 1e-3f);
+        }
     }
 }

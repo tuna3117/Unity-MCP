@@ -138,5 +138,27 @@ namespace Project.Tests
             Assert.AreEqual(0.7f, PotaLook.SalvoScale(1f), 1e-5f);
             Assert.AreEqual(new Vector2(0f, -3.5f - 0.45f), PotaLook.SalvoSource(7), "topKaynagi: altKenar − TOP_PAYI·0.75");
         }
+
+        [Test]
+        public void SpecialTone_IsKoyuDoygunOfOzelRenkHex()
+        {
+            // yapbozSahne.ts OZEL_BLOK_TONU evaluated with Pota's three 0.180 (2026-10-01): #ff8a2a → #ec7b00, #2a2d36 → #242732, #ffc93c → #eeb900.
+            Assert.AreEqual(PotaLook.Hex(0xec7b00), PotaLook.SpecialTone(SpecialKind.LineV));
+            Assert.AreEqual(PotaLook.Hex(0xec7b00), PotaLook.SpecialTone(SpecialKind.LineH));
+            Assert.AreEqual(PotaLook.Hex(0x242732), PotaLook.SpecialTone(SpecialKind.Bomb));
+            Assert.AreEqual(PotaLook.Hex(0xeeb900), PotaLook.SpecialTone(SpecialKind.Golden));
+            Assert.AreEqual(0xd81500u, PotaLook.DarkSaturated(0xe8352e), "three's HSL runs in its LINEAR working space");
+            Assert.AreEqual(0x0074d7u, PotaLook.DarkSaturated(0x2a82e8));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => PotaLook.SpecialTone(SpecialKind.None));
+        }
+
+        [Test]
+        public void GoldenPulse_AndSpecialScale_ArePotas()
+        {
+            Assert.AreEqual(0.08f, PotaLook.GoldenPulse(0f), 1e-6f, "RENK_AVI_HIS.ozel.altinNabiz · (1 + sin 0)");
+            Assert.AreEqual(0.16f, PotaLook.GoldenPulse(Mathf.PI / 10f), 1e-6f, "peak at 5t = π/2");
+            Assert.AreEqual(0f, PotaLook.GoldenPulse(3f * Mathf.PI / 10f), 1e-6f);
+            Assert.AreEqual(0.82f / 0.88f, PotaLook.SpecialScale, 1e-6f, "etiketleriYaz ozelOlcek = 0.82 / CIKARTMA_PAYI");
+        }
     }
 }
