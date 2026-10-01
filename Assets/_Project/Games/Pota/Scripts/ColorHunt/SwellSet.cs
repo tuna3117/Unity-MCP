@@ -30,8 +30,12 @@ namespace Project.ColorHunt
 
         public bool Contains(T key) => _entries.ContainsKey(key);
 
-        public void Start(T key, float duration, float peak, bool loose, Action atPeak) =>
-            _entries[key] = new Entry { Duration = Mathf.Max(1e-4f, duration), Peak = peak, Loose = loose, AtPeak = atPeak };
+        /// <summary>
+        /// Starts (or restarts) an entry. <paramref name="elapsed"/>: seconds it has already run — a planned swell whose start fell between
+        /// two frames (negative: it starts that much into the next advance).
+        /// </summary>
+        public void Start(T key, float duration, float peak, bool loose, Action atPeak, float elapsed = 0f) =>
+            _entries[key] = new Entry { Time = elapsed, Duration = Mathf.Max(1e-4f, duration), Peak = peak, Loose = loose, AtPeak = atPeak };
 
         /// <summary>Advances every entry and hands (key, scale, o) to <paramref name="apply"/>; finished loose keys go to <paramref name="finishedLoose"/>.</summary>
         public void Advance(float dt, Action<T, float, float> apply, List<T> finishedLoose)

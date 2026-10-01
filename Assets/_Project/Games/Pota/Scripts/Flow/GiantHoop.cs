@@ -45,7 +45,7 @@ namespace Project.Flow
         public int Pile { get; private set; }
 
         private Material _frameMat, _rimMat;
-        private float _kick;
+        private float _kick, _swing = -1f;
 
         public void Build()
         {
@@ -155,6 +155,21 @@ namespace Project.Flow
             var c = FrameColor * (1.2f * Mathf.Clamp01(g));
             _frameMat.SetColor("_EmissionColor", c);
             _rimMat.SetColor("_EmissionColor", c);
+        }
+
+        /// <summary>pota.ts fileSalla: a golden ball went through, the net swings for 0.9 s (game time).</summary>
+        public void Swing() => _swing = 0f;
+
+        public bool Swinging => _swing >= 0f;
+
+        /// <summary>pota.ts guncelle: net scale (1 + sin 24t·0.14·k, 1 + sin 18t·0.3·k, 1 + cos 24t·0.14·k), k = 1 − t/0.9; after Tick's pile shape.</summary>
+        private void LateUpdate()
+        {
+            if (_swing < 0f || Net == null) return;
+            _swing += Time.deltaTime;
+            if (_swing > 0.9f) { _swing = -1f; Net.localScale = Vector3.one; return; }
+            float t = _swing, k = 1f - t / 0.9f;
+            Net.localScale = new Vector3(1f + Mathf.Sin(t * 24f) * 0.14f * k, 1f + Mathf.Sin(t * 18f) * 0.3f * k, 1f + Mathf.Cos(t * 24f) * 0.14f * k);
         }
 
         private GameObject Box(string name, Mesh mesh, Material mat, Vector3 localPos, Vector3 size)

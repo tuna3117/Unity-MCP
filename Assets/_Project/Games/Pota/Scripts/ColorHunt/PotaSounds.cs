@@ -15,12 +15,14 @@ namespace Project.ColorHunt
         private static readonly Dictionary<string, float> Limits = new Dictionary<string, float>
         {
             { "carpma", 0.06f }, { "eksi", 0.06f }, { "kirildi", 0.05f }, { "kombo", 0.08f }, { "dustu", 0.045f }, { "topla", 0.03f },
+            { "zip", 0.04f },
         };
 
         /// <summary>ses.ts ORNEK: the events that play an mp3 sample (rate jitter 0.97–1.03); the rest are synthesised.</summary>
         private static readonly HashSet<string> Samples = new HashSet<string>
         {
             "dokun", "kuleAt", "kirildi", "dustu", "dondur", "eksi", "kazandi", "kaybetti",
+            "patlama", "cizgi", "ozelDogdu", "altinInis", "swish", "smac", "kalabalik",
         };
 
         public static bool IsSample(string id) => Samples.Contains(id);
@@ -29,7 +31,7 @@ namespace Project.ColorHunt
         public float LastVolume { get; private set; }
 
         private const int Rate = 44100;
-        private AudioClip _collect, _done;
+        private AudioClip _collect, _done, _zip;
 
         /// <summary>"topla": two bright blips (1320 then 1980 Hz) — a sticker lands in its box.</summary>
         public static AudioClip MakeCollect() => Synth("topla", 0.14f,
@@ -43,6 +45,20 @@ namespace Project.ColorHunt
             float[] f = { 784f, 988f, 1319f };
             for (int k = 0; k < f.Length; k++) { float tk = t - 0.06f * k; s += Tri(f[k] * tk) * Env(tk, 0.28f, 12f); }
             return 0.35f * s;
+        });
+
+        /// <summary>
+        /// ses.ts "zip" (a golden ball's gate opens): ton(300·r, 0.16, sine, 0.18, 900) — a sine sweeping 300 → 900 Hz exponentially over
+        /// 0.16 s, gain 0.0001 → 0.18 in 5 ms then exponentially back to 0.0001. Pota's r (0.92–1.08) is the playback pitch here.
+        /// </summary>
+        public static AudioClip MakeZip() => Synth("zip", 0.18f, t =>
+        {
+            const float f0 = 300f, f1 = 900f, T = 0.16f, attack = 0.005f, peak = 0.18f, floor = 0.0001f;
+            if (t > T) return 0f;
+            float k = Mathf.Log(f1 / f0);
+            float phase = 2f * Mathf.PI * f0 * T / k * (Mathf.Exp(k * t / T) - 1f);
+            float g = t < attack ? floor * Mathf.Pow(peak / floor, t / attack) : peak * Mathf.Pow(floor / peak, (t - attack) / (T - attack));
+            return g * Mathf.Sin(phase);
         });
 
         public static AudioClip Synth(string name, float seconds, System.Func<float, float> fn)
@@ -65,6 +81,17 @@ namespace Project.ColorHunt
 
         public void Collect(int streak) => Play("topla", _collect, 0.8f, StudioCurves.CollectPitch(streak));
         public void TargetDone() => Play("tamam", _done, 0.9f, 1f);
+
+        /// <summary>A gate opens (renkAviFaz.ts dususleriBaslat acilan → ses.cal("zip")).</summary>
+        public void Zip() => Play("zip", _zip, 1f, Random.Range(0.92f, 1.08f));
+
+        /// <summary>
+        /// A special-ball sound (spec 2026-10-01): Pota's samples (patlama, cizgi, ozelDogdu, altinInis, swish, smac, kalabalik) and the
+        /// looks' synth clips share the voices and limits. Pitch 1 = Pota's own (0.97–1.03 for a sample, 1 for a synth); any other pitch is
+        /// used as given.
+        /// </summary>
+        public void PlayClip(string id, AudioClip clip, float volume = 1f, float pitch = 1f) =>
+            Play(id, clip, volume, Mathf.Approximately(pitch, 1f) ? -1f : pitch);
 
         private readonly Dictionary<string, float> _last = new Dictionary<string, float>();
         private AudioSource[] _voices;
@@ -103,6 +130,7 @@ namespace Project.ColorHunt
             }
             _collect = MakeCollect();
             _done = MakeDone();
+            _zip = MakeZip();
         }
 
         private void Play(string id, AudioClip clip, float volume, float pitch = -1f)

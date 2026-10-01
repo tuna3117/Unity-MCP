@@ -61,6 +61,13 @@ namespace Project.ColorHunt
             Popups?.Show(at, $"Yetmiyor · {cost} top", PotaLook.HudRed, 44);
         }
 
+        /// <summary>dokun → "altin": eksi at half volume and "Altın top geçişten sepete inmeli" (white, the .uyari size) over the ball.</summary>
+        public void GoldenTap(Vector3 at)
+        {
+            Sounds?.PlayClip("eksi", S.SfxMinus, 0.5f);
+            Popups?.Show(at, SpecialTexts.GoldenTap, Color.white, 44);
+        }
+
         public void Result(bool won)
         {
             if (won) { Shake?.Add(S.ShakeWin); Sounds?.Win(); }

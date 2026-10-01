@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Project.Basket.Visual;
+using Project.Flow;
 using UnityEngine;
 
 namespace Project.ColorHunt
@@ -28,7 +29,7 @@ namespace Project.ColorHunt
         public Transform BoardRoot { get; private set; }
         /// <summary>The golden ball's gate rings (yapbozSahne.ts gecisGoster), on the game root: they never turn with the board.</summary>
         public GateRings Gates { get; private set; }
-        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _intro >= 0f;
+        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _intro >= 0f || _goldens.Count > 0;
 
         private float _intro = -1f, _idle, _hintT = -1f;
         private int _hintCell = -1;
@@ -57,7 +58,20 @@ namespace Project.ColorHunt
 
         private abstract class Job { public float T; }
         private class SalvoJob : Job { public int Cell, Cost, AmmoBefore; public List<Step> Steps; public bool Started; public int Arrived; }
-        private class StepJob : Job { public Step Step; public bool Dropping; public float DropTime; public bool Started; public int Depth; }
+        private class StepJob : Job
+        {
+            public Step Step; public bool Dropping; public float DropTime; public bool Started; public int Depth;
+            /// <summary>The tapped special of a trigger step (−1: none).</summary>
+            public int Origin = -1;
+            /// <summary>When the drops start: ChainTime, a trigger plan's End, a gathering look's GatherTime.</summary>
+            public float SwellEnd;
+            public TriggerPlan Plan;
+            public int NextFire;
+            public Action Peak;
+            public readonly List<PendingSwell> Pending = new List<PendingSwell>();
+            public readonly HashSet<int> Consumed = new HashSet<int>();
+        }
+        private class PendingSwell { public int Cell; public BlockView View; public float At; }
         private class RotateJob : Job { public float Angle; public Board Rotated; }
         private class WaitJob : Job { public float Duration; }
 
@@ -112,6 +126,7 @@ namespace Project.ColorHunt
             if (Fx != null) { Fx.Build(); Fx.SetBoard(BoardRoot); }
             if (Salvo != null) Salvo.Board = BoardRoot;
             SetLook(S != null ? S.Look : PuzzleLook.Pota);
+            SetSpecialLook(S != null ? S.SpecialLook : SpecialLook.Pota);
             if (AutoStart) NewRound();
         }
 
@@ -155,7 +170,7 @@ namespace Project.ColorHunt
             Fx?.SetBoard(BoardRoot);
             Fx?.Clear();
             _style?.Clear();
-            Gates?.Show(Board.Gates);
+            ResetSpecials();                            // the special style, golden balls and gate rings start over (shows Board.Gates)
             DisplayedAmmo = Board.Ammo;
             Current = State.Idle;
             _staged = true;
@@ -225,13 +240,24 @@ namespace Project.ColorHunt
             else _selectionRing.SetActive(false);
         }
 
-        /// <summary>Tap a cell. Returns "broken", "insufficient" or "locked".</summary>
+        /// <summary>Tap a cell. Returns "broken", "insufficient", "golden" (a golden ball leaves only through a gate) or "locked".</summary>
         public string Tap(int cell)
         {
             if (Current != State.Playing || Busy) return "locked";
             Select(-1);
             int ammoBefore = Board.Ammo;
             var r = ColorHuntRules.Break(Board, cell);
+            if (r.Outcome == BreakOutcome.Golden)
+            {
+                var at = CellWorld(cell);
+                if (_views.TryGetValue(cell, out var gv))
+                {
+                    gv.Shiver = S.InsufficientShake;                                                  // titrem
+                    at = BoardRoot.TransformPoint(new Vector3(0f, gv.Pos.y + 0.55f, -PotaLook.LabelZ));   // dokun "altin": board centre, y + 0.55
+                }
+                Juice?.GoldenTap(at);
+                return "golden";
+            }
             if (!r.Broken)
             {
                 var at = CellWorld(cell);
@@ -243,21 +269,31 @@ namespace Project.ColorHunt
                 Juice?.Insufficient(at, r.Cost);
                 return "insufficient";
             }
+            bool special = Board.Cells[cell].IsSpecial;
             Board = r.Board;
             _checkNeeded = true;
             _targetsPending = true;
+            if (special)
+            {
+                QueueSteps(r.Steps, false, cell);       // dokun: özel top — free, no salvo, its blast plays as depth 1
+                return "broken";
+            }
             _jobs.Add(new SalvoJob { Cell = cell, Cost = r.Cost, AmmoBefore = ammoBefore, Steps = r.Steps });
             return "broken";
         }
 
+        /// <summary>dondurmeUygula: turn (free) and settle (dondurVeOtur) — a golden ball turned onto an open gate drops after the turn.</summary>
         public bool Rotate(Rotation dir)
         {
             if (Current != State.Playing || Busy) return false;
             Select(-1);
-            Board = ColorHuntRules.Rotate(Board, dir);
+            var rr = ColorHuntRules.RotateAndSettle(Board, dir);
+            Board = rr.Board;
             Rotations++;
             _checkNeeded = true;
-            _jobs.Add(new RotateJob { Angle = dir == Rotation.Clockwise ? -90f : 90f, Rotated = Board });
+            if (rr.Steps.Count > 0) _targetsPending = true;
+            _jobs.Add(new RotateJob { Angle = dir == Rotation.Clockwise ? -90f : 90f, Rotated = rr.Rotated });
+            QueueSteps(rr.Steps, false, -1);            // they play once the views are rebuilt from the turned board
             Juice?.Rotate();
             return true;
         }
@@ -274,6 +310,7 @@ namespace Project.ColorHunt
             float dt = Mathf.Min(Time.deltaTime, 0.05f);
             Salvo?.Tick(dt);
             AdvanceJobs(dt);
+            TickGoldens(dt);
             AdvanceIntro(dt);
             AdvanceViews(dt);
             TickHint(Time.unscaledDeltaTime);
@@ -288,19 +325,27 @@ namespace Project.ColorHunt
         }
 
         /// <summary>
-        /// Ticks every view. renkAviFaz.ts gorselleriIlerlet: a golden ball that neither drops nor bursts pulses
-        /// flas ≥ 0.08·(1 + sin 5t); the game owns the clock so all golden balls share the phase.
+        /// Ticks every view. renkAviFaz.ts gorselleriIlerlet: a golden ball that neither drops nor bursts pulses flas ≥ 0.08·(1 + sin 5t)
+        /// (the game owns the clock so all golden balls share the phase); every resting special gets the look's idle life.
         /// </summary>
         private void TickViews(float dt)
         {
             _clock += dt;
             float pulse = PotaLook.GoldenPulse(_clock);
+            var specials = Specials;
             foreach (var v in _views.Values)
             {
-                v.Pulse = v.Block.Special == SpecialKind.Golden && !v.Exploding && !_drops.ContainsKey(v) ? pulse : 0f;
+                bool resting = !v.Exploding && !_drops.ContainsKey(v);
+                v.Pulse = v.Block.Special == SpecialKind.Golden && resting ? pulse : 0f;
+                if (v.Block.IsSpecial && resting) specials.Idle(v, dt);
                 v.Tick(dt);
             }
             foreach (var v in _loose)
+            {
+                v.Pulse = 0f;
+                v.Tick(dt);
+            }
+            foreach (var v in _gathering)
             {
                 v.Pulse = 0f;
                 v.Tick(dt);
@@ -335,7 +380,7 @@ namespace Project.ColorHunt
         {
             foreach (var v in _views.Values)
             {
-                Fx?.Particles(v.Pos, S.PaletteColor(v.Block.Color), 6, 3.5f, 0.1f);
+                Fx?.Particles(v.Pos, BurstTone(v.Block), 6, 3.5f, 0.1f);
                 _swells.Start(v, 0.5f, S.ChainSwell, false, null);
             }
             Fx?.Confetti(Board.Size, S.ConfettiCount);
@@ -385,7 +430,8 @@ namespace Project.ColorHunt
                     st.T += dt;
                     if (!st.Dropping)
                     {
-                        if (st.T >= S.ChainTime) StartDrops(st);
+                        TickPlan(st, dt);
+                        if (st.T >= st.SwellEnd) StartDrops(st);
                         break;
                     }
                     if (st.T >= st.DropTime)
@@ -436,11 +482,13 @@ namespace Project.ColorHunt
                 _loose.Add(view);
                 view.Dim = false;                                   // sonenler are drawn lit (soluk: false)
                 var tone = S.PaletteColor(view.Block.Color);
+                int cell = s.Cell;
                 _swells.Start(view, S.TapSwellTime, S.TapSwell, true, () =>
                 {
                     Juice?.Break();
                     Style.TapBurst(view, tone);
                     CountItem(view, BoardRoot.TransformPoint(new Vector3(view.Pos.x, view.Pos.y, -PotaLook.FrontZ)));
+                    RaiseCellBurst(cell);
                 });
                 RippleNeighbours(s.Cell);
             }
@@ -448,13 +496,7 @@ namespace Project.ColorHunt
             DisplayedAmmo = Board.Ammo;
             Raise(AmmoChanged);
             _jobs.RemoveAt(0);
-            int depth = -1;
-            foreach (var step in s.Steps)
-            {
-                depth++;
-                _jobs.Add(new StepJob { Step = step, Depth = depth });
-            }
-            if (depth > LongestChain) LongestChain = depth;
+            QueueSteps(s.Steps, true, -1);
         }
 
         public PuzzleLook Look { get; private set; } = PuzzleLook.Pota;
@@ -511,6 +553,285 @@ namespace Project.ColorHunt
             var go = new GameObject(name);
             go.transform.SetParent(transform, false);
             return go.AddComponent<T>();
+        }
+
+        // ---------- special balls (spec 2026-10-01) ----------
+
+        public SpecialLook SpecialLook { get; private set; } = SpecialLook.Pota;
+        /// <summary>What draws the special balls; a look whose assets are missing falls back to Pota's with one warning.</summary>
+        public ISpecialStyle Specials => _special ?? (_special = ResolveSpecial(SpecialLook));
+        public event Action SpecialLookChanged;
+        /// <summary>A block burst — its swell peak, a consumed special's fire, a gathered block's arrival — with the cell it had at its step's start.</summary>
+        public event Action<int> CellBurst;
+        /// <summary>Golden balls that reached the hoop since the deal (no HUD for them yet: U25).</summary>
+        public int GoldenLanded { get; private set; }
+        /// <summary>Golden balls on their way to the hoop; the board is locked meanwhile (Pota kilitliMi).</summary>
+        public int GoldenInFlight => _goldens.Count;
+        /// <summary>The giant hoop around the board (PuzzleStage builds it under this root), or null.</summary>
+        public GiantHoop Hoop => _hoop != null ? _hoop : (_hoop = GetComponentInChildren<GiantHoop>(true));
+        /// <summary>A style's flight must land within this many seconds after Pota's would; otherwise the game lands it (one warning).</summary>
+        public const float GoldenGrace = 3f;
+
+        private ISpecialStyle _special;
+        private readonly Dictionary<SpecialLook, ISpecialStyle> _specialStyles = new Dictionary<SpecialLook, ISpecialStyle>();
+        private class GoldenState { public int Col; public bool Passed; public float Age, Life; }
+        private readonly List<GoldenState> _goldens = new List<GoldenState>();
+        /// <summary>Pota gorunenGecisler: the deal's gates, + opened ones at a step's drops, − one per golden ball that passed.</summary>
+        private readonly List<int> _shownGates = new List<int>();
+        /// <summary>Birth-group blocks travelling into their birth cell (gathering looks); the style moves them, the game ticks them.</summary>
+        private readonly List<BlockView> _gathering = new List<BlockView>();
+        private int _specialGen;
+        private GiantHoop _hoop;
+
+        /// <summary>Switches the special look (the demo's buttons, the record tool): the old style is cleared and deactivated.</summary>
+        public void SetSpecialLook(SpecialLook look)
+        {
+            if (_special != null && look == SpecialLook) return;
+            if (_special != null)
+            {
+                SettleSpecialWork();
+                _special.Clear();
+                _special.Activate(false);
+            }
+            SpecialLook = look;
+            _special = ResolveSpecial(look);
+            _special.Activate(true);
+            Raise(SpecialLookChanged);
+        }
+
+        /// <summary>Registers (and builds) the style a special look uses; later looks and tests plug in here.</summary>
+        public void UseSpecialStyle(SpecialLook look, ISpecialStyle style)
+        {
+            style.Build(this);
+            _specialStyles[look] = style;
+        }
+
+        private ISpecialStyle ResolveSpecial(SpecialLook look)
+        {
+            if (!_specialStyles.TryGetValue(look, out var style)) UseSpecialStyle(look, style = CreateSpecialStyle(look));
+            if (style.Ready) return style;
+            Debug.LogWarning($"Color Hunt: the {look} special look is missing assets (run ai_studio_import); Pota's specials play instead.");
+            return ResolveSpecial(SpecialLook.Pota);
+        }
+
+        private ISpecialStyle CreateSpecialStyle(SpecialLook look)
+        {
+            switch (look)
+            {
+                case SpecialLook.Pota: return AddSpecialStyle<PotaSpecials>("PotaSpecials");
+                default: return new NoSpecialStyle();          // Royal: Task 10, Court: Task 11
+            }
+        }
+
+        /// <summary>A MonoBehaviour special style on its own child of the game root (game-root space: the hoop's, not the board's).</summary>
+        private T AddSpecialStyle<T>(string name) where T : MonoBehaviour, ISpecialStyle
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            return go.AddComponent<T>();
+        }
+
+        /// <summary>
+        /// renkAviFaz.ts adimlariSiraya: a salvo's first step is depth 0 (its block already burst); a special tap's and a rotation's steps
+        /// start from 0 and go one deeper at every step with something to burst, so a special's blast plays at depth 1. A pure basket step
+        /// keeps the depth (it is no chain).
+        /// </summary>
+        private void QueueSteps(List<Step> steps, bool salvo, int origin)
+        {
+            int depth = salvo ? -1 : 0;
+            for (int k = 0; k < steps.Count; k++)
+            {
+                var step = steps[k];
+                if (step.Exploded.Count > 0 || (k == 0 && salvo)) depth++;
+                _jobs.Add(new StepJob { Step = step, Depth = depth, Origin = k == 0 ? origin : -1 });
+            }
+            if (depth > LongestChain) LongestChain = depth;
+        }
+
+        /// <summary>Pota blokHex: a normal block bursts in its palette tone, a special in OZEL_RENK_HEX (its body is the darker OZEL_BLOK_TONU).</summary>
+        private Color BurstTone(Block b) => b.IsSpecial ? PotaLook.Hex(PotaLook.SpecialHex(b.Special)) : S.PaletteColor(b.Color);
+
+        private void RaiseCellBurst(int cell)
+        {
+            try { CellBurst?.Invoke(cell); }
+            catch (Exception e) { Debug.LogException(e); }
+        }
+
+        /// <summary>A new board: no callback of the old one counts, nothing flies, the rings show the board's gates.</summary>
+        private void ResetSpecials()
+        {
+            _specialGen++;
+            _goldens.Clear();
+            GoldenLanded = 0;
+            _special?.Clear();
+            _shownGates.Clear();
+            if (Board != null && Board.Gates != null) _shownGates.AddRange(Board.Gates);
+            Gates?.Show(_shownGates);
+        }
+
+        /// <summary>A look switch mid-effect: golden balls in the air land now (counted, no effect), gathered blocks arrive now.</summary>
+        private void SettleSpecialWork()
+        {
+            _specialGen++;
+            foreach (var g in _goldens)
+            {
+                if (!g.Passed) CloseGate(g.Col);
+                GoldenLanded++;
+            }
+            _goldens.Clear();
+            foreach (var v in _gathering)
+            {
+                CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
+                Recycle(v);
+            }
+            _gathering.Clear();
+        }
+
+        private void OpenGates(List<int> opened)
+        {
+            if (opened == null || opened.Count == 0) return;
+            _shownGates.AddRange(opened);
+            Gates?.Show(_shownGates);
+            Juice?.Sounds?.Zip();
+        }
+
+        /// <summary>altinlariIlerlet: the ring closes when its ball passes — one of them (the same step may have opened the column again).</summary>
+        private void CloseGate(int col)
+        {
+            int k = _shownGates.IndexOf(col);
+            if (k < 0) return;
+            _shownGates.RemoveAt(k);
+            Gates?.Show(_shownGates);
+        }
+
+        private void LaunchGolden(Vector2 cellPos, int col, float delay)
+        {
+            int n = Board.Size;
+            var route = new GoldenRoute
+            {
+                From = transform.InverseTransformPoint(BoardRoot.TransformPoint(new Vector3(cellPos.x, cellPos.y, 0f))),
+                Gate = GateRings.RingAt(n, col),
+                Hoop = GoldenPath.HoopLocal,
+                Delay = delay,
+                Col = col,
+                Scale = PotaLook.GridScale(n),
+            };
+            var state = new GoldenState { Col = col, Life = delay + GoldenPath.Total + GoldenGrace };
+            _goldens.Add(state);
+            int gen = _specialGen;
+            Specials.GoldenFlight(route,
+                () =>
+                {
+                    if (gen != _specialGen || state.Passed || !_goldens.Contains(state)) return;
+                    state.Passed = true;
+                    CloseGate(col);
+                },
+                () =>
+                {
+                    if (gen != _specialGen || !_goldens.Remove(state)) return;
+                    if (!state.Passed) { state.Passed = true; CloseGate(col); }
+                    GoldenLanded++;
+                });
+        }
+
+        /// <summary>Lands a golden ball whose style never called back (a broken look must not lock the board for good).</summary>
+        private void TickGoldens(float dt)
+        {
+            for (int i = _goldens.Count - 1; i >= 0; i--)
+            {
+                var g = _goldens[i];
+                g.Age += dt;
+                if (g.Age < g.Life) continue;
+                Debug.LogWarning($"Color Hunt: the {SpecialLook} special look never landed the golden ball of column {g.Col}; landed now.");
+                _goldens.RemoveAt(i);
+                if (!g.Passed) CloseGate(g.Col);
+                GoldenLanded++;
+            }
+        }
+
+        /// <summary>Gathering looks: a birth group's other blocks travel into the birth cell instead of bursting (their stickers fly on arrival).</summary>
+        private HashSet<int> GatherBirthGroups(StepJob st)
+        {
+            var gathered = new HashSet<int>();
+            if (st.Step.Born.Count == 0 || !Specials.GathersBirthGroup) return gathered;
+            var exploded = new HashSet<int>(st.Step.Exploded);
+            int n = Board.Size, gen = _specialGen;
+            float time = GatherDuration();
+            foreach (var b in st.Step.Born)
+            {
+                if (b.Group == null) continue;
+                var home = ViewAt(b.Cell);
+                var to = home != null ? home.Home : BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, b.Cell), ColorHuntRules.Col(n, b.Cell));
+                foreach (int g in b.Group)
+                {
+                    if (!exploded.Contains(g) || gathered.Contains(g)) continue;
+                    var v = ViewAt(g);
+                    if (v == null) continue;
+                    gathered.Add(g);
+                    _views.Remove(g);
+                    _gathering.Add(v);
+                    v.Exploding = true;
+                    int cell = g;
+                    Specials.Gather(v, to, time, arrived =>
+                    {
+                        if (gen != _specialGen || !_gathering.Remove(arrived)) return;
+                        CountItem(arrived, BoardRoot.TransformPoint(new Vector3(arrived.Pos.x, arrived.Pos.y, -PotaLook.FrontZ)));
+                        RaiseCellBurst(cell);
+                        Recycle(arrived);
+                    });
+                }
+            }
+            return gathered;
+        }
+
+        private float GatherDuration() => Specials.Timing.GatherTime > 0f ? Specials.Timing.GatherTime : S.ChainTime;
+
+        private void StartBurstSwell(StepJob st, int cell, BlockView v, float elapsed)
+        {
+            int d = st.Depth;
+            var tone = BurstTone(v.Block);
+            _swells.Start(v, S.ChainTime, S.ChainSwell, false, () =>
+            {
+                st.Peak?.Invoke();
+                Style.StepBurst(v, tone, d);
+                CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
+                RaiseCellBurst(cell);
+            }, elapsed);
+        }
+
+        /// <summary>Starts the swells whose time has come (credited with the part of the frame they missed) and fires the specials that are due.</summary>
+        private void TickPlan(StepJob st, float dt)
+        {
+            for (int k = 0; k < st.Pending.Count;)
+            {
+                var p = st.Pending[k];
+                if (p.At > st.T) { k++; continue; }
+                st.Pending.RemoveAt(k);
+                StartBurstSwell(st, p.Cell, p.View, st.T - dt - p.At);
+            }
+            if (st.Plan == null) return;
+            while (st.NextFire < st.Plan.Fires.Count && st.Plan.Fires[st.NextFire].Time <= st.T) FireSpecial(st, st.Plan.Fires[st.NextFire++]);
+        }
+
+        /// <summary>The drops start: every special that has not fired fires, every swell that has not started bursts now (End covers both; a long frame may not).</summary>
+        private void FlushPlan(StepJob st)
+        {
+            if (st.Plan != null)
+                while (st.NextFire < st.Plan.Fires.Count) FireSpecial(st, st.Plan.Fires[st.NextFire++]);
+            foreach (var p in st.Pending) StartBurstSwell(st, p.Cell, p.View, 0f);   // StartDrops' End() bursts them at once
+            st.Pending.Clear();
+        }
+
+        private void FireSpecial(StepJob st, SpecialFire f)
+        {
+            if (st.Consumed.Contains(f.Cell))
+            {
+                var v = ViewAt(f.Cell);
+                if (v != null) v.gameObject.SetActive(false);      // the look draws it now; the drops recycle the view
+                st.Peak?.Invoke();
+                RaiseCellBurst(f.Cell);
+            }
+            Specials.Fire(f);
         }
 
         public int ItemsInFlight => _flights;
@@ -588,12 +909,16 @@ namespace Project.ColorHunt
         }
 
         /// <summary>
-        /// renkAviFaz.ts adimBaslat: depth 0 drops at once; deeper steps swell every matched block to 1.24 over ChainTime. The first peak
-        /// carries the step's feedback (shake, ×0.06 dip, kombo, "×d"); each block's peak its own puff, points, burst and sticker.
+        /// renkAviFaz.ts adimBaslat: depth 0 and a pure basket step drop at once; deeper steps swell every block to 1.24 over ChainTime. The
+        /// first peak carries the step's feedback (shake, ×0.06 dip, kombo, "×d"); each block's peak its own puff, points, burst and sticker.
+        /// A trigger step (a special was tapped) follows the look's plan: each cell's swell starts at its planned time, each special fires at
+        /// its own (Pota: all at once, every fire at the first peak, before the step's own feedback), the drops wait for the plan's end. A
+        /// gathering look sends a birth group into its birth cell instead.
         /// </summary>
         private void StartStep(StepJob st)
         {
             st.Started = true;
+            st.SwellEnd = S.ChainTime;
             if (st.Depth == 0 || st.Step.Exploded.Count == 0) { StartDrops(st); return; }
             int d = st.Depth;
             bool peaked = false;
@@ -608,33 +933,41 @@ namespace Project.ColorHunt
                 count++;
             }
             if (count > 0) centre /= count;
-            void StepPeak()
+            st.Peak = () =>
             {
                 if (peaked) return;
                 peaked = true;
                 var at = first != null ? first.Pos : Vector2.zero;
                 Juice?.Chain(d, BoardRoot.TransformPoint(new Vector3(at.x, at.y + 0.5f, -PotaLook.LabelZ)), Style.ShowsChainNumber);
-                Style.ChainPeak(d, centre, first != null ? S.PaletteColor(first.Block.Color) : Color.white);
+                Style.ChainPeak(d, centre, first != null ? BurstTone(first.Block) : Color.white);
+            };
+            var gathered = GatherBirthGroups(st);
+            if (gathered.Count > 0) st.SwellEnd = Mathf.Max(st.SwellEnd, GatherDuration());
+            if (st.Step.Triggered.Count > 0)
+            {
+                st.Plan = SpecialSchedule.Plan(Board.Size, st.Step, st.Origin, Specials.Timing, S.ChainTime);
+                st.SwellEnd = Mathf.Max(st.SwellEnd, st.Plan.End);
+                if (Specials.ConsumesSpecialView) foreach (var f in st.Plan.Fires) st.Consumed.Add(f.Cell);
+                Specials.TriggerStep(st.Plan.Fires.Count, centre);
             }
             foreach (int i in st.Step.Exploded)
             {
+                if (gathered.Contains(i)) continue;
                 var v = ViewAt(i);
                 if (v == null) continue;
                 if (first == null) first = v;
                 v.Exploding = true;
-                var tone = S.PaletteColor(v.Block.Color);
-                _swells.Start(v, S.ChainTime, S.ChainSwell, false, () =>
-                {
-                    StepPeak();
-                    Style.StepBurst(v, tone, d);
-                    CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
-                });
+                if (st.Consumed.Contains(i)) continue;              // a firing special the look draws itself
+                float at = st.Plan != null && st.Plan.Start.TryGetValue(i, out float planned) ? planned : 0f;
+                st.Pending.Add(new PendingSwell { Cell = i, View = v, At = at });
             }
-            if (first == null) StepPeak();
+            TickPlan(st, 0f);                                      // the swells due at 0 start now, as before the plan existed
+            if (first == null) st.Peak();
         }
 
         private void StartDrops(StepJob st)
         {
+            FlushPlan(st);
             foreach (int i in st.Step.Exploded)
             {
                 var v = ViewAt(i);
@@ -644,6 +977,24 @@ namespace Project.ColorHunt
                 _views.Remove(i);
             }
             int n = Board.Size;
+            // dususleriBaslat: born specials take their cell's view (it then falls with its column), golden balls leave for the hoop
+            // 0.12 s apart, newly opened gates light up — all before the columns fall.
+            foreach (var b in st.Step.Born)
+            {
+                var v = ViewAt(b.Cell);
+                if (v == null) continue;
+                v.SetBlock(Block.MakeSpecial(b.Kind), b.Cell);
+                Specials.Birth(v, b.Kind);
+            }
+            for (int k = 0; k < st.Step.ToBasket.Count; k++)
+            {
+                var bd = st.Step.ToBasket[k];
+                var v = ViewAt(bd.Cell);
+                var at = v != null ? v.Pos : BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, bd.Cell), ColorHuntRules.Col(n, bd.Cell));
+                if (v != null) { _views.Remove(bd.Cell); Recycle(v); }
+                LaunchGolden(at, bd.Col, k * GoldenPath.Gap);
+            }
+            OpenGates(st.Step.Opened);
             float longest = 0f;
             var moved = new Dictionary<int, BlockView>();
             foreach (var d in st.Step.Drops)
@@ -806,6 +1157,8 @@ namespace Project.ColorHunt
             _swells.Clear();
             foreach (var v in _loose) Recycle(v);
             _loose.Clear();
+            foreach (var v in _gathering) Recycle(v);
+            _gathering.Clear();
             _disperse = -1f;
             _intro = -1f; StopHint(); _idle = 0f;
             _jobs.Clear();

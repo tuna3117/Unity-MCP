@@ -146,10 +146,16 @@ namespace Project.ColorHunt
         }
 
         /// <summary>patlamaEfekt.ts parla: white flash 0.16 s (0.5F → 1.9F), tone flash 0.22 s (0.4F → 1.4F), ring 0.38 s, one point light.</summary>
-        public void Glow(Vector2 cell, Color lin, float flash, float ring, float light, float lightTime)
+        public void Glow(Vector2 cell, Color lin, float flash, float ring, float light, float lightTime) =>
+            Glow(cell, lin, flash, ring, light, lightTime, PotaLook.FrontZ + 0.3f);
+
+        /// <summary>
+        /// patlamaEfekt.ts parla at Pota depth <paramref name="z"/> (board cells toward the camera; the default is the block front + 0.3,
+        /// the golden ball's landing flash is at the rim, in front of the board).
+        /// </summary>
+        public void Glow(Vector2 cell, Color lin, float flash, float ring, float light, float lightTime, float z)
         {
             if (!_built) return;
-            float z = PotaLook.FrontZ + 0.3f;
             Emit1(_flashWhite, World(new Vector3(cell.x, cell.y, z)), flash * 1.9f * _s, 0.16f, new Color(1.7f, 1.7f, 1.6f) / Headroom);
             Emit1(_flashTone, World(new Vector3(cell.x, cell.y, z + 0.01f)), flash * 1.4f * _s, 0.22f, lin * (1.8f / Headroom));
             Emit1(_ring, World(new Vector3(cell.x, cell.y, z + 0.02f)), ring * _s, 0.38f,
