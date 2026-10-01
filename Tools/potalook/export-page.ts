@@ -116,8 +116,12 @@ async function sesler(): Promise<Disa> {
     out[`carpma-${i}.wav`] = wav(await m.c.startRendering());
   }
   const cozucu = new OfflineAudioContext(2, RATE, RATE);
-  // ses.ts ORNEK: these events play their mp3 (dokun too — the synth "dokun" is only the fallback when the sample is missing).
-  for (const ad of ["blok-pop", "salvo", "dustu", "dondur", "eksi", "kazandi", "kaybetti", "dokun"]) {
+  // ses.ts ORNEK: these events play their mp3 at gain 1 (dokun too — the synth "dokun" is only the fallback when the sample is missing).
+  // Special balls (2026-10-01): patlama → bomba, cizgi → cizgi, ozelDogdu → altin-dogum, altinInis → altin-inis; the Court look also
+  // takes swish → file-swish, kalabalik, and the dunk's hit smac-vurus (Pota's MUZIK.smac layer; Court plays it as an effect, so it
+  // goes through the same effect chain as the rest).
+  for (const ad of ["blok-pop", "salvo", "dustu", "dondur", "eksi", "kazandi", "kaybetti", "dokun",
+                    "bomba", "cizgi", "altin-dogum", "altin-inis", "smac-vurus", "file-swish", "kalabalik"]) {
     const b = await cozucu.decodeAudioData(await (await fetch(`/assets/ses/${ad}.mp3`)).arrayBuffer());
     const m = new Cevrimdisi(b.duration + 0.35, 300);
     m.ornek(b);

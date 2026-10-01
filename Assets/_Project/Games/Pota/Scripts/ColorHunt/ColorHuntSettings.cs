@@ -5,6 +5,12 @@ namespace Project.ColorHunt
     /// <summary>Pota = the 1:1 port of Pota's puzzle; Candy = A "Şeker patlaması"; Shatter = B "Gerçek kırılma".</summary>
     public enum PuzzleLook { Pota, Candy, Shatter }
 
+    /// <summary>
+    /// How special balls are born, idle, fire and land (spec 2026-10-01): Pota = today's feedback 1:1; Royal = 1 "Royal Match";
+    /// Court = 2 "Basketbol". Normal block bursts keep the Pota look under all three.
+    /// </summary>
+    public enum SpecialLook { Pota, Royal, Court }
+
     /// <summary>Every tunable number of the colour-hunt scene. Edit in the Inspector; nothing is hard-coded elsewhere.</summary>
     [CreateAssetMenu(menuName = "Project/Color Hunt/Settings", fileName = "ColorHuntSettings")]
     public class ColorHuntSettings : ScriptableObject
@@ -14,6 +20,12 @@ namespace Project.ColorHunt
         public PuzzleLook Look = PuzzleLook.Pota;
         [Tooltip("Stüdyo uçuşu: kırılan eşya zıplayıp kavisle hedefe uçar, varışta esneme, sayaç yuvarlanması ve ✓ damgası. Kapalıyken Pota görünümü Pota'nın düz uçuşunu kullanır; A/B'de hep açık.")]
         public bool StudioFlight = true;
+
+        [Header("Special balls (spec 2026-10-01: Pota renkAvi.ts çizgi / bomba / altın)")]
+        [Tooltip("Which specials are born (renkAvi.ts ozellikler). All off = today's level 20: same boards, same rng.")]
+        public Features Specials;
+        [Tooltip("Özel top görünümü: Pota (bugünkü, birebir), Royal (1 · Royal Match), Court (2 · Basketbol). Normal patlamalar hep Pota.")]
+        public SpecialLook SpecialLook = SpecialLook.Pota;
 
         [Header("Level (Pota level 20 calibration)")]
         public int Size = 7;
@@ -65,6 +77,10 @@ namespace Project.ColorHunt
         public AudioClip[] SfxHit;
         [Tooltip("ses.ts dokun: a block gets selected under the finger.")]
         public AudioClip SfxSelect;
+        [Tooltip("ses.ts special-ball samples through Pota's effect chain: bomba (patlama), cizgi (cizgi), altin-dogum (ozelDogdu), altin-inis (altinInis).")]
+        public AudioClip SfxBomb, SfxLine, SfxGoldenBorn, SfxGoldenLand;
+        [Tooltip("Court look, same chain: smac-vurus (the dunk's hit, Pota's smac music layer), file-swish (swish), kalabalik (crowd).")]
+        public AudioClip SfxSlam, SfxSwish, SfxCrowd;
         [Tooltip("three.js RoomEnvironment baked by ai_potalook_import (PotaRoomBaker): the blocks' reflections, intensity 0.45.")]
         public Cubemap RoomReflection;
 
@@ -166,7 +182,7 @@ namespace Project.ColorHunt
         {
             var t = new (int, int)[Targets.Length];
             for (int i = 0; i < t.Length; i++) t[i] = (Targets[i].x, Targets[i].y);
-            return new LevelDesign { Size = Size, ColorCount = ColorCount, HpMin = HpMin, HpMax = HpMax, Targets = t };
+            return new LevelDesign { Size = Size, ColorCount = ColorCount, HpMin = HpMin, HpMax = HpMax, Targets = t, Features = Specials };
         }
     }
 }

@@ -14,6 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Project.Runtime::Project.ColorHunt.ColorHuntSettings
   Look: 0
   StudioFlight: 1
+  Specials:
+    Line: 0
+    Bomb: 0
+    Golden: 0
+  SpecialLook: 0
   Size: 7
   ColorCount: 5
   HpMin: 3
@@ -74,6 +79,13 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 0435796b701b148cbada67c8fc0f5738, type: 3}
   - {fileID: 8300000, guid: 55a7b2c81f53548f6b7a86a88972e367, type: 3}
   SfxSelect: {fileID: 8300000, guid: 228498913cc8a4adeba44ae61a388f8c, type: 3}
+  SfxBomb: {fileID: 8300000, guid: 2c66335023df544e091ee659f0fd92bb, type: 3}
+  SfxLine: {fileID: 8300000, guid: b7e54148c48fd47a595084337f0918eb, type: 3}
+  SfxGoldenBorn: {fileID: 8300000, guid: 533b08c1e2f4646a5b865ed171a411f1, type: 3}
+  SfxGoldenLand: {fileID: 8300000, guid: e151aa732371e4088bb94a8ebd3b2ac3, type: 3}
+  SfxSlam: {fileID: 8300000, guid: d6b20b8b89f064265847eaf179e5fa48, type: 3}
+  SfxSwish: {fileID: 8300000, guid: a2741a0af2a944e60bd3eb850222ae25, type: 3}
+  SfxCrowd: {fileID: 8300000, guid: 271c82971d2824ff6a9d512499756274, type: 3}
   RoomReflection: {fileID: 8900000, guid: 6a69c489249f8436e8ba99760eb60504, type: 3}
   LabelTemplate: {fileID: 2100000, guid: aaaaf977caccf476a8d9a820ee0898cc, type: 2}
   AdditiveTemplate: {fileID: 2100000, guid: 61b668239fb5c451aa174ce1cf2b426c, type: 2}

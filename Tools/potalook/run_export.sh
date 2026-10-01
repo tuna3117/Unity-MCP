@@ -13,7 +13,7 @@ ART="$ROOT/Assets/_Project/Games/Pota/Art"
 LOOK="$ART/PotaLook"
 AUDIO="$ROOT/Assets/_Project/Games/Pota/Audio/PotaLook"
 
-rsync -a --delete --exclude .git --exclude dist "$SRC/" "$COPY/"
+rsync -a --delete --exclude /.git --exclude /dist "$SRC/" "$COPY/"
 # The drawing helpers are module-private in Pota; export them in the COPY only.
 sed -i '' -e 's/^class EtiketAtlasi /export class EtiketAtlasi /' "$COPY/src/yapbozSahne.ts"
 sed -i '' -e 's/^function yildizKivilcim(/export function yildizKivilcim(/' \
@@ -30,6 +30,10 @@ rm -rf "$OUT"; mkdir -p "$OUT"
 VITE=$!
 trap 'kill $VITE 2>/dev/null || true' EXIT
 "$NODE" "$ROOT/Tools/potalook/export.mjs" "http://localhost:$PORT/deneme/potalook-export.html" "$OUT"
+# Color Hunt special balls need all seven special samples (ses.ts ORNEK + the dunk's smac-vurus).
+for n in bomba cizgi altin-dogum altin-inis smac-vurus file-swish kalabalik; do
+  [ -f "$OUT/$n.wav" ] || { echo "missing $n.wav (check $SCRATCH/potalook-vite.log)" >&2; exit 1; }
+done
 
 mkdir -p "$LOOK" "$AUDIO" "$ART/Fonts"
 cp "$OUT"/{label-atlas,star,trail,soft-disc,soft-ring,ball-skin}.png "$LOOK/"

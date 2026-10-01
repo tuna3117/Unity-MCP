@@ -17,7 +17,8 @@ namespace Project.Editor.AITools
     /// </summary>
     [McpForUnityTool("ai_potalook_import", Description =
         "Import the Pota look export (Art/PotaLook, Audio/PotaLook, item stickers, Lilita One): texture/audio import settings, " +
-        "PotaBall.mat, Settings/PotaPuzzleProfile.asset (Neutral ×1.12, bloom, vignette), the PotaRoom layer, ColorHuntSettings wiring.")]
+        "PotaBall.mat, Settings/PotaPuzzleProfile.asset (Neutral ×1.12, bloom, vignette), the PotaRoom layer, ColorHuntSettings wiring " +
+        "(including the special-ball samples: bomba, cizgi, altin-dogum, altin-inis, smac-vurus, file-swish, kalabalik).")]
     public static class PotaLookImportTool
     {
         public const string LookFolder = "Assets/_Project/Games/Pota/Art/PotaLook";
@@ -85,10 +86,16 @@ namespace Project.Editor.AITools
             for (int d = 0; d < 11; d++) s.SfxCombo[d] = Clip($"kombo-{d}");
             s.SfxHit = new[] { Clip("carpma-0"), Clip("carpma-1"), Clip("carpma-2") };
             s.SfxSelect = Clip("dokun");
+            // Special balls (2026-10-01): ses.ts ORNEK patlama / cizgi / ozelDogdu / altinInis; the Court look's dunk hit, swish and crowd.
+            s.SfxBomb = Clip("bomba"); s.SfxLine = Clip("cizgi"); s.SfxGoldenBorn = Clip("altin-dogum"); s.SfxGoldenLand = Clip("altin-inis");
+            s.SfxSlam = Clip("smac-vurus"); s.SfxSwish = Clip("file-swish"); s.SfxCrowd = Clip("kalabalik");
+            int specials = System.Array.FindAll(new[] { s.SfxBomb, s.SfxLine, s.SfxGoldenBorn, s.SfxGoldenLand, s.SfxSlam, s.SfxSwish, s.SfxCrowd },
+                c => c != null).Length;
             EditorUtility.SetDirty(s);
             AssetDatabase.SaveAssets();
             report.Add($"settings: atlas={s.LabelAtlas != null} palette=pota font={(s.Font != null ? s.Font.name : "-")} profile={s.PuzzleProfile != null} " +
-                       $"combo={System.Array.FindAll(s.SfxCombo, c => c != null).Length}/11 hit={System.Array.FindAll(s.SfxHit, c => c != null).Length}/3");
+                       $"combo={System.Array.FindAll(s.SfxCombo, c => c != null).Length}/11 hit={System.Array.FindAll(s.SfxHit, c => c != null).Length}/3 " +
+                       $"specials={specials}/7");
             return report;
         }
 
