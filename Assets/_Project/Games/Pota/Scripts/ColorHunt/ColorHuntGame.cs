@@ -313,6 +313,7 @@ namespace Project.ColorHunt
             Salvo?.Tick(dt);
             AdvanceJobs(dt);
             TickGoldens(dt);
+            TickGathers(dt);
             AdvanceIntro(dt);
             AdvanceViews(dt);
             TickHint(Time.unscaledDeltaTime);
@@ -347,7 +348,7 @@ namespace Project.ColorHunt
                 v.Pulse = 0f;
                 v.Tick(dt);
             }
-            foreach (var v in _gathering)
+            foreach (var v in _gathering.Keys)
             {
                 v.Pulse = 0f;
                 v.Tick(dt);
@@ -573,6 +574,8 @@ namespace Project.ColorHunt
         public GiantHoop Hoop => _hoop != null ? _hoop : (_hoop = GetComponentInChildren<GiantHoop>(true));
         /// <summary>A style's flight must land within this many seconds after Pota's would; otherwise the game lands it (one warning).</summary>
         public const float GoldenGrace = 3f;
+        /// <summary>A gathered block must arrive within this many seconds after its gather time; otherwise the game settles it (one warning).</summary>
+        public const float GatherGrace = 3f;
 
         private ISpecialStyle _special;
         private readonly Dictionary<SpecialLook, ISpecialStyle> _specialStyles = new Dictionary<SpecialLook, ISpecialStyle>();
@@ -580,8 +583,12 @@ namespace Project.ColorHunt
         private readonly List<GoldenState> _goldens = new List<GoldenState>();
         /// <summary>Pota gorunenGecisler: the deal's gates, + opened ones at a step's drops, − one per golden ball that passed.</summary>
         private readonly List<int> _shownGates = new List<int>();
-        /// <summary>Birth-group blocks travelling into their birth cell (gathering looks); the style moves them, the game ticks them.</summary>
-        private readonly List<BlockView> _gathering = new List<BlockView>();
+        /// <summary>
+        /// Birth-group blocks travelling into their birth cell (gathering looks) → game seconds left before the game settles them itself
+        /// (GatherTime + <see cref="GatherGrace"/>); the style moves them, the game ticks them.
+        /// </summary>
+        private readonly Dictionary<BlockView, float> _gathering = new Dictionary<BlockView, float>();
+        private readonly List<BlockView> _gatherKeys = new List<BlockView>(), _gatherDue = new List<BlockView>();
         private int _specialGen;
         private GiantHoop _hoop;
 
@@ -622,7 +629,8 @@ namespace Project.ColorHunt
             {
                 case SpecialLook.Pota: return AddSpecialStyle<PotaSpecials>("PotaSpecials");
                 case SpecialLook.Royal: return AddSpecialStyle<RoyalSpecials>("RoyalSpecials");
-                default: return new NoSpecialStyle();          // Court: Task 11
+                case SpecialLook.Court: return AddSpecialStyle<CourtSpecials>("CourtSpecials");
+                default: return new NoSpecialStyle();
             }
         }
 
@@ -686,7 +694,7 @@ namespace Project.ColorHunt
                 GoldenLanded++;
             }
             _goldens.Clear();
-            var gathered = _gathering.ToArray();                   // a CellBurst listener may deal a new board (Deal bumps the gen)
+            var gathered = new List<BlockView>(_gathering.Keys);   // a CellBurst listener may deal a new board (Deal bumps the gen)
             _gathering.Clear();
             foreach (var v in gathered)
             {
@@ -761,6 +769,40 @@ namespace Project.ColorHunt
             }
         }
 
+        /// <summary>
+        /// Settles a gathered block whose style never called arrived within GatherTime + <see cref="GatherGrace"/> (a broken look must not
+        /// lock the board for good): one warning, then counted, burst (<see cref="CellBurst"/>, its step-start cell) and recycled, exactly as
+        /// its arrival would have done; a late arrival afterwards finds it gone and does nothing.
+        /// </summary>
+        private void TickGathers(float dt)
+        {
+            if (_gathering.Count == 0) return;
+            _gatherKeys.Clear();
+            _gatherKeys.AddRange(_gathering.Keys);
+            _gatherDue.Clear();
+            foreach (var v in _gatherKeys)
+            {
+                float left = _gathering[v] - dt;
+                _gathering[v] = left;
+                if (left > 0f) continue;
+                _gathering.Remove(v);
+                _gatherDue.Add(v);
+            }
+            if (_gatherDue.Count == 0) return;
+            var due = _gatherDue.ToArray();                        // a CellBurst listener may deal a new board (and gather again)
+            int gen = _specialGen;
+            foreach (var v in due)
+            {
+                Debug.LogWarning($"Color Hunt: the {SpecialLook} special look never brought the gathered block of cell {v.Cell} into its birth cell; settled now.");
+                if (gen == _specialGen)                            // a CellBurst listener may deal a new board
+                {
+                    CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
+                    RaiseCellBurst(v.Cell);
+                }
+                Recycle(v);
+            }
+        }
+
         /// <summary>Gathering looks: a birth group's other blocks travel into the birth cell instead of bursting (their stickers fly on arrival).</summary>
         private HashSet<int> GatherBirthGroups(StepJob st)
         {
@@ -781,7 +823,7 @@ namespace Project.ColorHunt
                     if (v == null) continue;
                     gathered.Add(g);
                     _views.Remove(g);
-                    _gathering.Add(v);
+                    _gathering[v] = time + GatherGrace;
                     v.Exploding = true;
                     int cell = g;
                     Specials.Gather(v, to, time, arrived =>
@@ -1169,7 +1211,7 @@ namespace Project.ColorHunt
             _swells.Clear();
             foreach (var v in _loose) Recycle(v);
             _loose.Clear();
-            foreach (var v in _gathering) Recycle(v);
+            foreach (var v in _gathering.Keys) Recycle(v);
             _gathering.Clear();
             _disperse = -1f;
             _intro = -1f; StopHint(); _idle = 0f;

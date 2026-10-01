@@ -167,6 +167,91 @@ MonoBehaviour:
   RoyalShell: {fileID: 8771091787928289351, guid: 1ec93853afd9241adb30b40227665592, type: 3}
   RoyalCoin: {fileID: -6485194804514954509, guid: a0a11a05da298471fb3dbc6a211b5167, type: 3}
   CourtBall: {fileID: 2037331516835740624, guid: cf5836ce8c1ce40b9a904aea663709b2, type: 3}
+  Court:
+    GatherTime: 0.22
+    GatherHop: 0.5
+    GatherBounce: 0.18
+    GatherBounceAt: 0.62
+    GatherShrink: 0.45
+    GatherLift: 0.8
+    LandDrop: 0.45
+    LandTime: 0.1
+    BornSquash: 0.6
+    BornFlash: 0.7
+    CourtRingFrom: 0.9
+    CourtRingTo: 2.4
+    CourtRingTime: 0.35
+    BirthDust: 1.6
+    DustTime: 0.4
+    IdleHz: 2
+    IdleHop: 0.06
+    IdleSquash: 0.5
+    GoldenSpin: 40
+    DribbleTime: 0.08
+    DribbleSquash: 0.4
+    LineSweep: 0.3
+    SweepCells: 6
+    StandInCells: 0.82
+    BallCells: 0.72
+    BallSpin: 720
+    EdgeMargin: 0.15
+    ExitCells: 0.7
+    KickLead: 0.6
+    LineHop: 0.15
+    LineHopTime: 0.12
+    FlameCells: 1.8
+    FlameLoop: 0.3
+    FlameWide: 1.7
+    FlameTint: {r: 1, g: 1.35, b: 0.7, a: 1}
+    SpeedLength: 2.6
+    SpeedHeight: 0.9
+    SpeedTime: 0.25
+    SwishRingFrom: 0.5
+    SwishRingTo: 1.6
+    SwishRingTime: 0.25
+    SwishVolume: 0.7
+    PassVolume: 0.8
+    HopTime: 0.14
+    HopScale: 1.6
+    HopUp: 0.35
+    HopToward: 2
+    HangTime: 0.08
+    SlamTime: 0.07
+    SlamScale: 1.25
+    ImpactHold: 0.05
+    ImpactSquash: 0.55
+    BombRing: 0.03
+    CrackCells: 2.6
+    CrackFade: 0.6
+    DustCells: 3.4
+    BlockHop: 0.25
+    BlockHopTime: 0.1
+    LetterTime: 0.5
+    LetterPeak: 1.15
+    SlamLetterCells: 4
+    ComboLetterCells: 4.4
+    SwishLetterCells: 3.6
+    FlashbulbsMin: 6
+    FlashbulbsMax: 10
+    FlashbulbWindow: 0.4
+    FlashbulbCells: 1.1
+    FlashbulbLife: 0.14
+    SlamShake: 0.24
+    KickAmount: 0.08
+    KickTime: 0.22
+    ComboSlowScale: 0.5
+    ComboSlowTime: 0.2
+    CrowdCut: 1.2
+    CrowdFade: 0.35
+    CrowdVolume: 0.8
+    GoldenBallCells: 0.7
+    GoldenRoll: 12
+    SwishLift: 1.4
+    SwishBack: 0.3
+    ConfettiCount: 28
+    NetRingAmount: 0.2
+    NetRingTime: 0.25
+    NetRingGap: 0.05
   SalvoDuration: 0.5
   SalvoLaunchFraction: 0.55
   SalvoFlightFraction: 0.42

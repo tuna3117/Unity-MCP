@@ -210,5 +210,80 @@ namespace Project.Tests
             Assert.AreEqual(1, game.Rotations);
             AssertViewsShowTheBoard(game, "after the turn");
         }
+
+        /// <summary>A gathering look that never brings its blocks in (its Gather keeps every arrived call): a broken style.</summary>
+        private sealed class StuckGatherStyle : ISpecialStyle
+        {
+            public readonly List<Action> Held = new List<Action>();
+            public bool Ready => true;
+            public int LiveCount => 0;
+            public SpecialTiming Timing => new SpecialTiming { GatherTime = 0.2f };
+            public bool GathersBirthGroup => true;
+            public bool ConsumesSpecialView => false;
+            public void Build(ColorHuntGame game) { }
+            public void Activate(bool on) { }
+            public void Clear() { }
+            public void Idle(BlockView v, float dt) { }
+            public void Gather(BlockView v, Vector2 to, float duration, Action<BlockView> arrived) => Held.Add(() => arrived(v));
+            public void Birth(BlockView v, SpecialKind kind) { }
+            public void TriggerStep(int specials, Vector2 centre) { }
+            public void Fire(SpecialFire fire) { }
+            public void GoldenFlight(GoldenRoute route, Action passedGate, Action landed) { passedGate(); landed(); }
+        }
+
+        [UnityTest]
+        public IEnumerator GatherGrace_SettlesABlockTheStyleNeverBrings()
+        {
+            ColorHuntGame game = null;
+            yield return Load(g => game = g);
+            var stuck = new StuckGatherStyle();
+            game.UseSpecialStyle(SpecialLook.Court, stuck);
+            game.SetSpecialLook(SpecialLook.Court);
+            Assert.AreSame(stuck, game.Specials);
+            Deal(game, Board7(BirthGrid, new int[0]));
+            var expected = new List<int>();
+            foreach (var step in ColorHuntRules.Break(game.Board, 44).Steps) expected.AddRange(step.Exploded);
+            var bursts = new List<int>();
+            int warnings = 0;
+            void Count(string message, string trace, LogType type)
+            {
+                if (type == LogType.Warning && message.Contains("never brought")) warnings++;
+            }
+            Application.logMessageReceived += Count;
+            game.CellBurst += bursts.Add;
+            float started = 0f, settled = -1f;
+            try
+            {
+                Assert.AreEqual("broken", game.Tap(44));
+                float clock = 0f;
+                while (clock < 12f && (stuck.Held.Count == 0 || game.Busy))
+                {
+                    float dt = Mathf.Min(Time.deltaTime, 0.05f);            // the game's own (game-time) step
+                    if (stuck.Held.Count > 0 && started == 0f) started = clock;
+                    clock += dt;
+                    yield return null;
+                }
+                settled = clock;
+                Assert.Greater(stuck.Held.Count, 0, "the birth groups were sent to the style");
+                Assert.IsFalse(game.Busy, "the game settled the blocks the style never brought: the board is not locked for good");
+                Assert.GreaterOrEqual(settled - started, 0.2f + ColorHuntGame.GatherGrace - 0.1f, "not before GatherTime + GatherGrace");
+                Assert.AreEqual(stuck.Held.Count, warnings, "one warning per block");
+                CollectionAssert.AreEquivalent(expected, bursts, "every exploded block burst once — the stuck ones when the grace ran out");
+                foreach (var late in stuck.Held) late();                    // the broken style calls back after all: ignored
+                CollectionAssert.AreEquivalent(expected, bursts, "a late arrival counts nothing twice");
+                Assert.IsFalse(game.Busy);
+            }
+            finally
+            {
+                Application.logMessageReceived -= Count;
+                game.CellBurst -= bursts.Add;
+            }
+            yield return StudioLookPlayTests.WaitUntil(() => game.ItemsInFlight == 0, 3f);
+            foreach (var t in game.Board.Targets)
+                Assert.AreEqual(Mathf.Max(0, t.Remaining), game.ShownTarget(t.Color), $"colour {t.Color}: counted once");
+            AssertViewsShowTheBoard(game, "after the grace");
+            Assert.AreEqual("broken", game.Tap(FirstNormal(game.Board)), "the board plays on");
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Busy, 10f);
+        }
     }
 }

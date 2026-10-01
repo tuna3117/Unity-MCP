@@ -141,6 +141,10 @@ namespace Project.ColorHunt
         [Tooltip("2 Court: vfx_mesh basketball, a 0.45 m low-poly ball in Pota's classic skin.")]
         public GameObject CourtBall;
 
+        [Header("Court special look (spec 2026-10-01 §2 · 2 Basketbol): game seconds, board cells")]
+        [Tooltip("Every number of the Court look; the timing fields also drive the trigger plan (CourtSpecials.TimingFor).")]
+        public CourtTuning Court = new CourtTuning();
+
         [Header("Timing (seconds)")]
         public float SalvoDuration = 0.5f;
         [Range(0f, 1f)] public float SalvoLaunchFraction = 0.55f;
