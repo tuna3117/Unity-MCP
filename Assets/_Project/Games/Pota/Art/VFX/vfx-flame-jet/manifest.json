@@ -1,0 +1,71 @@
+{
+  "id": "vfx-flame-jet",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-flame-jet.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 4,
+    "rows": 2,
+    "frames": 8,
+    "frame_px": 256,
+    "frame_h": 256,
+    "duration_s": 0.3,
+    "linear": false,
+    "loop": true
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-flame-jet.png",
+        "size": [
+          1024,
+          512
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:flame_jet",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 8
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.0952,
+      0.0986,
+      0.0933,
+      0.0919,
+      0.0885,
+      0.0868,
+      0.0929,
+      0.0929
+    ],
+    "passed": true
+  },
+  "made": "2026-10-01T18:53:57Z"
+}

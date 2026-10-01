@@ -95,11 +95,24 @@ MonoBehaviour:
   CandyShardTemplate: {fileID: 2100000, guid: fc51cc46585ab41c6b3cbc2c40b503e9, type: 2}
   PieceTemplate: {fileID: 2100000, guid: e6f064aba970c4734896c17854901c2d, type: 2}
   ShockTemplate: {fileID: 2100000, guid: c8dd69970afd14801b723a17f8026f7d, type: 2}
+  ToonTemplate: {fileID: 2100000, guid: 986432fda363b48febb4d4d3b99a4bbb, type: 2}
   CandyPuff: {fileID: 2800000, guid: 99e14e3d9b28a4425b8c078e73370b6e, type: 3}
   CandyRing: {fileID: 2800000, guid: 8adca5aa811f4435c8e05f6ba8416b6e, type: 3}
   ShatterSmoke: {fileID: 2800000, guid: 933ce353e632d41f8b96a3d33743e6be, type: 3}
   ShockRing: {fileID: 2800000, guid: 2576e92e4ad244fc6803c4b7f06a699e, type: 3}
   ShatterPieces: {fileID: 8771091787928289351, guid: 2b5ed0bb995c74898b52c990ea129792, type: 3}
+  RoyalFire: {fileID: 2800000, guid: 2e0e800ec56a844cea190199ffc4e087, type: 3}
+  FlameJet: {fileID: 2800000, guid: 5344681c2b9de4ee8b5f9193f9f95ba5, type: 3}
+  CourtDust: {fileID: 2800000, guid: 2a0f2a557c5d641c0ae4f726a6afd060, type: 3}
+  SpeedLines: {fileID: 2800000, guid: fe4d3ddcf8a354c5ab3cf80a3451d7b9, type: 3}
+  FloorCrack: {fileID: 2800000, guid: 1ed6e58fa346a4acc97c3c963ab031cb, type: 3}
+  LetterSlam: {fileID: 2800000, guid: 663518564a0ed4a43a70293dc1ff06e4, type: 3}
+  LetterSwish: {fileID: 2800000, guid: a6df8bb315f6343338a6747478cda4bb, type: 3}
+  LetterCombo: {fileID: 2800000, guid: 134e001d2d14e45e1916063dd4df8867, type: 3}
+  RoyalHalves: {fileID: 8771091787928289351, guid: 938c17f32bd6d42408d764de13488b53, type: 3}
+  RoyalShell: {fileID: 8771091787928289351, guid: 1ec93853afd9241adb30b40227665592, type: 3}
+  RoyalCoin: {fileID: -6485194804514954509, guid: a0a11a05da298471fb3dbc6a211b5167, type: 3}
+  CourtBall: {fileID: 2037331516835740624, guid: cf5836ce8c1ce40b9a904aea663709b2, type: 3}
   SalvoDuration: 0.5
   SalvoLaunchFraction: 0.55
   SalvoFlightFraction: 0.42

@@ -1,0 +1,79 @@
+{
+  "id": "vfx-fire-toon",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-fire-toon.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 4,
+    "rows": 4,
+    "frames": 16,
+    "frame_px": 256,
+    "frame_h": 256,
+    "duration_s": 0.45,
+    "linear": false,
+    "loop": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-fire-toon.png",
+        "size": [
+          1024,
+          1024
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:fire_toon",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 16
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.0317,
+      0.1533,
+      0.2349,
+      0.2546,
+      0.2549,
+      0.256,
+      0.2649,
+      0.2644,
+      0.2245,
+      0.1632,
+      0.1082,
+      0.0757,
+      0.0603,
+      0.0506,
+      0.0393,
+      0.0294
+    ],
+    "passed": true
+  },
+  "made": "2026-10-01T18:53:55Z"
+}

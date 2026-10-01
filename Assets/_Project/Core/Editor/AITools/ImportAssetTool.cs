@@ -76,16 +76,16 @@ namespace Project.Editor.AITools
             if (!KindFolders.TryGetValue(kind, out string kindFolder))
                 throw new ArgumentException($"Unknown kind '{kind}' (known: {string.Join(", ", KindFolders.Keys)}).");
             var files = m["files"] as JObject ?? throw new ArgumentException("manifest has no 'files'.");
-            string glb = files.Value<string>("glb"), fbx = files.Value<string>("fbx"), sheet = files.Value<string>("sheet");
             bool flipbook = kind == "vfx-flipbook";
-            if (flipbook && string.IsNullOrEmpty(sheet)) throw new ArgumentException("a vfx-flipbook manifest lists no 'sheet'.");
-            string mainName = flipbook ? sheet : !string.IsNullOrEmpty(glb) ? glb : fbx;
-            if (string.IsNullOrEmpty(mainName)) throw new ArgumentException("manifest lists neither a glb nor an fbx.");
+            string mainName = MainName(files, flipbook);
+            JObject fb = null;
+            if (flipbook) fb = m["flipbook"] as JObject ?? throw new ArgumentException("a vfx-flipbook manifest has no 'flipbook' block.");
 
             var r = new Result { id = id, folder = dest ?? $"Assets/_Project/Games/{game}/Art/{kindFolder}/{id}" };
             AIToolsCommon.EnsureFolder(r.folder);
             string sourceDir = Path.GetDirectoryName(Path.GetFullPath(manifestPath));
-            foreach (string name in new[] { glb, fbx, flipbook ? sheet : null, "manifest.json" }.Where(n => !string.IsNullOrEmpty(n)))
+            string glb = files.Value<string>("glb"), fbx = files.Value<string>("fbx");
+            foreach (string name in new[] { glb, fbx, flipbook ? mainName : null, "manifest.json" }.Where(n => !string.IsNullOrEmpty(n)))
             {
                 string source = name == "manifest.json" ? manifestPath : Path.Combine(sourceDir, name);
                 if (!File.Exists(source)) throw new FileNotFoundException("Hand-off file missing: " + source);
@@ -95,16 +95,45 @@ namespace Project.Editor.AITools
                 r.copied.Add(target);
             }
             r.main = $"{r.folder}/{mainName}";
+            if (flipbook) ConfigureSheet(r.main, fb.Value<bool?>("linear") ?? false);
+            Check(r, m, flipbook);
+            return r;
+        }
+
+        /// <summary>
+        /// Measures a hand-off already imported into <paramref name="folder"/> against its manifest, copying and reconfiguring
+        /// nothing (tests: the special-look assets match what the workshop measured).
+        /// </summary>
+        public static Result Verify(string manifestPath, string folder)
+        {
+            if (!File.Exists(manifestPath)) throw new FileNotFoundException("No manifest at " + manifestPath);
+            var m = JObject.Parse(File.ReadAllText(manifestPath));
+            var files = m["files"] as JObject ?? throw new ArgumentException("manifest has no 'files'.");
+            bool flipbook = Required(m, "kind") == "vfx-flipbook";
+            var r = new Result { id = Required(m, "id"), folder = folder };
+            r.main = $"{folder}/{MainName(files, flipbook)}";
+            Check(r, m, flipbook);
+            return r;
+        }
+
+        private static string MainName(JObject files, bool flipbook)
+        {
+            string glb = files.Value<string>("glb"), fbx = files.Value<string>("fbx"), sheet = files.Value<string>("sheet");
+            if (flipbook && string.IsNullOrEmpty(sheet)) throw new ArgumentException("a vfx-flipbook manifest lists no 'sheet'.");
+            string main = flipbook ? sheet : !string.IsNullOrEmpty(glb) ? glb : fbx;
+            if (string.IsNullOrEmpty(main)) throw new ArgumentException("manifest lists neither a glb nor an fbx.");
+            return main;
+        }
+
+        private static void Check(Result r, JObject m, bool flipbook)
+        {
             if (flipbook)
             {
-                var fb = m["flipbook"] as JObject ?? throw new ArgumentException("a vfx-flipbook manifest has no 'flipbook' block.");
-                ConfigureSheet(r.main, fb.Value<bool?>("linear") ?? false);
-                MeasureSheet(r, fb);
-                return r;
+                MeasureSheet(r, m["flipbook"] as JObject ?? throw new ArgumentException("a vfx-flipbook manifest has no 'flipbook' block."));
+                return;
             }
             Measure(r);
             Compare(r, m["stats"] as JObject);
-            return r;
         }
 
         /// <summary>Particle flipbook import: straight alpha, clamped, mipmapped, uncompressed; sRGB unless the sheet holds data.</summary>
@@ -125,9 +154,9 @@ namespace Project.Editor.AITools
         private static void MeasureSheet(Result r, JObject fb)
         {
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(r.main) ?? throw new IOException("Unity imported no texture from " + r.main);
-            int px = fb.Value<int?>("frame_px") ?? 0;
+            int px = fb.Value<int?>("frame_px") ?? 0, ph = fb.Value<int?>("frame_h") ?? px;   // frame_h: wide stills (512×256)
             r.sheetSize = new[] { tex.width, tex.height };
-            r.manifestSheetSize = new[] { (fb.Value<int?>("cols") ?? 0) * px, (fb.Value<int?>("rows") ?? 0) * px };
+            r.manifestSheetSize = new[] { (fb.Value<int?>("cols") ?? 0) * px, (fb.Value<int?>("rows") ?? 0) * ph };
             if (r.sheetSize[0] != r.manifestSheetSize[0] || r.sheetSize[1] != r.manifestSheetSize[1])
                 r.differences.Add($"sheet manifest {r.manifestSheetSize[0]}x{r.manifestSheetSize[1]} vs Unity {tex.width}x{tex.height}");
         }

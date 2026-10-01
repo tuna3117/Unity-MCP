@@ -1,0 +1,64 @@
+{
+  "id": "vfx-floor-crack",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-floor-crack.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 1,
+    "rows": 1,
+    "frames": 1,
+    "frame_px": 512,
+    "frame_h": 512,
+    "duration_s": 0.6,
+    "linear": false,
+    "loop": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-floor-crack.png",
+        "size": [
+          512,
+          512
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:floor_crack",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 1
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.0905
+    ],
+    "passed": true
+  },
+  "made": "2026-10-01T19:19:45Z"
+}

@@ -1,0 +1,66 @@
+{
+  "id": "vfx-letter-slam",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-letter-slam.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 1,
+    "rows": 1,
+    "frames": 1,
+    "frame_px": 512,
+    "frame_h": 256,
+    "duration_s": 0.5,
+    "linear": false,
+    "loop": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-letter-slam.png",
+        "size": [
+          512,
+          256
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:lettering",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 1,
+      "text": "SLAM!",
+      "style": "slam"
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.6061
+    ],
+    "passed": true
+  },
+  "made": "2026-10-01T19:19:46Z"
+}

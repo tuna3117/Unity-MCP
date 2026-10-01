@@ -1,0 +1,62 @@
+{
+  "id": "vfx-coin",
+  "game": "Pota",
+  "kind": "vfx-mesh",
+  "version": 1,
+  "files": {
+    "glb": "vfx-coin.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 864,
+    "materials": 1,
+    "textures": [
+      {
+        "name": "coin_skin",
+        "size": [
+          256,
+          128
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0.3,
+      0.044,
+      0.3
+    ]
+  },
+  "source": {
+    "recipe": "vfx_mesh:coin",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7
+    }
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true,
+    "mesh": {
+      "objects": [
+        "Coin"
+      ],
+      "tris": {
+        "Coin": 864
+      },
+      "open_edges": 0,
+      "passed": true
+    }
+  },
+  "made": "2026-10-01T19:20:06Z"
+}

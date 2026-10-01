@@ -120,5 +120,33 @@ namespace Project.Tests
             string manifest = FlipbookVariant("nosheet", m => m.Replace("\"sheet\": \"fixture-flipbook.png\", ", ""));
             Assert.Throws<ArgumentException>(() => ImportAssetTool.Import(manifest, Root + "/nosheet"));
         }
+
+        [Test]
+        public void Flipbook_FrameHeight_MeasuresAWideSheet()
+        {
+            string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Temp", "handoff-flipbook-wide"));
+            Directory.CreateDirectory(dir);
+            var tex = new Texture2D(64, 32, TextureFormat.RGBA32, false);
+            File.WriteAllBytes(Path.Combine(dir, "fixture-flipbook.png"), tex.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(tex);
+            File.WriteAllText(Path.Combine(dir, "manifest.json"), File.ReadAllText(FlipbookFixture).Replace(
+                "\"cols\": 2, \"rows\": 2, \"frames\": 4, \"frame_px\": 64,",
+                "\"cols\": 1, \"rows\": 1, \"frames\": 1, \"frame_px\": 64, \"frame_h\": 32,"));
+            var r = ImportAssetTool.Import(Path.Combine(dir, "manifest.json"), Root + "/wide");
+            Assert.IsTrue(r.matches, string.Join("; ", r.differences));
+            CollectionAssert.AreEqual(new[] { 64, 32 }, r.sheetSize);
+            CollectionAssert.AreEqual(new[] { 64, 32 }, r.manifestSheetSize);
+        }
+
+        [Test]
+        public void Verify_MeasuresAnImportedHandoff_WithoutCopying()
+        {
+            ImportAssetTool.Import(Fixture, Dest);
+            var r = ImportAssetTool.Verify(Dest + "/manifest.json", Dest);
+            Assert.IsTrue(r.matches, string.Join("; ", r.differences));
+            Assert.AreEqual(12, r.unityTris);
+            Assert.AreEqual(Dest + "/handoff-cube.glb", r.main);
+            Assert.IsEmpty(r.copied);
+        }
     }
 }

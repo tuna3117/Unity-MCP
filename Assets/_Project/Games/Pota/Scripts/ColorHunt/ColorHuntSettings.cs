@@ -101,6 +101,8 @@ namespace Project.ColorHunt
         public Material PieceTemplate;
         [Tooltip("Project/PotaShockRing: B's heat-haze ring.")]
         public Material ShockTemplate;
+        [Tooltip("Core Project/Toon: the special looks' Blender meshes with their embedded skin as base map (SpecialMeshes.Toon).")]
+        public Material ToonTemplate;
 
         [Header("Studio looks (Blender hand-offs, ai_studio_import)")]
         [Tooltip("A: vfx_flipbook puff_toon, 4×4 frames of 256 px.")]
@@ -113,6 +115,29 @@ namespace Project.ColorHunt
         public Texture2D ShockRing;
         [Tooltip("B: vfx_fracture pillow, one child mesh per piece (origin = piece centre, UV1.x = front flag).")]
         public GameObject ShatterPieces;
+
+        [Header("Special looks (Blender hand-offs, ai_studio_import; plan 2026-10-01 Tasks 7–9)")]
+        [Tooltip("1 Royal: vfx_flipbook fire_toon, inked cartoon fireball, 4×4 frames of 256 px, 0.45 s one-shot; ends in grey smoke.")]
+        public Texture2D RoyalFire;
+        [Tooltip("1 + 2: vfx_flipbook flame_jet, LOOP of 4×2 frames of 256 px, one cycle 0.3 s; nozzle at frame (0.5, 0.9), flame toward −y.")]
+        public Texture2D FlameJet;
+        [Tooltip("2 Court: vfx_flipbook dust_ring, inked court-tan ring laid face-on, 4×4 frames of 256 px, 0.4 s; open centre.")]
+        public Texture2D CourtDust;
+        [Tooltip("2 Court: vfx_flipbook speed_lines, horizontal streaks trailing to −x behind a ball at the right edge, 4×2 of 256 px, 0.25 s.")]
+        public Texture2D SpeedLines;
+        [Tooltip("2 Court: vfx_flipbook floor_crack, one 512 px still (dark star crack, pale chipped edge); fade by alpha.")]
+        public Texture2D FloorCrack;
+        [Tooltip("2 Court: vfx_flipbook lettering, 512×256 stills in Lilita One with a navy outline: draw on a 2:1 quad or size3D.")]
+        public Texture2D LetterSlam, LetterSwish, LetterCombo;
+        [Tooltip("1 Royal: vfx_mesh ball_halves. Children HalfA, HalfB: nose along local +X, flat cap at x = 0 facing −X, origin at the " +
+                 "cap centre; the whole ball = HalfB turned 180° about y against HalfA. Import offsets y ±0.3 are for the preview only.")]
+        public GameObject RoyalHalves;
+        [Tooltip("1 Royal: vfx_fracture sphere, a 0.45 m bomb in eight shell pieces piece_00…07 (origin = piece centre).")]
+        public GameObject RoyalShell;
+        [Tooltip("1 Royal: vfx_mesh coin, a 0.30 m gold coin with a raised ball, faces along ±z.")]
+        public GameObject RoyalCoin;
+        [Tooltip("2 Court: vfx_mesh basketball, a 0.45 m low-poly ball in Pota's classic skin.")]
+        public GameObject CourtBall;
 
         [Header("Timing (seconds)")]
         public float SalvoDuration = 0.5f;

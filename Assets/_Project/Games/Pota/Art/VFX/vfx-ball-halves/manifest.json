@@ -1,0 +1,64 @@
+{
+  "id": "vfx-ball-halves",
+  "game": "Pota",
+  "kind": "vfx-mesh",
+  "version": 1,
+  "files": {
+    "glb": "vfx-ball-halves.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 1024,
+    "materials": 1,
+    "textures": [
+      {
+        "name": "ball_halves_skin",
+        "size": [
+          512,
+          256
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0.225,
+      0.45,
+      1.05
+    ]
+  },
+  "source": {
+    "recipe": "vfx_mesh:ball_halves",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7
+    }
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true,
+    "mesh": {
+      "objects": [
+        "HalfA",
+        "HalfB"
+      ],
+      "tris": {
+        "HalfA": 512,
+        "HalfB": 512
+      },
+      "open_edges": 0,
+      "passed": true
+    }
+  },
+  "made": "2026-10-01T19:19:58Z"
+}

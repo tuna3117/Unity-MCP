@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Project.ColorHunt;
 using Project.Editor.AITools;
 using UnityEditor;
 using UnityEngine;
@@ -18,6 +19,17 @@ namespace Project.Tests
             Assert.AreEqual("Transparent", m.GetTag("RenderType", false), "URP's transparent tag");
             Assert.IsFalse(m.GetShaderPassEnabled("ShadowCaster"), "a transparent ring casts no shadow");
             Assert.AreEqual(0.9f, m.GetColor("_BaseColor").a, 1e-3f);
+        }
+
+        [Test]
+        public void Ensure_WiresTheToonTemplate()
+        {
+            PotaMaterialTemplates.Ensure();
+            var m = AssetDatabase.LoadAssetAtPath<Material>(PotaMaterialTemplates.Folder + "/PotaToon.mat");
+            Assert.IsNotNull(m);
+            Assert.AreEqual("Project/Toon", m.shader.name);
+            var s = AssetDatabase.LoadAssetAtPath<ColorHuntSettings>("Assets/_Project/Games/Pota/Settings/ColorHuntSettings.asset");
+            Assert.AreEqual(m, s.ToonTemplate, "ColorHuntSettings.ToonTemplate keeps Project/Toon in a Pota build");
         }
     }
 }

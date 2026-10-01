@@ -1,0 +1,62 @@
+{
+  "id": "vfx-basketball",
+  "game": "Pota",
+  "kind": "vfx-mesh",
+  "version": 1,
+  "files": {
+    "glb": "vfx-basketball.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 960,
+    "materials": 1,
+    "textures": [
+      {
+        "name": "basketball_skin",
+        "size": [
+          512,
+          256
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0.45,
+      0.45,
+      0.45
+    ]
+  },
+  "source": {
+    "recipe": "vfx_mesh:basketball",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7
+    }
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true,
+    "mesh": {
+      "objects": [
+        "Basketball"
+      ],
+      "tris": {
+        "Basketball": 960
+      },
+      "open_edges": 0,
+      "passed": true
+    }
+  },
+  "made": "2026-10-01T19:20:02Z"
+}

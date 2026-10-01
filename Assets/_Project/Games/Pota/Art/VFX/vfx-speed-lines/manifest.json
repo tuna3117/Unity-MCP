@@ -1,0 +1,71 @@
+{
+  "id": "vfx-speed-lines",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-speed-lines.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 4,
+    "rows": 2,
+    "frames": 8,
+    "frame_px": 256,
+    "frame_h": 256,
+    "duration_s": 0.25,
+    "linear": false,
+    "loop": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-speed-lines.png",
+        "size": [
+          1024,
+          512
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:speed_lines",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 8
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.0267,
+      0.1278,
+      0.1449,
+      0.1419,
+      0.1239,
+      0.1013,
+      0.0813,
+      0.0733
+    ],
+    "passed": true
+  },
+  "made": "2026-10-01T19:10:25Z"
+}
