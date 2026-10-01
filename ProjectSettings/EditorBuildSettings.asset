@@ -14,5 +14,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Games/Pota/Scenes/PotaFlow.unity
     guid: 40952cc6fed5943029ae8c42caf06d0b
+  - enabled: 1
+    path: Assets/_Project/Games/Pota/Scenes/Specials.unity
+    guid: 1ac34cd23160c44c18d5d1885d36c2c4
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

@@ -1,0 +1,164 @@
+using System.Collections.Generic;
+using NUnit.Framework;
+using Project.ColorHunt;
+
+namespace Project.Tests
+{
+    /// <summary>
+    /// The demo's hand-authored boards (Decision 6): each scripted tap produces its scenario's event. The pinned outcomes are what Pota's
+    /// own src/renkAvi.ts gives on these grids with rng 1 (checked while planning). If one fails, suspect the rules port first (Task 2's
+    /// fixtures); change a grid only once the port is proven right, and keep the test.
+    /// </summary>
+    public class SpecialScenariosTests
+    {
+        private static List<BreakResult> PlayAll(SpecialScenario s, out Board end)
+        {
+            var b = ColorHuntRules.FromPreset(SpecialScenarios.Board(s));
+            var results = new List<BreakResult>();
+            foreach (int cell in SpecialScenarios.Taps(s))
+            {
+                var r = ColorHuntRules.Break(b, cell);
+                Assert.IsTrue(r.Broken, $"{s}: tap {cell} was not accepted ({r.Outcome})");
+                results.Add(r);
+                b = r.Board;
+            }
+            end = b;
+            return results;
+        }
+
+        private static List<string> Births(BreakResult r)
+        {
+            var list = new List<string>();
+            foreach (var step in r.Steps) foreach (var b in step.Born) list.Add($"{b.Cell}:{b.Kind}");
+            return list;
+        }
+
+        private static List<string> Triggers(Step step)
+        {
+            var list = new List<string>();
+            foreach (var t in step.Triggered) list.Add($"{t.Cell}:{t.Kind}");
+            return list;
+        }
+
+        private static int[] Range(int from, int count, int stride = 1)
+        {
+            var a = new int[count];
+            for (int i = 0; i < count; i++) a[i] = from + i * stride;
+            return a;
+        }
+
+        [Test]
+        public void EveryPreset_StartsSettled_WithItsSpecialsAndGates([Values] SpecialScenario s)
+        {
+            var p = SpecialScenarios.Board(s);
+            Assert.AreEqual(SpecialScenarios.Size * SpecialScenarios.Size, p.Colors.Length);
+            Assert.AreEqual(p.Colors.Length, p.Specials.Length);
+            for (int i = 0; i < p.Colors.Length; i++)
+                Assert.AreEqual(p.Colors[i] < 0, p.Specials[i] != SpecialKind.None, $"{s}: cell {i}: -1 in the grid ⇔ a special");
+            var b = ColorHuntRules.FromPreset(p);
+            Assert.IsEmpty(ColorHuntRules.FindMatches(b), $"{s}: a preset starts with no run");
+            Assert.IsTrue(b.Features.Line && b.Features.Bomb && b.Features.Golden);
+            Assert.AreEqual(1u, b.Rng);
+            int goldens = 0;
+            foreach (var c in b.Cells) if (c.Special == SpecialKind.Golden) goldens++;
+            Assert.LessOrEqual(goldens, b.Gates.Count, $"{s}: every golden ball has a gate");
+            foreach (int cell in SpecialScenarios.Taps(s)) Assert.That(cell, Is.InRange(0, 48));
+            Assert.IsFalse(string.IsNullOrEmpty(SpecialScenarios.Title(s)));
+        }
+
+        [Test]
+        public void FromPreset_BuildsThePresetsBoard()
+        {
+            var p = SpecialScenarios.Board(SpecialScenario.Golden);
+            var b = ColorHuntRules.FromPreset(p);
+            Assert.AreEqual(7, b.Size);
+            Assert.AreEqual(158, b.Ammo);
+            Assert.AreEqual(SpecialKind.Golden, b.Cells[38].Special);
+            Assert.AreEqual(ColorHuntRules.SpecialColor, b.Cells[38].Color);
+            Assert.AreEqual(0, b.Cells[38].Hp);
+            Assert.AreEqual(new Block(1, 3 + 1 * 7 % 12), b.Cells[1], "colour from the grid, hp HpMin + 7i mod 12");
+            CollectionAssert.AreEqual(new[] { 3, 5 }, b.Gates);
+            p.Gates[0] = 6;
+            CollectionAssert.AreEqual(new[] { 3, 5 }, b.Gates, "the board keeps its own copy");
+            Assert.AreEqual(2, b.Targets.Length);
+            Assert.AreEqual(new Target(0, 22), b.Targets[0]);
+            Assert.AreEqual(0, b.Golden);
+        }
+
+        [Test]
+        public void Birth_BearsALineVAGoldenALineHAndABomb()
+        {
+            var r = PlayAll(SpecialScenario.Birth, out var end);
+            Assert.AreEqual(3, r.Count);
+            CollectionAssert.AreEquivalent(new[] { "29:LineV", "43:Golden" }, Births(r[0]), "tap 44: the 5-run and, as column 2 closes up, row 4's 4-run");
+            var opened = new List<int>();
+            foreach (var step in r[0].Steps) opened.AddRange(step.Opened);
+            CollectionAssert.AreEqual(new[] { 3 }, opened, "the golden ball opens a gate; Pota's rng (mulberry32, seed 1) picks column 3");
+            CollectionAssert.AreEqual(new[] { "48:LineH" }, Births(r[1]), "tap 34: column 6 closes up into a vertical 4-run");
+            CollectionAssert.AreEqual(new[] { "32:Bomb" }, Births(r[2]), "tap 32: a T of 2s");
+            var kinds = new HashSet<SpecialKind>();
+            foreach (var c in end.Cells) if (c.IsSpecial) kinds.Add(c.Special);
+            CollectionAssert.AreEquivalent(new[] { SpecialKind.LineV, SpecialKind.LineH, SpecialKind.Bomb, SpecialKind.Golden }, kinds, "all four stay on the board");
+        }
+
+        [Test]
+        public void Line_FiresTheRowThenTheColumn()
+        {
+            var r = PlayAll(SpecialScenario.Line, out var end);
+            CollectionAssert.AreEqual(new[] { "22:LineH" }, Triggers(r[0].Steps[0]));
+            CollectionAssert.AreEqual(Range(21, 7), r[0].Steps[0].Exploded, "row 3");
+            CollectionAssert.AreEqual(new[] { "26:LineV" }, Triggers(r[1].Steps[0]), "the column ball fell one row with the row's collapse");
+            CollectionAssert.AreEqual(Range(5, 7, 7), r[1].Steps[0].Exploded, "column 5");
+            Assert.AreEqual(0, r[0].Cost + r[1].Cost, "free");
+        }
+
+        [Test]
+        public void Bomb_BurstsItsThreeByThree_AndTheCornerClips()
+        {
+            var r = PlayAll(SpecialScenario.Bomb, out _);
+            CollectionAssert.AreEqual(new[] { 16, 17, 18, 23, 24, 25, 30, 31, 32 }, r[0].Steps[0].Exploded);
+            CollectionAssert.AreEqual(new[] { "24:Bomb" }, Triggers(r[0].Steps[0]));
+            CollectionAssert.AreEqual(new[] { 40, 41, 47, 48 }, r[1].Steps[0].Exploded, "tekAlan clips at the corner");
+        }
+
+        [Test]
+        public void Chain_LineSetsOffTheBomb_WhichSetsOffTheColumn()
+        {
+            var r = PlayAll(SpecialScenario.Chain, out _);
+            var step = r[0].Steps[0];
+            CollectionAssert.AreEqual(new[] { "19:LineV", "21:LineH", "25:Bomb" }, Triggers(step), "patlamaAlani: sorted by cell");
+            CollectionAssert.AreEqual(new[] { 5, 12, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 31, 32, 33, 40, 47 }, step.Exploded);
+            var plan = SpecialSchedule.Plan(7, step, 21, SpecialTiming.Pota, 0.15f);
+            Assert.AreEqual(3, plan.Fires.Count);
+            Assert.AreEqual(21, plan.Fires[0].Cell, "the tapped line first");
+        }
+
+        [Test]
+        public void Golden_BothBallsDropThroughTheirGates()
+        {
+            var r = PlayAll(SpecialScenario.Golden, out var end);
+            Assert.AreEqual(2, r[0].Steps.Count, "the tap, then the basket");
+            var basket = r[0].Steps[1];
+            Assert.IsEmpty(basket.Exploded, "a pure basket step");
+            Assert.AreEqual(2, basket.ToBasket.Count);
+            Assert.AreEqual(45, basket.ToBasket[0].Cell, "the ball above the tapped block fell onto gate 3");
+            Assert.AreEqual(3, basket.ToBasket[0].Col);
+            Assert.AreEqual(47, basket.ToBasket[1].Cell);
+            Assert.AreEqual(5, basket.ToBasket[1].Col);
+            Assert.AreEqual(2, end.Golden);
+            CollectionAssert.IsEmpty(end.Gates, "no other golden ball in those columns: both gates close");
+        }
+
+        [Test]
+        public void Free_HasOneOfEachSpecial_AndNoScript()
+        {
+            var b = ColorHuntRules.FromPreset(SpecialScenarios.Board(SpecialScenario.Free));
+            Assert.AreEqual(SpecialKind.LineV, b.Cells[8].Special);
+            Assert.AreEqual(SpecialKind.Golden, b.Cells[18].Special);
+            Assert.AreEqual(SpecialKind.Bomb, b.Cells[24].Special);
+            Assert.AreEqual(SpecialKind.LineH, b.Cells[40].Special);
+            CollectionAssert.AreEqual(new[] { 4 }, b.Gates, "the golden ball's column");
+            Assert.IsEmpty(SpecialScenarios.Taps(SpecialScenario.Free), "Tuna plays it");
+        }
+    }
+}

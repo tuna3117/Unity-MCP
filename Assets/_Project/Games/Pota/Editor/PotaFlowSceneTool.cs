@@ -88,7 +88,7 @@ namespace Project.Editor.AITools
             EditorSceneManager.SaveScene(scene, ScenePath);
             report.Add($"saved {ScenePath}");
             SceneParts.AddToBuildSettings(ScenePath);
-            AddToProfile(report);
+            SceneParts.AddToProfile(ProfilePath, ScenePath, report);
             AssetDatabase.SaveAssets();
             report.Add(GameViewPortrait.Apply(1080, 1920));
             return report;
@@ -105,18 +105,5 @@ namespace Project.Editor.AITools
             return s;
         }
 
-        private static void AddToProfile(List<string> report)
-        {
-            var profile = AssetDatabase.LoadAssetAtPath<GameProfile>(ProfilePath);
-            var sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
-            if (profile == null || sceneAsset == null) { report.Add("PotaProfile or scene asset missing"); return; }
-            if (System.Array.IndexOf(profile.Scenes, sceneAsset) >= 0) return;
-            var so = new SerializedObject(profile);
-            var list = so.FindProperty("Scenes");
-            list.arraySize++;
-            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = sceneAsset;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            report.Add("PotaProfile: PotaFlow added");
-        }
     }
 }

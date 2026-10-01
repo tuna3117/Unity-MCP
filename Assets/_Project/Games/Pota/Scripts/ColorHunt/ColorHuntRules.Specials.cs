@@ -227,5 +227,36 @@ namespace Project.ColorHunt
             var settled = ResolveChains(rotated, steps);
             return new RotateResult { Rotated = rotated, Board = settled, Steps = steps };
         }
+
+        // ---------- presets (demo, tests, spec §1.3) ----------
+
+        /// <summary>
+        /// A hand-authored board (demo presets, tests): colours row by row (row 0 at the top), hp (null: HpMin + 7·i mod the span), a
+        /// special where Specials says so (its colour and hp are ignored), the open gates, the rng state. Nothing is resolved: a preset
+        /// must start without runs.
+        /// </summary>
+        public static Board FromPreset(BoardPreset p)
+        {
+            int n = p.Size, count = n * n;
+            if (p.Colors == null || p.Colors.Length != count) throw new ArgumentException($"BoardPreset.Colors needs {count} entries", nameof(p));
+            int span = Math.Max(1, p.HpMax - p.HpMin + 1);
+            var cells = new Block[count];
+            for (int i = 0; i < count; i++)
+            {
+                var kind = p.Specials != null && i < p.Specials.Length ? p.Specials[i] : SpecialKind.None;
+                if (kind != SpecialKind.None) { cells[i] = Block.MakeSpecial(kind); continue; }
+                int hp = p.Hp != null && i < p.Hp.Length ? p.Hp[i] : p.HpMin + i * 7 % span;
+                cells[i] = new Block(p.Colors[i], hp);
+            }
+            var targets = new Target[p.Targets.Length];
+            for (int t = 0; t < targets.Length; t++) targets[t] = new Target(p.Targets[t].color, p.Targets[t].count);
+            var board = new Board
+            {
+                Size = n, Cells = cells, Ammo = p.Ammo, Targets = targets, ColorCount = p.ColorCount, HpMin = p.HpMin, HpMax = p.HpMax,
+                Rng = p.Rng, Features = p.Features,
+            };
+            if (p.Gates != null) board.Gates.AddRange(p.Gates);
+            return board;
+        }
     }
 }

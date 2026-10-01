@@ -46,6 +46,21 @@ namespace Project.Editor.AITools
         public static void AddToBuildSettings(string path) =>
             EditorBuildSettings.scenes = WithScene(EditorBuildSettings.scenes, path);
 
+        /// <summary>Appends <paramref name="scenePath"/> to a GameProfile's scenes once (ai_build and the dev scene switcher take it from there).</summary>
+        public static void AddToProfile(string profilePath, string scenePath, List<string> report)
+        {
+            var profile = AssetDatabase.LoadAssetAtPath<GameProfile>(profilePath);
+            var sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
+            if (profile == null || sceneAsset == null) { report.Add($"{profilePath} or {scenePath} missing"); return; }
+            if (System.Array.IndexOf(profile.Scenes, sceneAsset) >= 0) return;
+            var so = new SerializedObject(profile);
+            var list = so.FindProperty("Scenes");
+            list.arraySize++;
+            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = sceneAsset;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            report.Add($"{profile.name}: {sceneAsset.name} added");
+        }
+
         public static Volume CreateGlobalVolume(string profilePath)
         {
             var volGo = new GameObject("Global Volume");

@@ -152,12 +152,12 @@ namespace Project.Editor.AITools
             return new GameParts { Game = game, Input = input, Hud = hud, Juice = chJuice };
         }
 
-        public static List<string> Build()
+        /// <summary>
+        /// The puzzle scene's contents into the open scene: camera (fit + shake, post), sun, puzzle volume, game + HUD (+ binder),
+        /// EventSystem, the stage (giant hoop, court, room reflection) and the puzzle lighting. Color Hunt and the Specials demo share it.
+        /// </summary>
+        public static GameParts BuildPuzzleScene(ColorHuntSettings settings)
         {
-            var report = new List<string>();
-            var settings = EnsureSettings(report);
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
             var cam = CreateCamera();
             var shake = cam.GetComponent<CameraShake>();
             var fit = cam.gameObject.AddComponent<ColorHuntCamera>();
@@ -171,6 +171,15 @@ namespace Project.Editor.AITools
             var stage = new GameObject("Stage").AddComponent<PuzzleStage>();
             stage.Game = parts.Game;
             ApplyPuzzleLighting();
+            return parts;
+        }
+
+        public static List<string> Build()
+        {
+            var report = new List<string>();
+            var settings = EnsureSettings(report);
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            BuildPuzzleScene(settings);
 
             AIToolsCommon.EnsureFolder("Assets/_Project/Games/Pota/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
