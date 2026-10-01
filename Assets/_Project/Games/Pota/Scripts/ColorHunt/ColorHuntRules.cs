@@ -3,13 +3,19 @@ using System.Collections.Generic;
 
 namespace Project.ColorHunt
 {
-    /// <summary>One block on the board: palette index and hit points (balls needed to break it).</summary>
+    /// <summary>
+    /// One block on the board: palette index and hit points (balls needed to break it). A special block (Pota ozelBlok) has
+    /// colour <see cref="ColorHuntRules.SpecialColor"/> and hp 0: it never joins a run and counts for no colour target.
+    /// </summary>
     [Serializable]
     public struct Block
     {
         public int Color;
         public int Hp;
-        public Block(int color, int hp) { Color = color; Hp = hp; }
+        public SpecialKind Special;
+        public Block(int color, int hp) { Color = color; Hp = hp; Special = SpecialKind.None; }
+        public bool IsSpecial => Special != SpecialKind.None;
+        public static Block MakeSpecial(SpecialKind kind) => new Block(ColorHuntRules.SpecialColor, 0) { Special = kind };
     }
 
     [Serializable]
@@ -30,12 +36,24 @@ namespace Project.ColorHunt
         public int Distance;
     }
 
-    /// <summary>One animation frame: <see cref="Exploded"/> go first, then <see cref="Drops"/> and <see cref="Spawns"/> fall.</summary>
+    /// <summary>
+    /// One animation frame: <see cref="Exploded"/> go first (with <see cref="Triggered"/> specials firing and golden balls going
+    /// <see cref="ToBasket"/>), <see cref="Born"/> specials take their cells, <see cref="Opened"/> gates open, then
+    /// <see cref="Drops"/> and <see cref="Spawns"/> fall.
+    /// </summary>
     public class Step
     {
         public readonly List<int> Exploded = new List<int>();
         public readonly List<Drop> Drops = new List<Drop>();
         public readonly List<Spawn> Spawns = new List<Spawn>();
+        /// <summary>Specials born this step (Pota dogan), sorted by cell; the birth cell does not explode.</summary>
+        public readonly List<Born> Born = new List<Born>();
+        /// <summary>Specials fired by this step (Pota tetiklenen), sorted by cell: only the first step of a special tap has them.</summary>
+        public readonly List<Trigger> Triggered = new List<Trigger>();
+        /// <summary>Golden balls leaving the bottom row through their column's gate (Pota sepete), sorted by column.</summary>
+        public readonly List<BasketDrop> ToBasket = new List<BasketDrop>();
+        /// <summary>Gate columns opened this step (Pota acilan), in opening order.</summary>
+        public readonly List<int> Opened = new List<int>();
     }
 
     public class Match
@@ -55,6 +73,8 @@ namespace Project.ColorHunt
         public int HpMin = 3;
         public int HpMax = 14;
         public (int color, int count)[] Targets = { (0, 22), (1, 16) };
+        /// <summary>Which specials are born (Pota ozellikler); none by default, the level the game ships today.</summary>
+        public Features Features;
     }
 
     /// <summary>
@@ -71,6 +91,11 @@ namespace Project.ColorHunt
         public int ColorCount;
         public int HpMin, HpMax;
         public uint Rng;
+        public Features Features;
+        /// <summary>Columns whose gate is open (Pota gecisler), in opening order. Gates sit on the frame: they never rotate.</summary>
+        public List<int> Gates = new List<int>();
+        /// <summary>Golden balls that went into the basket (Pota altin).</summary>
+        public int Golden;
 
         public Board Clone()
         {
@@ -84,13 +109,18 @@ namespace Project.ColorHunt
                 HpMin = HpMin,
                 HpMax = HpMax,
                 Rng = Rng,
+                Features = Features,
+                Gates = Gates != null ? new List<int>(Gates) : new List<int>(),
+                Golden = Golden,
             };
         }
     }
 
     public struct BreakResult
     {
+        /// <summary>Outcome == Broken.</summary>
         public bool Broken;
+        public BreakOutcome Outcome;
         public Board Board;
         public List<Step> Steps;
         public int Cost;
@@ -99,9 +129,9 @@ namespace Project.ColorHunt
     /// <summary>
     /// Pure colour-hunt rules, a port of Pota's src/renkAvi.ts: the board never empties, a tap costs the
     /// block's hp in balls, columns collapse, random blocks enter from the top, 3+ runs explode for free,
-    /// rotation is free and never shifts anything.
+    /// rotation is free and never shifts anything. Specials, gates and the basket: ColorHuntRules.Specials.cs.
     /// </summary>
-    public static class ColorHuntRules
+    public static partial class ColorHuntRules
     {
         public const int MatchLength = 3;
         public const int ChainCap = 64;
@@ -120,6 +150,7 @@ namespace Project.ColorHunt
             }
         }
 
+        /// <summary>Pota `tamsayi`: an int in [min, max].</summary>
         public static uint NextInt(uint state, int min, int max, out int value)
         {
             state = Next(state, out double v);
@@ -135,7 +166,10 @@ namespace Project.ColorHunt
 
         // ---------- matches ----------
 
-        /// <summary>Horizontal and vertical runs of 3+ (no diagonals). Raw runs: an L/T cell can be in two runs.</summary>
+        /// <summary>
+        /// Horizontal and vertical runs of 3+ (no diagonals). Raw runs: an L/T cell can be in two runs. A special block (colour −1)
+        /// never joins a run and breaks the run it sits in (Pota eslesmeleriBul).
+        /// </summary>
         public static List<Match> FindMatches(Board b)
         {
             int n = b.Size;
@@ -145,11 +179,12 @@ namespace Project.ColorHunt
                 int start = 0;
                 for (int k = 1; k <= n; k++)
                 {
-                    bool same = k < n && b.Cells[cell(k)].Color == b.Cells[cell(start)].Color;
+                    int color = b.Cells[cell(start)].Color;
+                    bool same = k < n && color >= 0 && b.Cells[cell(k)].Color == color;
                     if (same) continue;
-                    if (k - start >= MatchLength)
+                    if (k - start >= MatchLength && color >= 0)
                     {
-                        var m = new Match { Color = b.Cells[cell(start)].Color, Horizontal = horizontal };
+                        var m = new Match { Color = color, Horizontal = horizontal };
                         for (int j = start; j < k; j++) m.Cells.Add(cell(j));
                         list.Add(m);
                     }
@@ -172,7 +207,7 @@ namespace Project.ColorHunt
             return false;
         }
 
-        /// <summary>Fills the board without triples (pairs allowed); with 3+ colours there is always a way out.</summary>
+        /// <summary>Fills the board without triples (pairs allowed); with 3+ colours there is always a way out. No gates yet.</summary>
         public static Board Create(LevelDesign d, int ammo, uint seed)
         {
             int n = d.Size;
@@ -198,12 +233,16 @@ namespace Project.ColorHunt
             {
                 Size = n, Cells = cells.ToArray(), Ammo = ammo, Targets = targets,
                 ColorCount = d.ColorCount, HpMin = d.HpMin, HpMax = d.HpMax, Rng = rng,
+                Features = d.Features, Gates = new List<int>(), Golden = 0,
             };
         }
 
         // ---------- rotation ----------
 
-        /// <summary>90° rotation: new[c·n + (n−1−r)] = old[r·n + c] (clockwise). The board is full, so nothing shifts.</summary>
+        /// <summary>
+        /// 90° rotation: new[c·n + (n−1−r)] = old[r·n + c] (clockwise). The board is full, so nothing shifts. Gates and the
+        /// golden count stay (they belong to the frame). <see cref="RotateAndSettle"/> also lets a golden ball into the basket.
+        /// </summary>
         public static Board Rotate(Board b, Rotation dir)
         {
             int n = b.Size;
@@ -220,7 +259,16 @@ namespace Project.ColorHunt
 
         // ---------- break and chain ----------
 
-        private static Board ExplodeAndFill(Board b, List<int> exploded, out Step step)
+        /// <summary>
+        /// Pota patlatVeDoldur without obstacles. Empties <paramref name="exploded"/> (counting colour targets) and the golden balls
+        /// going <paramref name="toBasket"/>, puts the <paramref name="born"/> specials in their cells, closes the gate of a basket
+        /// column that has no free golden ball left, opens one random gate-less column per newly born golden ball while free
+        /// golden balls outnumber the open gates (these rng draws come BEFORE the refill), collapses the columns and refills them
+        /// from the top. <paramref name="b"/> is never changed. Triggered specials and basket drops count for no target here
+        /// (Pota's bomb/line/golden targets are U25).
+        /// </summary>
+        private static Board ExplodeAndFill(Board b, List<int> exploded, List<Born> born, List<BasketDrop> toBasket,
+                                            List<Trigger> triggered, out Step step)
         {
             int n = b.Size;
             var result = b.Clone();
@@ -231,16 +279,39 @@ namespace Project.ColorHunt
             foreach (int i in exploded)
             {
                 if (temp[i] == null) continue;
-                int color = temp[i].Value.Color;
-                for (int t = 0; t < result.Targets.Length; t++)
-                {
-                    if (result.Targets[t].Color != color) continue;
-                    result.Targets[t].Remaining = Math.Max(0, result.Targets[t].Remaining - 1);
-                    break;
-                }
+                CountTarget(result, temp[i].Value.Color);
                 temp[i] = null;
             }
+            if (triggered != null) step.Triggered.AddRange(triggered);
+            if (toBasket != null)
+                foreach (var d in toBasket) { temp[d.Cell] = null; step.ToBasket.Add(d); }
+            if (born != null)
+                foreach (var d in born) { temp[d.Cell] = Block.MakeSpecial(d.Kind); step.Born.Add(d); }
             uint rng = b.Rng;
+            var gates = new List<int>();
+            foreach (int c in b.Gates)
+            {
+                bool closes = false;
+                if (toBasket != null)
+                    foreach (var d in toBasket)
+                        if (d.Col == c && !FreeGoldenIn(temp, n, c)) { closes = true; break; }
+                if (!closes) gates.Add(c);
+            }
+            if (born != null)
+            {
+                int golden = 0;
+                foreach (var t in temp) if (t != null && t.Value.Special == SpecialKind.Golden) golden++;
+                foreach (var d in born)
+                {
+                    if (d.Kind != SpecialKind.Golden || golden <= gates.Count) continue;
+                    var free = new List<int>();
+                    for (int c = 0; c < n; c++) if (!gates.Contains(c)) free.Add(c);
+                    if (free.Count == 0) continue;
+                    rng = NextInt(rng, 0, free.Count - 1, out int pick);
+                    gates.Add(free[pick]);
+                    step.Opened.Add(free[pick]);
+                }
+            }
             for (int c = 0; c < n; c++)
             {
                 // Scan the column bottom-up: every block falls to the lowest free cell.
@@ -267,41 +338,84 @@ namespace Project.ColorHunt
                 }
             }
             result.Rng = rng;
+            result.Gates = gates;
+            result.Golden = b.Golden + (toBasket != null ? toBasket.Count : 0);
             return result;
         }
 
-        /// <summary>Explodes triples until the board settles (free). New arrivals can make new triples.</summary>
+        private static void CountTarget(Board b, int color)
+        {
+            if (color < 0) return;                       // a special block counts for no colour target
+            for (int t = 0; t < b.Targets.Length; t++)
+            {
+                if (b.Targets[t].Color != color) continue;
+                b.Targets[t].Remaining = Math.Max(0, b.Targets[t].Remaining - 1);
+                break;
+            }
+        }
+
+        private static bool FreeGoldenIn(Block?[] cells, int n, int col)
+        {
+            for (int r = 0; r < n; r++)
+            {
+                var block = cells[Index(n, r, col)];
+                if (block != null && block.Value.Special == SpecialKind.Golden) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Pota zinciriCoz: until the board settles, first golden balls on an open gate go into the basket, then runs explode
+        /// (free) and give birth to specials. New arrivals can make new runs.
+        /// </summary>
         public static Board ResolveChains(Board b, List<Step> steps, int maxSteps = ChainCap)
         {
             var current = b;
             for (int k = 0; k < maxSteps; k++)
             {
-                var matches = FindMatches(current);
-                if (matches.Count == 0) break;
-                var set = new SortedSet<int>();
-                foreach (var m in matches) foreach (int i in m.Cells) set.Add(i);
-                current = ExplodeAndFill(current, new List<int>(set), out var step);
+                if (TryDropToBasket(current, out var dropped, out var drop)) { current = dropped; steps.Add(drop); continue; }
+                var exploded = ResolveMatches(current, out var born);
+                if (exploded.Count == 0 && born.Count == 0) break;
+                current = ExplodeAndFill(current, exploded, born, null, null, out var step);
                 steps.Add(step);
             }
             return current;
         }
 
         /// <summary>
-        /// The game's only move: tap a block. If ammo covers its hp the block goes, ammo drops, the column
-        /// collapses, new blocks fall in and chains resolve. Otherwise the SAME board comes back.
+        /// The game's only move: tap a block (Pota kir). A line or a bomb fires for free (its <see cref="Blast"/> area). A normal
+        /// block costs its hp: if ammo covers it the block goes, ammo drops, the column collapses, new blocks fall in and chains
+        /// resolve; otherwise the SAME board comes back (Insufficient). A golden ball does nothing (Golden, same board).
         /// </summary>
         public static BreakResult Break(Board b, int cell)
         {
-            if (cell < 0 || cell >= b.Cells.Length) return new BreakResult { Broken = false, Board = b, Steps = new List<Step>(), Cost = 0 };
+            if (cell < 0 || cell >= b.Cells.Length) return Refused(b, BreakOutcome.Insufficient, 0);
             var block = b.Cells[cell];
-            if (b.Ammo < block.Hp) return new BreakResult { Broken = false, Board = b, Steps = new List<Step>(), Cost = block.Hp };
-            var paid = b.Clone();
-            paid.Ammo -= block.Hp;
-            var after = ExplodeAndFill(paid, new List<int> { cell }, out var first);
+            if (block.Special == SpecialKind.Golden) return Refused(b, BreakOutcome.Golden, 0);
+            Board after;
+            Step first;
+            if (block.IsSpecial)
+            {
+                var area = Blast(b, cell);
+                after = ExplodeAndFill(b, area.Cells, null, null, area.Triggered, out first);
+            }
+            else
+            {
+                if (b.Ammo < block.Hp) return Refused(b, BreakOutcome.Insufficient, block.Hp);
+                var paid = b.Clone();
+                paid.Ammo -= block.Hp;
+                after = ExplodeAndFill(paid, new List<int> { cell }, null, null, null, out first);
+            }
             var steps = new List<Step> { first };
             after = ResolveChains(after, steps);
-            return new BreakResult { Broken = true, Board = after, Steps = steps, Cost = block.Hp };
+            // Pota's kir ends with hakemOyna, which (with no referee on the board) runs zinciriCoz once more: it only adds steps
+            // when the first pass stopped at ChainCap.
+            after = ResolveChains(after, steps);
+            return new BreakResult { Broken = true, Outcome = BreakOutcome.Broken, Board = after, Steps = steps, Cost = block.IsSpecial ? 0 : block.Hp };
         }
+
+        private static BreakResult Refused(Board b, BreakOutcome outcome, int cost) =>
+            new BreakResult { Broken = false, Outcome = outcome, Board = b, Steps = new List<Step>(), Cost = cost };
 
         // ---------- state ----------
 
@@ -311,15 +425,20 @@ namespace Project.ColorHunt
             return true;
         }
 
+        /// <summary>Pota enUcuz: the cheapest NORMAL block; specials (hp 0) do not count. int.MaxValue when only specials remain.</summary>
         public static int Cheapest(Board b)
         {
             int min = int.MaxValue;
-            foreach (var c in b.Cells) if (c.Hp < min) min = c.Hp;
+            foreach (var c in b.Cells) if (!c.IsSpecial && c.Hp < min) min = c.Hp;
             return min;
         }
 
-        /// <summary>Ammo covers the cheapest block; otherwise the level is dead.</summary>
-        public static bool HasMove(Board b) => b.Ammo > 0 && b.Ammo >= Cheapest(b);
+        /// <summary>Pota hamleVar: a line or a bomb can always be fired (free); otherwise ammo must cover the cheapest block.</summary>
+        public static bool HasMove(Board b)
+        {
+            foreach (var c in b.Cells) if (c.IsSpecial && c.Special != SpecialKind.Golden) return true;
+            return b.Ammo > 0 && b.Ammo >= Cheapest(b);
+        }
 
         public static int RemainingTarget(Board b)
         {
