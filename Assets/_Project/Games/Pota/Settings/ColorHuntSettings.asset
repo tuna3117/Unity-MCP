@@ -19,6 +19,60 @@ MonoBehaviour:
     Bomb: 0
     Golden: 0
   SpecialLook: 0
+  Royal:
+    LineLead: 0.06
+    LineSpeed: 18.75
+    BombLead: 0.18
+    BombRing: 0.04
+    GatherTime: 0.18
+    GatherShrink: 0.35
+    GatherSpin: 40
+    PopTime: 0.25
+    PopPeak: 1.2
+    BirthFlashCells: 2.2
+    BirthStarCells: 2.8
+    BirthTwinkles: 7
+    FuseSparksPerSecond: 3
+    BreathAmount: 0.03
+    BreathHz: 1.1
+    ArrowGlowHz: 1.5
+    ArrowGlow: 0.14
+    GoldenTwinklesPerSecond: 1
+    BallCells: 0.8
+    SquashAxis: 0.72
+    SquashSide: 1.18
+    LineGlow: 2.2
+    JetCells: 1.8
+    PuffEvery: 0.5
+    SparkEvery: 0.2
+    ExitAccel: 60
+    ExitTail: 0.08
+    LineShake: 0.12
+    BombSwell: 1.25
+    BombBlinks: 2
+    CoreFlashCells: 2.6
+    CoreFlashTime: 0.08
+    FireCells: 3.2
+    FireTime: 0.45
+    RingCells: 3.6
+    BombPuffs: 5
+    BombSparks: 12
+    BombLight: 10
+    BombLightTime: 0.3
+    PushCells: 0.1
+    BombShake: 0.2
+    BombHitStop: 0.06
+    ComboSlowScale: 0.5
+    ComboSlowTime: 0.2
+    ScreenFlashTime: 0.1
+    ScreenFlashAlpha: 0.55
+    GoldenCoinCells: 0.85
+    TokenSpin: 540
+    GlitterEvery: 0.025
+    LandCoins: 10
+    CoinCells: 0.42
+    LandStars: 10
+    InkWidth: 0.022
   Size: 7
   ColorCount: 5
   HpMin: 3

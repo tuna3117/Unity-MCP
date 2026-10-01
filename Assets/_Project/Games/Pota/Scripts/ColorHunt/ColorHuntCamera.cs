@@ -32,6 +32,29 @@ namespace Project.ColorHunt
         public Vector3 ZoomFocus;
         private Vector3 _pushTarget;
         private float _pushAmount, _pushTime = -1f, _pushDuration = 1f;
+        /// <summary>Royal's rockets: the axis shake swings at this rate (Hz).</summary>
+        public const float AxisShakeHz = 18f;
+        private Vector2 _axis;
+        private float _axisAmount, _axisT;
+
+        /// <summary>The axis shake's current size (Pota sars units; 0 = still).</summary>
+        public float AxisShakeAmount => _axisAmount;
+
+        /// <summary>
+        /// Spec 2026-10-01 Royal "eksen boyunca sarsıntı": a shake along one screen axis, ±amount/2 like CameraShake.Add, swinging at
+        /// <see cref="AxisShakeHz"/> and fading 2.2/s of game time (dips freeze it, as Pota's sars). A stronger call wins; capped at
+        /// CameraShake.LinearCap. Adds to the camera's other shake.
+        /// </summary>
+        public void AxisShake(Vector2 axis, float amount)
+        {
+            if (axis.sqrMagnitude < 1e-8f || amount <= 0f) return;
+            _axis = axis.normalized;
+            _axisAmount = Mathf.Min(CameraShake.LinearCap, Mathf.Max(_axisAmount, amount));
+            _axisT = 0f;
+        }
+
+        public static Vector2 AxisShakeOffset(Vector2 axis, float amount, float t) =>
+            axis.normalized * (0.5f * amount * Mathf.Sin(2f * Mathf.PI * AxisShakeHz * t));
 
         public bool Pushing => _pushTime >= 0f;
 
@@ -63,7 +86,14 @@ namespace Project.ColorHunt
                 pos += (_pushTarget - pos) * (_pushAmount * PushWeight(u));
                 if (u >= 1f) _pushTime = -1f;
             }
-            transform.position = pos + (_shake != null ? _shake.Offset : Vector3.zero);
+            Vector3 axisOffset = Vector3.zero;
+            if (_axisAmount > 0f)
+            {
+                _axisT += Time.deltaTime;
+                axisOffset = AxisShakeOffset(_axis, _axisAmount, _axisT);
+                _axisAmount = CameraShake.StepLinear(_axisAmount, Time.deltaTime);
+            }
+            transform.position = pos + (_shake != null ? _shake.Offset : Vector3.zero) + axisOffset;
             transform.rotation = Quaternion.identity;
         }
 

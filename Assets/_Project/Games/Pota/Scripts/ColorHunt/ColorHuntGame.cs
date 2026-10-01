@@ -29,7 +29,9 @@ namespace Project.ColorHunt
         public Transform BoardRoot { get; private set; }
         /// <summary>The golden ball's gate rings (yapbozSahne.ts gecisGoster), on the game root: they never turn with the board.</summary>
         public GateRings Gates { get; private set; }
-        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _intro >= 0f || _goldens.Count > 0;
+        /// <summary>Taps wait: a job, the salvo, a loose swell, the intro, a golden ball or a gathered block on its way (until it arrives).</summary>
+        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _intro >= 0f || _goldens.Count > 0
+                            || _gathering.Count > 0;
 
         private float _intro = -1f, _idle, _hintT = -1f;
         private int _hintCell = -1;
@@ -619,7 +621,8 @@ namespace Project.ColorHunt
             switch (look)
             {
                 case SpecialLook.Pota: return AddSpecialStyle<PotaSpecials>("PotaSpecials");
-                default: return new NoSpecialStyle();          // Royal: Task 10, Court: Task 11
+                case SpecialLook.Royal: return AddSpecialStyle<RoyalSpecials>("RoyalSpecials");
+                default: return new NoSpecialStyle();          // Court: Task 11
             }
         }
 
@@ -669,22 +672,31 @@ namespace Project.ColorHunt
             Gates?.Show(_shownGates);
         }
 
-        /// <summary>A look switch mid-effect: golden balls in the air land now (counted, no effect), gathered blocks arrive now.</summary>
+        /// <summary>
+        /// A look switch mid-effect: golden balls in the air land now (counted, no effect); gathered blocks arrive now — counted, burst
+        /// (<see cref="CellBurst"/> with their step-start cell, which a gathered view keeps: it left the board before any drop) and
+        /// recycled — exactly as their arrival would have done.
+        /// </summary>
         private void SettleSpecialWork()
         {
-            _specialGen++;
+            int gen = ++_specialGen;
             foreach (var g in _goldens)
             {
                 if (!g.Passed) CloseGate(g.Col);
                 GoldenLanded++;
             }
             _goldens.Clear();
-            foreach (var v in _gathering)
+            var gathered = _gathering.ToArray();                   // a CellBurst listener may deal a new board (Deal bumps the gen)
+            _gathering.Clear();
+            foreach (var v in gathered)
             {
-                CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
+                if (gen == _specialGen)
+                {
+                    CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
+                    RaiseCellBurst(v.Cell);
+                }
                 Recycle(v);
             }
-            _gathering.Clear();
         }
 
         private void OpenGates(List<int> opened)

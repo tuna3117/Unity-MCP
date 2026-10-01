@@ -26,6 +26,8 @@ namespace Project.ColorHunt
         public Features Specials;
         [Tooltip("Özel top görünümü: Pota (bugünkü, birebir), Royal (1 · Royal Match), Court (2 · Basketbol). Normal patlamalar hep Pota.")]
         public SpecialLook SpecialLook = SpecialLook.Pota;
+        [Tooltip("1 · Royal: every number of the Royal special look (timing, birth, idle, rockets, bomb, 2+ specials, golden landing, ink).")]
+        public RoyalTuning Royal = new RoyalTuning();
 
         [Header("Level (Pota level 20 calibration)")]
         public int Size = 7;
