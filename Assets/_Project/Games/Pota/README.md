@@ -137,6 +137,7 @@ sepetine, kahraman sepete döner, kamera yan manzaraya); fark sepet dolunca baş
   kendi döner. Yan yana video `Tools/potaflow_side.py OUT.mp4 Etiket=klasör …` (sütunlar kendi zamanına göre yeniden örneklenir,
   kısa sütun son karesini tutar). Pota sütunu: scratch kopyası + vite :5199 + `pota-record.mjs` (`__pota.sepetBitir(158)`, mor
   işaretle hizalanır).
+- **Pota'ya teslim (2026-10-03):** `docs/handoff/2026-10-03-pota-gecis-damga.md` — 3 Damga'yı Pota'da (three.js) kurmak için zaman çizelgesi, formüller, varlıklar, sesler, referans kod. Pota oturumu bunu okur; buradan Pota'ya yazılmaz.
 - **Top boyu (Tuna, 2026-10-02: "toplar neden sepete kocaman doluyor?"):** geçişin topları 0,19 yarıçapla çiziliyordu; bu sayı
   Pota'nın tahta ölçeğindeki salvo topundan kopyalanmıştı, oysa turun kendi topu 0,12 (`BasketSettings.BallRadius`). Düzeltildi:
   `PotaFlowSettings.BallRadius` 0,12, sepet bel hizasında 0,92 × 0,72 × 0,92 ve 3 × 3 × 3 = 27 top alıyor (`BallBin.Layer`),
