@@ -61,3 +61,14 @@ def test_special_moments_cover_the_scenarios():
 def test_an_unknown_special_scenario_is_refused():
     with pytest.raises(ValueError):
         compare.special_moment("free")
+
+
+def test_special_sheet_labels_count_from_the_anchor_in_turkish():
+    corner, labels = compare.special_labels("bomb")
+    assert corner == "0 = dokunuş"
+    assert labels[:3] == ["0", "+0,08 sn", "+0,17 sn"]
+    corner, labels = compare.special_labels("birth")
+    assert corner == "0 = doğuş"
+    assert labels[0] == "−0,25 sn"
+    assert compare.special_labels("golden")[0] == "0 = iniş"
+    assert len(labels) == len(compare.special_moment("birth")[1])

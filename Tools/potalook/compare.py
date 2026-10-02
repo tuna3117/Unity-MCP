@@ -41,6 +41,21 @@ SPECIAL_MOMENTS = {
 }
 
 
+# the anchors in the sheet's corner ("0 = dokunuş"); columns read "+0,08 sn" from it
+ANCHOR_NAMES = {"tap": "dokunuş", "born": "doğuş", "land": "iniş"}
+
+
+def special_labels(scenario):
+    """(corner, column labels) of a scenario's sheet in Turkish: "0 = <anchor>", then "−0,25 sn" / "0" / "+0,08 sn"."""
+    anchor, times = special_moment(scenario)
+
+    def label(t):
+        if abs(t) < 5e-4:
+            return "0"
+        return ("+" if t > 0 else "−") + f"{abs(t):.2f}".replace(".", ",") + " sn"
+    return f"0 = {ANCHOR_NAMES[anchor]}", [label(t) for t in times]
+
+
 def special_moment(scenario):
     """(anchor, times) of a special-ball scenario; ValueError for any other name."""
     if scenario not in SPECIAL_MOMENTS:
@@ -136,7 +151,9 @@ def specials_main(argv):
                 raise ValueError(f"{folder}: no '{anchor}' marker in events.json (has {marks})")
             columns.append(f"{label}={aligned(frame_sheet.load_frames(folder), ev[anchor], os.path.join(work, f'row{i}'))}")
         out = f"{prefix}-{scenario}.jpg"
-        frame_sheet.main([out, *columns, "--times", ",".join(f"{t + WINDOW:.4f}" for t in times), "--height", "400"])
+        corner, labels = special_labels(scenario)
+        frame_sheet.main([out, *columns, "--times", ",".join(f"{t + WINDOW:.4f}" for t in times), "--height", "400",
+                          "--labels", "|".join(labels), "--corner", corner])
         return out
     finally:
         shutil.rmtree(work, ignore_errors=True)

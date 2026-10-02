@@ -17,3 +17,14 @@ def test_nearest_picks_the_closest_frame():
     assert fs.nearest(frames, 0.3) == "b"
     assert fs.nearest(frames, 0.4) == "c"
     assert fs.nearest(frames, 9.0) == "c"
+
+
+def test_column_labels_default_to_the_time():
+    assert fs.column_labels([0.25, 1.0], None) == ["0.2 s", "1.0 s"]
+
+
+def test_column_labels_take_the_given_ones_in_order():
+    assert fs.column_labels([1.0, 2.0], "−0,25 sn|0") == ["−0,25 sn", "0"]
+    import pytest
+    with pytest.raises(ValueError):
+        fs.column_labels([1.0, 2.0], "only one")
