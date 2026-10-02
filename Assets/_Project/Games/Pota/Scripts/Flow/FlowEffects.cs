@@ -57,7 +57,7 @@ namespace Project.Flow
                 _puff = StudioParticles.System(transform, "StampPuff", Keep(StudioParticles.Flipbook(s, s.CandyPuff)), ParticleSystemRenderMode.Billboard, 12, 20);
                 StudioParticles.Sheet(_puff, PuffCols, PuffRows);
                 var main = _puff.main;
-                main.useUnscaledTime = true;                        // the transition runs in real time
+                main.useUnscaledTime = false;                       // the transition clears the time scale; unscaled time stalls in a paused, stepped recording
             }
             if (s.AdditiveTemplate != null)
             {
@@ -65,7 +65,7 @@ namespace Project.Flow
                 StudioParticles.SizeOverLife(_star, u => u < 0.3f ? Mathf.Lerp(0.4f, 1f, u / 0.3f) : Mathf.Lerp(1f, 0.7f, (u - 0.3f) / 0.7f));
                 StudioParticles.AlphaOverLife(_star, u => 1f - u * u);
                 var main = _star.main;
-                main.useUnscaledTime = true;
+                main.useUnscaledTime = false;
             }
             Clear();
         }
@@ -164,9 +164,15 @@ namespace Project.Flow
             Draw(_letter, new Vector4(0f, 0f, 1f, 1f), letter.y);
         }
 
-        /// <summary>Candidate 3's stamp on the glass: a few toon puffs and a star flash at <paramref name="at"/>, <paramref name="size"/> metres across.</summary>
+        /// <summary>
+        /// Candidate 3's stamp on the glass: a few toon puffs and a star flash at <paramref name="at"/>, <paramref name="size"/> metres
+        /// across. The systems are paused and advanced by <see cref="Advance"/> with the director's clock, so a paused, stepped
+        /// recording (where particle time does not follow the transition) shows the same 0.35 s puff as real play.
+        /// </summary>
         public void Stamp(Vector3 at, float size)
         {
+            _puff?.Pause(false);
+            _star?.Pause(false);
             if (_puff != null)
             {
                 for (int i = 0; i < 6; i++)
@@ -178,6 +184,14 @@ namespace Project.Flow
                 }
             }
             if (_star != null) StudioParticles.Emit(_star, at + Vector3.back * 0.4f, size * 1.3f, 0.28f, new Color(1f, 0.95f, 0.75f, 1f));
+        }
+
+        /// <summary>Advances the stamp's particles by <paramref name="dt"/> seconds of transition time (they are otherwise paused).</summary>
+        public void Advance(float dt)
+        {
+            if (dt <= 0f) return;
+            if (_puff != null && _puff.particleCount > 0) _puff.Simulate(dt, false, false, false);
+            if (_star != null && _star.particleCount > 0) _star.Simulate(dt, false, false, false);
         }
 
         public void Clear()

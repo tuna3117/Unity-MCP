@@ -157,7 +157,8 @@ namespace Project.ColorHunt
             float ea = EaseOut(_introAmmo), er = EaseOut(_introRest);
             _ammoPanel.anchoredPosition = new Vector2(14f * Css - 420f * (1f - ea), -top);
             _targetPanel.anchoredPosition = new Vector2(-14f * Css, -top + 320f * (1f - er));
-            float arrows = ArrowsTopCss() * Css, drop = 340f * (1f - er);
+            // Fully out (er = 0): far below the screen, whatever the flight camera projects the backboard to (it used to peek in at the top).
+            float arrows = ArrowsTopCss() * Css, drop = 340f * (1f - er) + (er <= 0f ? 4000f : 0f);
             _right.anchoredPosition = new Vector2(-14f * Css, -arrows - drop);
             _left.anchoredPosition = new Vector2(-14f * Css, -arrows - 72f * Css - drop);
             if (_hint == null) return;

@@ -109,7 +109,9 @@ namespace Project.Editor.AITools
             switch (_phase)
             {
                 case 0:
-                    if (d.Round.Column == null || d.Current != Phase.Basket) return;
+                    if (d.Round.Column == null) return;
+                    if (d.Current == Phase.Puzzle || d.Current == Phase.Result) { d.ReturnToBasket(); return; }   // a previous recording left the board up
+                    if (d.Current != Phase.Basket) return;
                     d.CandidateOverride = _candidate;
                     d.ForcedCount = _count;
                     d.FixedStep = 1f / 30f;

@@ -101,6 +101,46 @@ Tek sahne `Scenes/PotaFlow.unity`: Basket kulesi orijinde, terasın arkasında t
 - **Araçlar:** `ai_potaflow_build_scene` (sahneyi Basket ve Renk Avı yardımcılarıyla kurar, Build Settings'e ve `PotaProfile`'a ekler), `ai_potaflow_record` (`{"candidate":"A"|"B","count":158,"shoot":true}`: bölüm 20'yi programatik atışla oynatır, geçişi 30 fps PNG olarak `Temp/record/<ad>/` altına yazar; UI dâhil), `Tools/frame_sheet.py` (kare klasörlerinden zamanlı levha). Kayıtta overlay UI kameraya düşmez: `FrameRecorder` overlay canvas'ları kayıt süresince kamera kipine alır; rozet bu yüzden ekran oranı çapasıyla yerleşir.
 - **Pota'dan alınan sayılar:** dev pota ölçüleri `src/sahaYerlesim.ts` DEV_POTA ve `src/pota.ts` (çember R 1,6, panonun altında ve öne R+0,6, 6 halkalı file), zemin rengi `src/saha.ts`, akış `src/akis.ts` (`fazABitti` → `fazBBasla`, cephane = sepet sayısı), kamera `src/kameraYonetmeni.ts` (1,4 sn karışım; bizimki ~2,5 sn, dokununca kısalır). Pota karşılaştırması Pota'nın **kopyasından** kaydedildi (scratch'te rsync + vite + kendi Playwright betiğimiz); Pota klasörüne hiçbir şey yazılmadı.
 
+### PotaFlow: üç yeni aday (2026-10-02, Tuna'nın seçimi bekleniyor)
+
+Tuna "basketten bulmacaya geçiş için 3 alternatif, aynı varlıklarla" istedi. Tasarım `docs/superpowers/specs/2026-10-02-potaflow-candidates-design.md`,
+plan `docs/superpowers/plans/2026-10-02-potaflow-candidates.md`. Üçü de A'nın ilk 1,45 sn'sini paylaşır (kafes vurgusu, toplar kahramanın
+sepetine, kahraman sepete döner, kamera yan manzaraya); fark sepet dolunca başlar. Seçim `PotaFlowSettings.Candidate`; kayıt
+`ai_potaflow_record {"candidate":"1"|"2"|"3"}`. Teslim: `docs/screenshots/2026-10-02-potaflow-candidates-{sheet.jpg,side.mp4}`
+(Pota | A | 1 | 2 | 3; Pota güncel main'den, scratch kopyasıyla), U26 için `…-u26-court-vs-roof.jpg`.
+
+- **1 "Büyük şut"** (`BigShot`, hazır 3,30): kahraman dev potaya döner ve `Shoot` klibini oynatır (1,55); sepetteki 12 top 1,65'ten
+  0,03 sn arayla fışkırır (`NetStream`, kaynak sepet yuvaları, hedef `GiantHoop`), 2,45–2,85 çemberden fileye düşer, file şişer ve
+  sallanır; **cephane yalnız file inişleriyle sayılır** (sepete inişler saymaz), rozet ilk inişle panele uçar. Kamera: manzara → atış
+  pozu (`ShotPos` (−1,4; 5; 0,9), bakış (0; 1; 30), FOV 66: kahraman altta arkadan, dev pota üstte; kule ön plakası z 0,7'de biter)
+  1,50–2,05, bekler, 2,55–3,05 tahtaya. Tahta 2,60'tan halka halka, HUD 2,85.
+- **2 "Çemberden dalış"** (`Dive`, hazır 3,10): toplar sepette kalır, sayım A gibi. Kamera 1,50'den sahanın üstünden hızlanır
+  (`DiveCourtPos` (0; 1,8; 20)), filenin altından (çember −1,9) çember ekseninde (çemberin 0,3 önünde, kol direğinden uzak) yukarı
+  çıkar — 2,20'de çember düzlemi (`CameraFlight.PathUAtHeight`), `swish` + file sallanır + Court'un halka dokusuyla swish halkası +
+  "SWISH!" yazısı (`vfx-letter-swish`, 3,6 m) — çemberin 1,7 üstünden tahta pozuna geri çekilir (2,90). Kenarlarda hız çizgileri
+  (`vfx-speed-lines`, kamera önünde iki aynalı şerit, 1,60–2,25). Bloklar 2,25'ten (kamera uzaklaşırken yüze yakın "pat pat"), HUD 2,55.
+  Yol Hermite: yükseliş iki ucunda dikey teğet, yoksa Catmull-Rom 2 m yana şişip filenin içinden geçiyordu.
+- **3 "Pano damgası"** (`Stamp`, hazır 2,90): tek kayma 1,45–2,15 (Pota `pozKaris`: smoothstep + ortada 3,5 m yükselme), rozet kamerayla
+  gider ve 2,15'te cam merkezine damgalanır (ölçek 1 → 2,2 → 1,8; `vfx-puff-toon` 6 puf + yıldız flaşı, parçacıklar yönetmenin
+  saatiyle `Fx.Advance` ile ilerler — duraklatılmış kayıtta kendi zamanları tutmuyordu), çerçeve parlar, kamera itiş-oturuş; 2,20'den
+  bloklar sütun sütun (0,04 sn) çerçevenin 8 hücre üstünden sabit ivmeyle yağar (`BoardReveal.ApplyRain`, inişte Pota'nın ezilmesi);
+  cephane paneli 2,40'ta girer, rozet 2,45–2,70 panele uçar.
+- **Kod:** `FlowTimeline` (`BigShotTiming`/`DiveTiming`/`StampTiming` blokları, `IBallSchedule` + `BallSchedule`, aday başına `Ready`,
+  `CameraEndTime`, `RevealStartTime`, `CountAt`, `BadgeFly`, dalış/damga eğrileri), `CameraFlight.Path` (N nokta, Hermite, teğet
+  geçersiz kılma), `.Sweep`, `.PathUAtHeight`; `BallStream.Begin(schedule, sourceOf, target, holdFrom)` (top uçana kadar kaynağında
+  bekler); `PlayerActor.PlayShoot`; `FlowEffects` (hız çizgileri, swish halkası/yazısı, damga pufu; `ColorHuntSettings` dokuları,
+  şablon materyaller); `PotaFlowDirector.CameraPose/ApplyEffects`. Ayarlar `PotaFlowSettings` ("Candidate 1/2/3" başlıkları).
+  **Not:** sınıfa sonradan eklenen bir alanın varsayılanı bellekteki asset'e ilk derlemede yazılır, sonraki varsayılan değişiklikleri
+  oraya gitmez; değeri `SerializedObject` ile asset'e yaz (`ShotPos` böyle düzeltildi, asset kaydedildi).
+- **Kayıt:** `Tools/potaflow_record.sh <A|B|1|2|3|wait> <ad>` (başlatır, her 8 sn Unity'ye odak verir — odak yokken oyun döngüsü
+  durur ve kayıt dakikalarca sürünür, bitince sonucu basar); araç artık tahtada kalmış bir önceki kayıttan `ReturnToBasket` ile
+  kendi döner. Yan yana video `Tools/potaflow_side.py OUT.mp4 Etiket=klasör …` (sütunlar kendi zamanına göre yeniden örneklenir,
+  kısa sütun son karesini tutar). Pota sütunu: scratch kopyası + vite :5199 + `pota-record.mjs` (`__pota.sepetBitir(158)`, mor
+  işaretle hizalanır).
+- **Testler:** `FlowTimelineTests` (+8), `CameraFlightTests` (+4), `PotaFlowPlayTests` (+3: üç aday oynanabilir tahtada biter,
+  atlama, damga yağmuru). Dürüst notlar: Blender'da yeni varlık üretilmedi (mevcut flipbook'lar kullanıldı); adaylar A'dan 0,4–0,8 sn
+  uzun (dokunma atlaması ≤ 0,35 sn); Pota bu arada sapan atışı ve parmakla tahta çevirmeye geçti, kendi geçişi hâlâ 1,4 sn tek kayma.
+
 ## Oyuncu karakteri (2026-09-25)
 
 Karakter hattının kendisi atölyenin parçası (`Tools/character/README.md`, özet `docs/2026-09-25-character-pipeline.md`). Pota'daki sonuç: `Prefabs/PlayerCharacter.prefab` (rig `Art/Mesh/player_rig_a.glb` + `.avatar.asset`, controller `Anim/PlayerCharacter.controller`), klipler `Art/Anim/player_*.fbx`. `BasketSettings.PlayerPrefab` buna bağlı, `PlayerActor` Shoot'u `PlayerShootClipStart`'tan oynatır. Koşu/smaç klipleri controller'da var, oyun tetiklemiyor.

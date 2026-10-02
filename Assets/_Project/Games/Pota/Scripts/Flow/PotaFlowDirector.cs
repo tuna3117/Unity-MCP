@@ -444,11 +444,15 @@ namespace Project.Flow
                 }
                 Fx.SetSwish(Hoop.RimCenter, Hoop.RimRadius, tl.SwishRing(t), tl.SwishLetter(t), S.SwishLetterWidth);
             }
-            else if (tl.IsStamp && !_stamped && tl.Stamped(t))
+            else if (tl.IsStamp)
             {
-                _stamped = true;
-                Fx.Stamp(GlassCenter, S.StampPuffSize);
-                Shake?.Kick(0.25f);
+                if (!_stamped && tl.Stamped(t))
+                {
+                    _stamped = true;
+                    Fx.Stamp(GlassCenter, S.StampPuffSize);
+                    Shake?.Kick(0.25f);
+                }
+                Fx.Advance(Mathf.Max(0f, t - _lastT));
             }
         }
 

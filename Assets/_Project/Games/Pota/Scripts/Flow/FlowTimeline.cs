@@ -53,8 +53,8 @@ namespace Project.Flow
         public float SwishPopTime = 0.5f;
         public float SwishRingTime = 0.35f;
         [Header("Board and HUD")]
-        public float RevealStart = 2.40f;
-        public float HudStart = 2.65f;
+        public float RevealStart = 2.25f;
+        public float HudStart = 2.55f;
         public float Ready = 3.10f;
     }
 

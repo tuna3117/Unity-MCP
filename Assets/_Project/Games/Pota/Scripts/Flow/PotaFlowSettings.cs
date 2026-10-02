@@ -45,9 +45,9 @@ namespace Project.Flow
 
         [Header("Candidate 1: Büyük şut")]
         [Tooltip("Shot pose: behind and beside the hero on the terrace, the giant hoop ahead (Pota 'saha' pose adapted; must stay in front of the tower face).")]
-        public Vector3 ShotPos = new Vector3(-2.8f, 3.0f, 3.4f);
-        public Vector3 ShotLook = new Vector3(0.3f, 4.8f, 30f);
-        public float ShotFov = 50f;
+        public Vector3 ShotPos = new Vector3(-1.4f, 5.0f, 0.9f);   // tower front slab ends at z 0.7, hero at (0, 0, 6.8)
+        public Vector3 ShotLook = new Vector3(0f, 1.0f, 30f);
+        public float ShotFov = 66f;
         [Tooltip("Kick of the balls leaving the hero's basket toward the hoop.")]
         public Vector3 NetLaunchKick = new Vector3(0f, 1.2f, 0.6f);
         public float NetApexAbove = 6f;

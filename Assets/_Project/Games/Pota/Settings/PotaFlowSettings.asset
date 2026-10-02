@@ -47,6 +47,52 @@ MonoBehaviour:
     MinSkipSpeed: 6
     MaxSkipSeconds: 0.35
     ReturnTime: 1.2
+    BigShot:
+      TurnStart: 1.45
+      TurnEnd: 1.65
+      ShootAt: 1.55
+      LaunchStart: 1.65
+      LaunchInterval: 0.03
+      MaxVisible: 12
+      FirstLand: 2.45
+      LastLand: 2.85
+      CameraResume: 1.5
+      CameraShot: 2.05
+      CameraPush: 2.55
+      CameraEnd: 3.05
+      AmmoStart: 2.1
+      RevealStart: 2.6
+      HudStart: 2.85
+      Ready: 3.3
+    Dive:
+      ChaseStart: 1.5
+      RimAt: 2.2
+      CameraEnd: 2.9
+      SpeedFrom: 1.6
+      SpeedTo: 2.25
+      SpeedFade: 0.1
+      SpeedLoop: 0.25
+      SwishPopTime: 0.5
+      SwishRingTime: 0.35
+      RevealStart: 2.25
+      HudStart: 2.55
+      Ready: 3.1
+    Stamp:
+      CameraStart: 1.45
+      CameraEnd: 2.15
+      Rise: 3.5
+      StampAt: 2.15
+      StampTime: 0.18
+      StampPeak: 2.2
+      StampRest: 1.8
+      RainStart: 2.2
+      RainTime: 0.4
+      ColumnInterval: 0.04
+      AmmoStart: 2.4
+      BadgeFlyStart: 2.45
+      BadgeFlyEnd: 2.7
+      HudStart: 2.55
+      Ready: 2.9
   BasketLevel: 20
   BoardAnchor: {x: 0, y: 8.5, z: 30}
   CourtSize: {x: 15, y: 28}
@@ -67,3 +113,18 @@ MonoBehaviour:
   BinPosition: {x: 1.4, y: 0, z: 7.5}
   BinEndLean: 2.5
   LaunchKick: {x: 0, y: 0, z: 0.8}
+  ShotPos: {x: -1.4, y: 5, z: 0.9}
+  ShotLook: {x: 0, y: 1, z: 30}
+  ShotFov: 66
+  NetLaunchKick: {x: 0, y: 1.2, z: 0.6}
+  NetApexAbove: 6
+  DiveCourtPos: {x: 0, y: 1.8, z: 20}
+  DiveRimForward: 0.3
+  DiveUnderRim: 1.9
+  DiveAboveRim: 1.7
+  DiveChaseFov: 62
+  DiveRimFov: 70
+  DiveAboveFov: 66
+  SpeedLinesStrength: 0.9
+  SwishLetterWidth: 3.6
+  StampPuffSize: 4.5
