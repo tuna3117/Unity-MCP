@@ -137,3 +137,30 @@ Model raporu: `~/projects/Blender MCP/docs/reports/character-model-comparison.md
 1. Claude derler: `ai_build {"action":"start","game":"Pota"}` → `Builds/Pota-ios/Unity-iPhone.xcodeproj` (ilk derleme iPhone moduna geçişle birkaç dakika, sonrakiler saniyeler; 2026-09-28'de Unity derlemesi ve imzasız `xcodebuild` ikisi de başarılı). Tek sahne için `"scene":"ColorHunt"`.
 2. Tuna kurar: `open Builds/Pota-ios/Unity-iPhone.xcodeproj` → iPhone'u kabloyla bağla → Xcode'un üst çubuğunda hedef olarak telefonu seç → ▶ (Run). İmza otomatik, takım Pota'nınki. İlk kurulumda telefonda Ayarlar > Genel > VPN ve Cihaz Yönetimi'nden geliştiriciye güvenmek gerekebilir.
 3. Uygulama "Pota Unity" adıyla, gerçek Pota'nın yanına ayrı uygulama olarak kurulur ve Basket'le açılır. Üstteki "→ ColorHunt" düğmesi (yalnız test derlemesinde) sahneler arasında geçer.
+
+## Renk Avı: özel toplar ve efekt adayları (2026-10-01)
+
+Tuna'nın isteği: Pota'nın özel toplarına (çizgi, bomba, altın) Royal Match tarzı efektler, Blender + Unity ile iki aday, Tuna seçer.
+Tasarım `docs/superpowers/specs/2026-10-01-colorhunt-special-balls-fx-design.md`, plan `docs/superpowers/plans/2026-10-01-colorhunt-special-balls-fx.md`.
+
+- **Kurallar:** Pota `src/renkAvi.ts`'in özel top ve geçiş kısmı birebir (`ColorHuntRules.Specials.cs`). Doğrulama Pota'nın kendi koduyla
+  üretilen fikstürlerle (`Tools/potalook/run_fixtures.sh <scratch>` → `Tests/EditMode/Fixtures/special-rules.json`,
+  `SpecialRulesFixtureTests`). Bölüm 20'de kapalı (`ColorHuntSettings.Specials`); engeller, güçlendiriciler, bonus, özel hedefler U25'te.
+- **Görünüm seçimi:** `ColorHuntSettings.SpecialLook` = Pota / Royal (1) / Court (2); kod `Scripts/ColorHunt/Specials/`
+  (`ISpecialStyle`, `SpecialSchedule`, `GoldenPath`, `PotaSpecials`, `RoyalSpecials`, `CourtSpecials`, `GateRings`).
+- **Vitrin:** `Scenes/Specials.unity` (`ai_specials_build_scene`): senaryo düğmeleri (Doğuş, Çizgi, Bomba, Zincir, Altın, Serbest),
+  görünüm düğmeleri (Pota | 1 | 2), Tekrar.
+- **Blender varlıkları:** `vfx-fire-toon`, `vfx-flame-jet`, `vfx-dust-ring`, `vfx-speed-lines`, `vfx-floor-crack`, `vfx-letter-*`,
+  `vfx-ball-halves`, `vfx-bomb-shell`, `vfx-coin`, `vfx-basketball` → `Art/VFX/<id>/` (`ai_studio_import`).
+- **Kayıt:** `ai_colorhunt_record` `{"scene":"Specials","scenario":...,"special_look":...}`; sesler `events.json`'a düşer;
+  `Tools/potalook/seq_video.py` sesli sıralı video, `side_video.py` sessiz üç sütun.
+- **Teslim:** `docs/screenshots/2026-10-01-specials-*` (levha, yan yana video, sesli sıralı video, yakın planlar).
+- **Ölçüm:** Mac kilitliyken ~7 fps editörde ölçüldü; Royal +0,24 ms, Court +0,36 ms GPU, Pota'ya göre; canlı parça oranı bütçenin
+  0,86 (Royal) / 0,54 (Court)'ü. Kilit açıkken `Tools/potalook/record_specials.sh cost` ile yeniden ölçülecek (U45).
+- **Bekleyen:** Tuna'nın seçimi (1 ya da 2); seçilen ayrı bir cila turunda varsayılan olur ve bölüm tablosuyla oyuna girer (U25).
+  Tuna'nın gözüyle karar bekleyen diğer noktalar: doğuşta/SLAM!'de/COMBO!'da ve Royal'ın ateş topunun üstünde HUD çıkartmalarının
+  uçması (en görünürü altın doğuşu: Royal/Court'ta toplanan beş formanın çıkartması tam patlama anında aynı hücreden kalkıp topu
+  ~0,5 sn kapatıyor, U48); Court'un file halkasının küçük kalması (0,9 hücre, ekrana sığdırmak için düşürüldü); uzun düşüşlerde
+  kare üstünde doldurma bloklarının görünmesi (Pota'da da var, U47); Royal'ın zincirinin üçüncü ateşe dokunuştan 0,64 sn sonra
+  ulaşması (kayıt saatinde — kombo yavaş çekimi ve dip'ler yüzünden; oyun-içi zaman sınırı 0,6 sn hâlâ tutuyor, bu bir saat
+  eseri, düzeltme gerekmiyor).
