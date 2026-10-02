@@ -52,9 +52,10 @@ if [[ $stage == all || $stage == record ]]; then
   done
   if [[ $CLOSEUPS == 1 ]]; then
     for l in ${LOOKS:*CLOSE}; do
-      # ×1.5 like the line: at ×2.4 the frame is ~3 cells wide and cut Court's 4-cell SLAM! ("LAM", under the HUD)
+      # ×1.3: at ×2.4 the frame is ~3 cells wide and cut Court's SLAM! ("LAM", under the HUD); at its pop's peak the word is ~4.6
+      # cells, still touching both edges at ×1.5
       [[ ${SCENARIOS[(Ie)bomb]} -gt 0 ]] && record sp-closeup-$l-bomb \
-        "{\"scene\":\"Specials\",\"scenario\":\"bomb\",\"special_look\":\"$l\",\"aspect\":$ASPECT,\"closeup\":true,\"zoom\":1.5,\"until\":\"tap2\",\"tail\":0}"
+        "{\"scene\":\"Specials\",\"scenario\":\"bomb\",\"special_look\":\"$l\",\"aspect\":$ASPECT,\"closeup\":true,\"zoom\":1.3,\"until\":\"tap2\",\"tail\":0}"
       [[ ${SCENARIOS[(Ie)line]} -gt 0 ]] && record sp-closeup-$l-line \
         "{\"scene\":\"Specials\",\"scenario\":\"line\",\"special_look\":\"$l\",\"aspect\":$ASPECT,\"closeup\":true,\"zoom\":1.5,\"focus\":24,\"until\":\"tap2\",\"tail\":0}"
     done
