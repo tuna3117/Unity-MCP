@@ -612,7 +612,38 @@ namespace Project.ColorHunt
             SpecialLook = look;
             _special = ResolveSpecial(look);
             _special.Activate(true);
+            ReplanUnfiredSpecials();
             Raise(SpecialLookChanged);
+        }
+
+        /// <summary>
+        /// A look switch while a trigger step runs: the specials still to fire follow the new look (fires already done stay done). One the
+        /// old look drew itself but the new one does not goes back to the pending swells at its planned start (it swells and bursts as in
+        /// Pota); one the new look draws is hidden at its fire — its pending swell is dropped, a running one cancelled before its peak (one
+        /// past its peak has burst: it stays Pota's). Each cell still bursts once: by its swell or at its fire.
+        /// </summary>
+        private void ReplanUnfiredSpecials()
+        {
+            if (_jobs.Count == 0 || !(_jobs[0] is StepJob st) || !st.Started || st.Dropping || st.Plan == null) return;
+            bool consume = _special.ConsumesSpecialView;
+            for (int k = st.NextFire; k < st.Plan.Fires.Count; k++)
+            {
+                int cell = st.Plan.Fires[k].Cell;
+                var v = ViewAt(cell);
+                if (v == null || consume == st.Consumed.Contains(cell)) continue;
+                if (!consume)
+                {
+                    st.Consumed.Remove(cell);
+                    float at = st.Plan.Start.TryGetValue(cell, out float planned) ? planned : 0f;
+                    st.Pending.Add(new PendingSwell { Cell = cell, View = v, At = at });
+                    continue;
+                }
+                int pending = st.Pending.FindIndex(p => p.Cell == cell);
+                if (pending >= 0) st.Pending.RemoveAt(pending);
+                else if (_swells.TryCancel(v)) v.Swell = -1f;
+                else continue;
+                st.Consumed.Add(cell);
+            }
         }
 
         /// <summary>Registers (and builds) the style a special look uses; later looks and tests plug in here.</summary>

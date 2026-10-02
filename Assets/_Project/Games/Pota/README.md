@@ -152,8 +152,9 @@ Tasarım `docs/superpowers/specs/2026-10-01-colorhunt-special-balls-fx-design.md
   görünüm düğmeleri (Pota | 1 | 2), Tekrar.
 - **Blender varlıkları:** `vfx-fire-toon`, `vfx-flame-jet`, `vfx-dust-ring`, `vfx-speed-lines`, `vfx-floor-crack`, `vfx-letter-*`,
   `vfx-ball-halves`, `vfx-bomb-shell`, `vfx-coin`, `vfx-basketball` → `Art/VFX/<id>/` (`ai_studio_import`).
-- **Kayıt:** `ai_colorhunt_record` `{"scene":"Specials","scenario":...,"special_look":...}`; sesler `events.json`'a düşer;
-  `Tools/potalook/seq_video.py` sesli sıralı video, `side_video.py` sessiz üç sütun.
+- **Kayıt:** `ai_colorhunt_record` `{"scene":"Specials","scenario":...,"special_look":...}` (`scenario` birth/line/bomb/chain/golden,
+  serbest kaydedilmez; `special_look` pota/royal(1)/court(2); yakın planlar `closeup` + `zoom`: bomba ×1,3, çizgi ×1,5); sesler
+  `events.json`'a düşer; `Tools/potalook/seq_video.py` sesli sıralı video, `side_video.py` sessiz üç sütun.
 - **Teslim:** `docs/screenshots/2026-10-01-specials-*` (levha, yan yana video, sesli sıralı video, yakın planlar).
 - **Ölçüm:** Mac kilitliyken ~7 fps editörde ölçüldü; Royal +0,24 ms, Court +0,36 ms GPU, Pota'ya göre; canlı parça oranı bütçenin
   0,86 (Royal) / 0,54 (Court)'ü. Kilit açıkken `Tools/potalook/record_specials.sh cost` ile yeniden ölçülecek (U45).

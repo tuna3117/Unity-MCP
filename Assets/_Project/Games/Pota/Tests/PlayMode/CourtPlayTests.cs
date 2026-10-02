@@ -331,5 +331,41 @@ namespace Project.Tests
             Assert.AreEqual(at[21], at[23], 0.06f, "one cell away on both sides: together");
             Assert.LessOrEqual(at[22], at[21], "the line ball goes first");
         }
+
+        [UnityTest]
+        public IEnumerator Idle_WaitsForTheStudioIntro()
+        {
+            ColorHuntGame game = null;
+            yield return LoadCourt((g, c) => game = g);
+            game.SetLook(PuzzleLook.Candy);                                    // a studio look: its board pops in row by row first
+            game.Stage(Preset(SpecialScenario.Line));
+            game.StartIntro();                                                 // NewRound's order: deal, intro, begin
+            game.Begin();
+            Assert.IsTrue(game.Intro, "the studio intro runs");
+            Assert.AreEqual(ColorHuntGame.State.Playing, game.Current, "in play while the board pops in");
+            var lines = new[] { game.ViewAt(22), game.ViewAt(19) };
+            int frames = 0;
+            float clock = 0f;
+            while (game.Intro && clock < 3f)
+            {
+                foreach (var v in lines)
+                {
+                    Assert.AreEqual(0f, v.Bob, $"cell {v.Cell}: no dribble while the board pops in (Royal waits too)");
+                    Assert.AreEqual(0f, v.Squash, $"cell {v.Cell}: no dribble squash during the intro");
+                }
+                frames++;
+                clock += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Assert.IsFalse(game.Intro);
+            Assert.Greater(frames, 1, "the intro was watched");
+            float most = 0f;
+            yield return StudioLookPlayTests.WaitUntil(() =>
+            {
+                foreach (var v in lines) most = Mathf.Max(most, v.Bob);
+                return most > 0f;
+            }, 2f);
+            Assert.Greater(most, 0f, "the specials dribble once the intro is over");
+        }
     }
 }

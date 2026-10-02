@@ -243,9 +243,13 @@ namespace Project.ColorHunt
 
         // ---------- pure timing and shapes (CourtTests) ----------
 
+        /// <summary>The Blender hand-offs and the material templates are in place (no Shader.Find at runtime).</summary>
         public static bool AssetsReady(ColorHuntSettings s) =>
             s != null && s.CourtBall != null && s.CourtDust != null && s.SpeedLines != null && s.FlameJet != null && s.FloorCrack != null
-            && s.LetterSlam != null && s.LetterSwish != null && s.LetterCombo != null && SpecialMeshes.Parts(s.CourtBall).Count > 0;
+            && s.LetterSlam != null && s.LetterSwish != null && s.LetterCombo != null
+            && s.ToonTemplate != null && s.LabelTemplate != null && s.FlipbookTemplate != null && s.AdditiveTemplate != null
+            && s.ParticleLitTemplate != null
+            && SpecialMeshes.Parts(s.CourtBall).Count > 0;
 
         /// <summary>The trigger plan's timing for this look: the balls, the dunk and SpecialSchedule share it.</summary>
         public static SpecialTiming TimingFor(CourtTuning t) => new SpecialTiming
@@ -544,10 +548,14 @@ namespace Project.ColorHunt
             _comboArmed = false;
         }
 
-        /// <summary>Non-golden specials dribble (|sin| hop, a squash at each bottom); the golden ball spins its sticker (it glows with the game's pulse).</summary>
+        /// <summary>
+        /// Non-golden specials dribble (|sin| hop, a squash at each bottom); the golden ball spins its sticker (it glows with the game's pulse).
+        /// Before Begin (a staged board: PotaFlow's BoardReveal) and during the studio intro the entrance owns the block, so Court waits (as Royal).
+        /// </summary>
         public void Idle(BlockView v, float dt)
         {
             if (!Ready || v == null || _landing.ContainsKey(v)) return;              // a landing special is the landing's
+            if (_game == null || _game.Intro || _game.Current != ColorHuntGame.State.Playing) return;
             var t = Tuning;
             if (v.Block.Special == SpecialKind.Golden)
             {
@@ -603,13 +611,15 @@ namespace Project.ColorHunt
         }
 
         /// <summary>
-        /// A special fires (its view is already hidden: ConsumesSpecialView). It started <c>stepClock − f.Time</c> s ago (≤ 0: planned
-        /// between two frames); this frame's Update adds the frame, so its age equals the game's step time minus the planned fire.
+        /// A special fires (its view is already hidden: ConsumesSpecialView). It started <c>stepClock − f.Time</c> s ago: the game calls this
+        /// the frame its step time first passes f.Time, before this Update (execution order 100) adds the frame, so the age is in (−dt, 0]
+        /// with dt ≤ 0.05 (both clamp it) — Royal's bounds. This frame's Update adds the frame: the age then equals the game's step time
+        /// minus the planned fire.
         /// </summary>
         public void Fire(SpecialFire f)
         {
             if (!Ready || _game == null || _game.BoardRoot == null) return;
-            float age = _stepActive ? Mathf.Clamp(_stepClock - f.Time, -0.05f, 0.5f) : 0f;
+            float age = _stepActive ? Mathf.Clamp(_stepClock - f.Time, -0.05f, 0f) : 0f;
             if (f.Order == 1 && _comboArmed)
             {
                 _comboArmed = false;
@@ -621,6 +631,7 @@ namespace Project.ColorHunt
 
         public void GoldenFlight(GoldenRoute route, Action passedGate, Action landed)
         {
+            if (!Ready) { passedGate?.Invoke(); landed?.Invoke(); return; }       // never flies: the game counts the ball now (as Pota/Royal)
             _flights.Add(new Flight
             {
                 Route = route, PassedGate = passedGate, Landed = landed, Ball = _freeGolden.Count > 0 ? _freeGolden.Pop() : null,

@@ -65,6 +65,12 @@ namespace Project.ColorHunt
             Fire(e);
         }
 
+        /// <summary>
+        /// Drops an entry whose burst has not run yet, without running it (a special look takes the block over before its peak). False when
+        /// there is no entry, or no burst still to run (it has burst, or never had one): such an entry stays and collapses.
+        /// </summary>
+        public bool TryCancel(T key) => _entries.TryGetValue(key, out var e) && e.AtPeak != null && _entries.Remove(key);
+
         /// <summary>A new board (kur): forget everything, run nothing.</summary>
         public void Clear() => _entries.Clear();
 

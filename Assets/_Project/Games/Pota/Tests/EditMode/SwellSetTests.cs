@@ -42,6 +42,27 @@ namespace Project.Tests
         }
 
         [Test]
+        public void TryCancel_DropsAWaitingBurst_NotOneThatRan()
+        {
+            var set = new SwellSet<object>();
+            object a = new object(), b = new object();
+            int firedA = 0, firedB = 0;
+            set.Start(a, 0.15f, 1.24f, false, () => firedA++);
+            set.Start(b, 0.15f, 1.24f, false, () => firedB++, 0.08f);
+            set.Advance(0.01f, null, null);                                     // b peaks (o 0.6), a waits (o 0.067)
+            Assert.AreEqual(1, firedB);
+            Assert.IsTrue(set.TryCancel(a), "a special look takes the block over before its peak");
+            Assert.IsFalse(set.Contains(a));
+            Assert.IsFalse(set.TryCancel(b), "b has burst: it stays and collapses");
+            Assert.IsTrue(set.Contains(b));
+            set.Advance(1f, null, null);
+            set.End(a);
+            Assert.AreEqual(0, firedA, "a cancelled burst never runs");
+            Assert.AreEqual(1, firedB);
+            Assert.IsFalse(set.TryCancel(new object()), "nothing to cancel");
+        }
+
+        [Test]
         public void NewBoard_ForgetsPendingBursts()
         {
             var set = new SwellSet<object>();

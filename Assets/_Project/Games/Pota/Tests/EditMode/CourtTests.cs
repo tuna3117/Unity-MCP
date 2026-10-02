@@ -336,6 +336,79 @@ namespace Project.Tests
         }
 
         [Test]
+        public void Ready_NeedsEveryMaterialTemplate()
+        {
+            var s = Asset();
+            Assert.IsTrue(CourtSpecials.AssetsReady(s), "run ai_studio_import (Task 9)");
+            var templates = new (string name, System.Action<ColorHuntSettings> clear)[]
+            {
+                ("ToonTemplate", c => c.ToonTemplate = null),                 // the basketballs (SpecialMeshes.Toon)
+                ("LabelTemplate", c => c.LabelTemplate = null),               // rings, crack, lettering, flame, speed lines
+                ("FlipbookTemplate", c => c.FlipbookTemplate = null),         // the dust rings
+                ("AdditiveTemplate", c => c.AdditiveTemplate = null),         // the flashbulbs
+                ("ParticleLitTemplate", c => c.ParticleLitTemplate = null),   // the gold confetti
+            };
+            foreach (var (name, clear) in templates)
+            {
+                var copy = Object.Instantiate(s);
+                try
+                {
+                    clear(copy);
+                    Assert.IsFalse(CourtSpecials.AssetsReady(copy), $"no {name}: its shader would come from Shader.Find, absent in a build");
+                }
+                finally { Object.DestroyImmediate(copy); }
+            }
+        }
+
+        [Test]
+        public void Idle_LeavesTheSpecialsAlone_OnAStagedBoard()
+        {
+            _go = new GameObject("Game");
+            var game = _go.AddComponent<ColorHuntGame>();
+            game.S = Asset();
+            game.SetSpecialLook(SpecialLook.Court);
+            var court = game.Specials as CourtSpecials;
+            Assert.IsNotNull(court, "no fallback: the Court assets are in place");
+            Assert.AreNotEqual(ColorHuntGame.State.Playing, game.Current, "staged, before Begin (PotaFlow's reveal runs now)");
+            var mesh = PillowBlockMesh.Create();
+            Material body = BlockView.BodyMaterial(), label = BlockView.LabelMaterial(game.S.LabelTemplate, null);
+            try
+            {
+                var block = new GameObject("Block");
+                block.transform.SetParent(_go.transform, false);
+                var v = block.AddComponent<BlockView>();
+                v.Init(game.S, mesh, body, label);
+                v.SetBlock(Block.MakeSpecial(SpecialKind.LineH), 1);          // 0.07 s out of step: in play it would be mid-hop and squashed
+                court.Idle(v, 0.1f);
+                Assert.AreEqual(0f, v.Bob, "no dribble before the round begins (Royal's rule: the entrance owns the block)");
+                Assert.AreEqual(0f, v.Squash, "no dribble squash before play");
+            }
+            finally
+            {
+                Object.DestroyImmediate(mesh);
+                Object.DestroyImmediate(body);
+                Object.DestroyImmediate(label);
+            }
+        }
+
+        [Test]
+        public void GoldenFlight_NotReady_PassesTheGateAndLandsAtOnce()
+        {
+            _fresh = ScriptableObject.CreateInstance<ColorHuntSettings>();
+            _go = new GameObject("Game");
+            var game = _go.AddComponent<ColorHuntGame>();
+            game.S = _fresh;
+            var court = new GameObject("CourtSpecials").AddComponent<CourtSpecials>();
+            court.transform.SetParent(_go.transform, false);
+            court.Build(game);
+            Assert.IsFalse(court.Ready);
+            string calls = "";
+            court.GoldenFlight(new GoldenRoute { Col = 3, Scale = 1f }, () => calls += "g", () => calls += "l");
+            Assert.AreEqual("gl", calls, "an unready look never flies its ball: the game counts it through its gate and into the basket now");
+            Assert.AreEqual(0, court.LiveCount);
+        }
+
+        [Test]
         public void SettingsAsset_ResolvesTheCourtStyle()
         {
             _go = new GameObject("Game");

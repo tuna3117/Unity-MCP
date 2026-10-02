@@ -374,6 +374,100 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator LookSwitch_RoyalToPota_MidChain_SwellsTheSpecialsStillToFire()
+        {
+            yield return MidChainSwitch(SpecialLook.Royal, SpecialLook.Pota);
+        }
+
+        [UnityTest]
+        public IEnumerator LookSwitch_PotaToCourt_MidChain_HidesTheSpecialsAtTheirFire()
+        {
+            yield return MidChainSwitch(SpecialLook.Pota, SpecialLook.Court);
+        }
+
+        /// <summary>
+        /// Final review Minor 3: Chain (LineH (3, 0) → the bomb (3, 4) → LineV (2, 5)) with the special look switched while its trigger
+        /// step runs — from Royal after the first fire and before the last; from Pota (every fire at the first peak) after the swells
+        /// started and before the fires. The specials still to fire follow the new look: under Pota each swells and bursts in its cell, under
+        /// a look that draws them each is hidden at its own fire. Every exploded cell bursts once, every special fires once, nothing is
+        /// left holding the board or alive in the style.
+        /// </summary>
+        private static IEnumerator MidChainSwitch(SpecialLook from, SpecialLook to)
+        {
+            SpecialsDemo demo = null;
+            yield return Load(d => demo = d);
+            var game = demo.Game;
+            demo.SetLook(from);
+            Assert.AreEqual(from != SpecialLook.Pota, game.Specials.ConsumesSpecialView, $"{from} is ready (no fallback to Pota)");
+            demo.Play(SpecialScenario.Chain, false);
+            int tap = SpecialScenarios.Taps(SpecialScenario.Chain)[0];
+            var expected = ExpectedBursts(game.Board, tap);
+            var area = ColorHuntRules.Blast(game.Board, tap);
+            var specials = area.Triggered.Select(t => t.Cell).ToList();
+            Assert.AreEqual(3, specials.Count, "the line, the bomb, the line");
+            var bursts = new List<int>();
+            var fired = new List<int>();
+            var unfired = new HashSet<int>();
+            var seen = new HashSet<int>();
+            var problems = new List<string>();
+            void OnFire(SpecialFire f) => fired.Add(f.Cell);
+            void OnBurst(int cell)
+            {
+                bursts.Add(cell);
+                if (!unfired.Contains(cell) || !seen.Add(cell)) return;           // a special still to fire at the switch: its own burst
+                var v = game.ViewAt(cell);
+                if (v == null) problems.Add($"{cell}: no view at its burst");
+                else if (game.Specials.ConsumesSpecialView)
+                {
+                    if (v.gameObject.activeSelf) problems.Add($"{cell}: burst in view under {to} (a Pota swell under the look's own drawing)");
+                }
+                else if (!v.gameObject.activeSelf) problems.Add($"{cell}: hidden under Pota (it vanished without a swell)");
+                else if (v.Swell <= 1f) problems.Add($"{cell}: burst under Pota without swelling (Swell {v.Swell:0.00})");
+            }
+            game.SpecialFired += OnFire;
+            game.CellBurst += OnBurst;
+            try
+            {
+                Assert.AreEqual("broken", game.Tap(tap));
+                if (from == SpecialLook.Pota) yield return null;                    // the step started: every swell runs, the fires wait for the peak
+                else yield return StudioLookPlayTests.WaitUntil(() => fired.Count > 0, 3f);
+                Assert.IsTrue(game.Busy, "the trigger step runs");
+                Assert.Less(fired.Count, specials.Count, "caught before the last fire");
+                if (from != SpecialLook.Pota) Assert.Greater(fired.Count, 0, "caught after the first fire");
+                foreach (int c in specials) if (!fired.Contains(c)) unfired.Add(c);
+                var old = game.Specials;
+                demo.SetLook(to);
+                Assert.AreEqual(to != SpecialLook.Pota, game.Specials.ConsumesSpecialView, $"{to} is ready (no fallback to Pota)");
+                Assert.AreEqual(0, old.LiveCount, $"{from} dropped its effects");
+                float clock = 0f;
+                while (game.Busy && clock < 8f)
+                {
+                    foreach (int c in unfired)
+                    {
+                        var v = game.ViewAt(c);
+                        if (!seen.Contains(c) && v != null && !v.gameObject.activeSelf) problems.Add($"{c}: hidden before its burst");
+                    }
+                    clock += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                Assert.IsFalse(game.Busy, "the board settles");
+                yield return StudioLookPlayTests.WaitUntil(() => game.Specials.LiveCount == 0 && game.ItemsInFlight == 0, 5f);
+            }
+            finally
+            {
+                game.SpecialFired -= OnFire;
+                game.CellBurst -= OnBurst;
+            }
+            CollectionAssert.IsEmpty(problems);
+            CollectionAssert.AreEquivalent(unfired, seen, "each special still to fire burst in the trigger step");
+            CollectionAssert.AreEquivalent(expected, bursts, "every exploded cell of every step burst exactly once");
+            CollectionAssert.AreEquivalent(area.Cells, bursts.GetRange(0, area.Cells.Count), "the trigger step bursts its area, each cell once");
+            CollectionAssert.AreEquivalent(specials, fired, "each special fired once: the fires already done stayed done");
+            Assert.AreEqual(0, game.Specials.LiveCount, $"{to} left nothing alive after the step");
+            AssertViewsShowTheBoard(game, $"{from} → {to} mid-chain");
+        }
+
+        [UnityTest]
         public IEnumerator HeldGather_KeepsTheBoardBusy_AndALookSwitchCompletesItOnce()
         {
             SpecialsDemo demo = null;
