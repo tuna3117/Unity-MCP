@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using Project.ColorHunt;
 using UnityEngine;
@@ -284,6 +285,72 @@ namespace Project.Tests
             AssertViewsShowTheBoard(game, "after the grace");
             Assert.AreEqual("broken", game.Tap(FirstNormal(game.Board)), "the board plays on");
             yield return StudioLookPlayTests.WaitUntil(() => !game.Busy, 10f);
+        }
+
+        /// <summary>
+        /// GatherGrace settles a gathered view without bumping the special generation; if the pool later hands that same view to a
+        /// fresh gather, a late "arrived" from the first (settled) gather must not touch the second (a per-gather ticket, not just the
+        /// view's identity). Drives the game's own private gather bookkeeping directly (reflection) so the reuse is deterministic,
+        /// instead of waiting on real RNG-driven refills to reuse the exact pooled instance.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator GatherTicket_AStaleArrival_IgnoresAFreshGatherAtTheSameView()
+        {
+            ColorHuntGame game = null;
+            yield return Load(g => game = g);
+            var stuck = new StuckGatherStyle();
+            game.UseSpecialStyle(SpecialLook.Court, stuck);
+            game.SetSpecialLook(SpecialLook.Court);
+            Deal(game, Board7(new int[0]));
+
+            var gameType = typeof(ColorHuntGame);
+            var stepJobType = gameType.GetNestedType("StepJob", BindingFlags.NonPublic);
+            var stepField = stepJobType.GetField("Step", BindingFlags.Public | BindingFlags.Instance);
+            var gatherMethod = gameType.GetMethod("GatherBirthGroups", BindingFlags.NonPublic | BindingFlags.Instance);
+            var tickGathers = gameType.GetMethod("TickGathers", BindingFlags.NonPublic | BindingFlags.Instance);
+            var newView = gameType.GetMethod("NewView", BindingFlags.NonPublic | BindingFlags.Instance);
+            var viewsField = gameType.GetField("_views", BindingFlags.NonPublic | BindingFlags.Instance);
+            var views = (Dictionary<int, BlockView>)viewsField.GetValue(game);
+            var gatheringField = gameType.GetField("_gathering", BindingFlags.NonPublic | BindingFlags.Instance);
+            var gathering = (System.Collections.IDictionary)gatheringField.GetValue(game);
+
+            object MakeStepJob(int bornCell, int groupCell)
+            {
+                var step = new Step();
+                step.Exploded.Add(groupCell);
+                step.Born.Add(new Born { Cell = bornCell, Kind = SpecialKind.LineH, Group = new[] { groupCell } });
+                var job = Activator.CreateInstance(stepJobType, true);
+                stepField.SetValue(job, step);
+                return job;
+            }
+
+            var v11 = game.ViewAt(11);
+            Assert.IsNotNull(v11);
+            gatherMethod.Invoke(game, new[] { MakeStepJob(10, 11) });
+            Assert.AreEqual(1, stuck.Held.Count, "cell 11 was gathered (round 1)");
+            var staleArrival = stuck.Held[0];
+            stuck.Held.Clear();
+
+            tickGathers.Invoke(game, new object[] { ColorHuntGame.GatherGrace + 1f });     // settles round 1 without waiting real time
+            var popped = (BlockView)newView.Invoke(game, new object[] { game.Board.Cells[21], 21, Vector2.zero });
+            Assert.AreSame(v11, popped, "the pool handed back the very view round 1 just recycled");
+            views[21] = popped;                                                            // a refill placing it at a new cell
+
+            var bursts = new List<int>();
+            game.CellBurst += bursts.Add;
+            try
+            {
+                gatherMethod.Invoke(game, new[] { MakeStepJob(20, 21) });
+                Assert.AreEqual(1, stuck.Held.Count, "the reused view was gathered again (round 2), a fresh ticket");
+                Assert.IsTrue(gathering.Contains(v11), "round 2 registered its own gather for the reused view");
+                staleArrival();                                                            // the broken style calls back after all
+                Assert.IsTrue(gathering.Contains(v11), "round 2's gather is untouched by the stale round-1 arrival");
+                CollectionAssert.IsEmpty(bursts, "no CellBurst from the stale round-1 arrival");
+                stuck.Held[0]();                                                           // round 2 arrives for real
+                Assert.IsFalse(gathering.Contains(v11));
+                CollectionAssert.AreEqual(new[] { 21 }, bursts, "round 2 settled once, normally");
+            }
+            finally { game.CellBurst -= bursts.Add; }
         }
     }
 }

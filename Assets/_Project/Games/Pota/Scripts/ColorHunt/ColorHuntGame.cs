@@ -580,6 +580,9 @@ namespace Project.ColorHunt
         private ISpecialStyle _special;
         private readonly Dictionary<SpecialLook, ISpecialStyle> _specialStyles = new Dictionary<SpecialLook, ISpecialStyle>();
         private class GoldenState { public int Col; public bool Passed; public float Age, Life; }
+        /// <summary>One gather's identity: a late "arrived" checks it owns the view's current ticket before touching it (a pooled view
+        /// the grace settled may since have been handed to a fresh gather).</summary>
+        private class GatherTicket { public float TimeLeft; }
         private readonly List<GoldenState> _goldens = new List<GoldenState>();
         /// <summary>Pota gorunenGecisler: the deal's gates, + opened ones at a step's drops, − one per golden ball that passed.</summary>
         private readonly List<int> _shownGates = new List<int>();
@@ -587,7 +590,7 @@ namespace Project.ColorHunt
         /// Birth-group blocks travelling into their birth cell (gathering looks) → game seconds left before the game settles them itself
         /// (GatherTime + <see cref="GatherGrace"/>); the style moves them, the game ticks them.
         /// </summary>
-        private readonly Dictionary<BlockView, float> _gathering = new Dictionary<BlockView, float>();
+        private readonly Dictionary<BlockView, GatherTicket> _gathering = new Dictionary<BlockView, GatherTicket>();
         private readonly List<BlockView> _gatherKeys = new List<BlockView>(), _gatherDue = new List<BlockView>();
         private int _specialGen;
         private GiantHoop _hoop;
@@ -782,9 +785,9 @@ namespace Project.ColorHunt
             _gatherDue.Clear();
             foreach (var v in _gatherKeys)
             {
-                float left = _gathering[v] - dt;
-                _gathering[v] = left;
-                if (left > 0f) continue;
+                var ticket = _gathering[v];
+                ticket.TimeLeft -= dt;
+                if (ticket.TimeLeft > 0f) continue;
                 _gathering.Remove(v);
                 _gatherDue.Add(v);
             }
@@ -823,12 +826,14 @@ namespace Project.ColorHunt
                     if (v == null) continue;
                     gathered.Add(g);
                     _views.Remove(g);
-                    _gathering[v] = time + GatherGrace;
+                    var ticket = new GatherTicket { TimeLeft = time + GatherGrace };
+                    _gathering[v] = ticket;
                     v.Exploding = true;
                     int cell = g;
                     Specials.Gather(v, to, time, arrived =>
                     {
-                        if (gen != _specialGen || !_gathering.Remove(arrived)) return;
+                        if (gen != _specialGen || !_gathering.TryGetValue(arrived, out var current) || current != ticket) return;
+                        _gathering.Remove(arrived);
                         CountItem(arrived, BoardRoot.TransformPoint(new Vector3(arrived.Pos.x, arrived.Pos.y, -PotaLook.FrontZ)));
                         RaiseCellBurst(cell);
                         Recycle(arrived);

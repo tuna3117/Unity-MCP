@@ -194,7 +194,6 @@ MonoBehaviour:
     StandInCells: 0.82
     BallCells: 0.72
     BallSpin: 720
-    EdgeMargin: 0.15
     ExitCells: 0.7
     KickLead: 0.6
     LineHop: 0.15
@@ -207,7 +206,7 @@ MonoBehaviour:
     SpeedHeight: 0.9
     SpeedTime: 0.25
     SwishRingFrom: 0.5
-    SwishRingTo: 1.6
+    SwishRingTo: 0.9
     SwishRingTime: 0.25
     SwishVolume: 0.7
     PassVolume: 0.8

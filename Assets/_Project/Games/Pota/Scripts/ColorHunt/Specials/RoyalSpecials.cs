@@ -945,7 +945,7 @@ namespace Project.ColorHunt
             {
                 if (c == f.Cell) continue;
                 var v = _game.ViewAt(c);
-                if (v == null || !v.Exploding || !v.gameObject.activeSelf) continue;
+                if (v == null || !v.Exploding || !v.gameObject.activeSelf || v.Block.IsSpecial) continue;   // a chained special fires from its own cell
                 var away = v.Home - f.At;
                 if (away.sqrMagnitude < 1e-6f) continue;
                 v.Pos = v.Home + away.normalized * Tune.PushCells;

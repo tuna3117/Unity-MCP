@@ -164,6 +164,47 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator SecondDunk_MovesTheSlamLettering_ToItsOwnSpot()
+        {
+            ColorHuntGame game = null;
+            CourtSpecials court = null;
+            yield return LoadCourt((g, c) => { game = g; court = c; });
+            Deal(game, SpecialPlayTests.Board7(new int[0], (24, SpecialKind.Bomb), (25, SpecialKind.Bomb)));
+            Assert.AreEqual("broken", game.Tap(24), "two bombs, 25 inside 24's 3×3: a chain of two dunks");
+
+            int n = game.Board.Size;
+            float w = game.S.Court.SlamLetterCells, h = w * 0.5f;
+            float mx = Mathf.Max(0f, n * 0.5f - 0.4f - 0.6f * w), my = Mathf.Max(0f, n * 0.5f - 0.4f - 0.6f * h);
+            Vector3 SlamSpot(int cell)
+            {
+                var cellPos = BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, cell), ColorHuntRules.Col(n, cell));
+                var raw = cellPos + new Vector2(0f, 1.1f);
+                var clamped = new Vector2(Mathf.Clamp(raw.x, -mx, mx), Mathf.Clamp(raw.y, -my, my));
+                return game.BoardRoot.TransformPoint(new Vector3(clamped.x, clamped.y, -CourtSpecials.LetterZ));
+            }
+            var firstSpot = SlamSpot(24);
+            var secondSpot = SlamSpot(25);
+
+            bool sawBothAtOnce = false, sawTheSecondSpot = false;
+            float clock = 0f;
+            while (game.Busy && clock < 6f)
+            {
+                bool atFirst = false, atSecond = false;
+                foreach (var t in court.Letters)
+                {
+                    if (Vector3.Distance(t.position, firstSpot) < 0.05f) atFirst = true;
+                    if (Vector3.Distance(t.position, secondSpot) < 0.05f) atSecond = true;
+                }
+                if (atFirst && atSecond) sawBothAtOnce = true;
+                if (atSecond) sawTheSecondSpot = true;
+                clock += Dt;
+                yield return null;
+            }
+            Assert.IsFalse(sawBothAtOnce, "never a SLAM! over both bombs at once (a stacked second copy)");
+            Assert.IsTrue(sawTheSecondSpot, "the re-popped SLAM! moved to the second bomb's spot after its own impact");
+        }
+
+        [UnityTest]
         public IEnumerator Slam_LetteringIsInTheFrame_AndGoneAfterHalfASecond()
         {
             ColorHuntGame game = null;
@@ -218,6 +259,48 @@ namespace Project.Tests
             Assert.Less(nearest, -0.5f * game.S.Court.GatherLift, "a bounce pass lifts toward the camera, over the blocks it crosses");
             for (int i = 0; i < game.Board.Cells.Length; i++)
                 Assert.AreEqual(0f, game.ViewAt(i).transform.localPosition.z, 1e-5f, $"cell {i}: back on the board plane");
+        }
+
+        private static void AssertRingsOnScreen(ColorHuntGame game, CourtSpecials court, string what)
+        {
+            foreach (var ring in court.Rings)
+                foreach (var corner in new[] { new Vector3(-0.5f, -0.5f, 0f), new Vector3(0.5f, -0.5f, 0f), new Vector3(-0.5f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0f) })
+                {
+                    var v = game.Cam.WorldToViewportPoint(ring.TransformPoint(corner));
+                    Assert.Greater(v.z, 0f, $"{what}: in front of the camera");
+                    Assert.That(v.x, Is.InRange(0f, 1f), $"{what}: not cut at the left or right");
+                    Assert.That(v.y, Is.InRange(0f, 1f), $"{what}: not cut at the top or bottom");
+                }
+        }
+
+        [UnityTest]
+        public IEnumerator SwishRing_StaysInTheFrame_AtBothEndsOfARowAndAColumn()
+        {
+            ColorHuntGame game = null;
+            CourtSpecials court = null;
+            yield return LoadCourt((g, c) => { game = g; court = c; });
+
+            Deal(game, Preset(SpecialScenario.Line));
+            Assert.AreEqual("broken", game.Tap(22), "LineH at (3, 1): a short run left, a long run right");
+            float clock = 0f;
+            while (game.Busy && clock < 6f)
+            {
+                AssertRingsOnScreen(game, court, $"row, {clock:0.00} s");
+                clock += Dt;
+                yield return null;
+            }
+            Assert.IsFalse(game.Busy);
+
+            Deal(game, Preset(SpecialScenario.Line));
+            Assert.AreEqual("broken", game.Tap(19), "LineV at (2, 5): a short run up, a long run down");
+            clock = 0f;
+            while (game.Busy && clock < 6f)
+            {
+                AssertRingsOnScreen(game, court, $"column, {clock:0.00} s");
+                clock += Dt;
+                yield return null;
+            }
+            Assert.IsFalse(game.Busy);
         }
 
         [UnityTest]

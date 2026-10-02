@@ -28,6 +28,8 @@ namespace Project.Tests
             /// <summary>While on, a gathered block's arrival is kept in <see cref="Held"/> instead of reaching the game (a slow style).</summary>
             public bool HoldArrivals;
             public readonly List<Action> Held = new List<Action>();
+            /// <summary>Every Fire call's cell, in call order.</summary>
+            public readonly List<int> FiredCells = new List<int>();
 
             public CountingRoyal(RoyalSpecials inner) { Inner = inner; }
 
@@ -42,7 +44,7 @@ namespace Project.Tests
             public void Idle(BlockView v, float dt) => Inner.Idle(v, dt);
             public void Birth(BlockView v, SpecialKind kind) => Inner.Birth(v, kind);
             public void TriggerStep(int specials, Vector2 centre) => Inner.TriggerStep(specials, centre);
-            public void Fire(SpecialFire fire) => Inner.Fire(fire);
+            public void Fire(SpecialFire fire) { FiredCells.Add(fire.Cell); Inner.Fire(fire); }
 
             public void Gather(BlockView v, Vector2 to, float duration, Action<BlockView> arrived)
             {
@@ -289,6 +291,31 @@ namespace Project.Tests
             var all = new List<int>();
             foreach (var step in r.Steps) all.AddRange(step.Exploded);
             return all;
+        }
+
+        [UnityTest]
+        public IEnumerator Push_LeavesAChainedSpecial_AtItsHome()
+        {
+            SpecialsDemo demo = null;
+            yield return Load(d => demo = d);
+            var game = demo.Game;
+            var counting = UseCounting(demo);
+            demo.Play(SpecialScenario.Chain, true);
+            yield return StudioLookPlayTests.WaitUntil(() => counting.Inner.PiecesLive > 0, 8f);
+            Assert.IsTrue(counting.FiredCells.Contains(25), "the bomb fired (its shell flew)");
+            Assert.IsFalse(counting.FiredCells.Contains(19), "caught before (2, 5)'s own LineV fires");
+            bool checkedOnce = false;
+            float clock = 0f;
+            while (!counting.FiredCells.Contains(19) && clock < 3f)
+            {
+                var v = game.ViewAt(19);
+                Assert.AreEqual(v.Home, v.Pos, "the chained LineV stays on its cell while the bomb's push moves the 3×3 around it");
+                checkedOnce = true;
+                clock += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Assert.IsTrue(checkedOnce, "the window between the bomb's push and (2, 5)'s own fire was observed");
+            Assert.IsTrue(counting.FiredCells.Contains(19), "(2, 5) went on to fire itself");
         }
 
         [UnityTest]

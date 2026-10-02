@@ -47,8 +47,8 @@ namespace Project.ColorHunt
         public float LineSweep = 0.3f, SweepCells = 6f;
         [Tooltip("Ball sizes (cells): the stand-in on the cell, the flying balls; their spin (degrees per second).")]
         public float StandInCells = 0.82f, BallCells = 0.72f, BallSpin = 720f;
-        [Tooltip("The frame edge lies this far past the last cell's edge (cells); a ball leaves over ExitCells, shrinking.")]
-        public float EdgeMargin = 0.15f, ExitCells = 0.7f;
+        [Tooltip("A ball leaves over ExitCells past the last cell's outer edge, shrinking.")]
+        public float ExitCells = 0.7f;
         [Tooltip("A passed block hops LineHop cells over LineHopTime, starting when the ball is KickLead cells away (it bursts on arrival).")]
         public float KickLead = 0.6f, LineHop = 0.15f, LineHopTime = 0.12f;
         [Tooltip("The flame tail (vfx-flame-jet): square quad size (cells), one loop (s).")]
@@ -61,7 +61,7 @@ namespace Project.ColorHunt
         [Tooltip("Speed lines (vfx-speed-lines, one-shot): longest stretch along the path, height (cells), play time (s).")]
         public float SpeedLength = 2.6f, SpeedHeight = 0.9f, SpeedTime = 0.25f;
         [Tooltip("White swish ring where a ball meets the frame: from → to (cells) in time; file-swish volume.")]
-        public float SwishRingFrom = 0.5f, SwishRingTo = 1.6f, SwishRingTime = 0.25f, SwishVolume = 0.7f;
+        public float SwishRingFrom = 0.5f, SwishRingTo = 0.9f, SwishRingTime = 0.25f, SwishVolume = 0.7f;
         [Tooltip("The pass whoosh (synth court-pas) volume.")]
         public float PassVolume = 0.8f;
 
@@ -235,6 +235,8 @@ namespace Project.ColorHunt
         }
         /// <summary>The live lettering quads (SLAM!, COMBO!, SWISH!): unit quads scaled in the game root.</summary>
         public IEnumerable<Transform> Letters { get { foreach (var q in _quads) if (q.Kind == Kind.Letter) yield return q.T; } }
+        /// <summary>The live swish-ring quads (a line ball reaching the frame): unit quads scaled in the game root.</summary>
+        public IEnumerable<Transform> Rings { get { foreach (var q in _quads) if (q.Kind == Kind.Ring) yield return q.T; } }
         /// <summary>GiantHoop.Swing calls made by golden landings.</summary>
         public int NetSwings { get; private set; }
         public int Landings { get; private set; }
@@ -743,7 +745,7 @@ namespace Project.ColorHunt
                 b.Fire = f;
                 b.Age = age;
                 b.Dir = dir;
-                b.Edge = cells + 0.5f + t.EdgeMargin;
+                b.Edge = cells + 0.5f;                                                  // the last cell's outer edge, inside the frame bar
                 b.Cells = LineCells(n, row, col, dir, cells);
                 b.NextKick = 0;
                 b.Lead = side == 0;                                                     // the first ball also plays the dribble
@@ -1064,7 +1066,8 @@ namespace Project.ColorHunt
 
         /// <summary>
         /// One word at a time: while the same lettering is still up (the second golden ball of a volley lands 0.12 s after the first,
-        /// a second dunk in a chain) it pops again from its peak where it stands, instead of a second copy stacked half over it.
+        /// a second dunk in a chain) it pops again from its peak at the new spot, instead of a second copy stacked half over it
+        /// (SWISH! always re-pops at the same spot, the hoop; a second SLAM! moves to its own dunk).
         /// </summary>
         private void ShowLetter(Material mat, Vector3 local, float width)
         {
@@ -1072,6 +1075,7 @@ namespace Project.ColorHunt
                 if (live.Kind == Kind.Letter && live.R.sharedMaterial == mat)
                 {
                     live.Age = Mathf.Min(live.Age, 0.1f);
+                    live.At = local;
                     return;
                 }
             var q = TakeQuad(Kind.Letter, mat, LetterOrder);
