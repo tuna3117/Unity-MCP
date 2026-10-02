@@ -37,7 +37,10 @@ namespace Project.Tests
             Assert.AreEqual(boardZ - 3f, stage.Court.GetComponent<Renderer>().bounds.max.z, 0.01f, "saha.ts: the court ends 3 m before the hoop");
             Assert.IsNotNull(stage.Roof, "the building under the court (saha.ts govde)");
             Assert.AreEqual(boardZ - 2f, stage.Roof.GetComponent<Renderer>().bounds.max.z, 0.01f, "the roof's edge 2 m before the hoop");
-            Assert.AreEqual(game.transform.position.y - 8.5f, stage.Roof.GetComponent<Renderer>().bounds.max.y, 0.01f);
+            float courtTop = stage.Court.GetComponent<Renderer>().bounds.max.y, roofTop = stage.Roof.GetComponent<Renderer>().bounds.max.y;
+            Assert.AreEqual(game.transform.position.y - 8.5f, courtTop, 0.01f, "the court 8.5 below the board");
+            // a roof top in the court's plane z-fights with it: the beige roof flickered over the court whenever the camera shook
+            Assert.That(courtTop - roofTop, Is.InRange(0.002f, 0.02f), "the roof's top just under the court, never in its plane");
             Assert.IsTrue(stage.Reflection.bounds.Contains(game.CellWorld(0)));
             var fit = cam.GetComponent<ColorHuntCamera>();
             Assert.Less(Vector3.Distance(cam.transform.position, fit.FitFor(cam.fieldOfView, cam.aspect)), 0.6f, "shake aside");

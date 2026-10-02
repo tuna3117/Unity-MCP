@@ -17,6 +17,8 @@ namespace Project.Flow
         public bool BuildOnStart = true;
         [Tooltip("Ground below the board centre (PotaFlow: BoardAnchor.y above the roof).")]
         public float GroundBelow = 8.5f;
+        /// <summary>How far the roof's top sits under the court quad (never in its plane: z-fighting).</summary>
+        public const float RoofDrop = 0.01f;
         public Vector2 CourtSize = new Vector2(15f, 14f);           // YERLESIM.saha
         [Tooltip("How far the court reaches from the board toward the camera (Pota: 10 + 7; PotaFlow: BoardAnchor.z − CourtStartZ).")]
         public float CourtNear = 17f;
@@ -47,7 +49,9 @@ namespace Project.Flow
             var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             var roofMat = Project.Basket.Visual.RimMeshBuilder.UrpLit(RoofColor, 0.1f);        // roughness 0.9
             Roof = Project.Basket.Visual.RimMeshBuilder.MeshObject("Roof", transform, cube, roofMat);
-            Roof.transform.position = courtCentre + new Vector3(0f, -20f, 0f);
+            // 1 cm under the court: a top face in the court's plane z-fought with it, and the beige roof flickered over the court
+            // whenever the camera shook (2026-10-01 specials recordings)
+            Roof.transform.position = courtCentre + new Vector3(0f, -20f - RoofDrop, 0f);
             Roof.transform.localScale = new Vector3(CourtSize.x + 2f, 40f, CourtSize.y + 2f);
             var railMat = Project.Basket.Visual.RimMeshBuilder.UrpLit(RailColor, 0.4f);
             railMat.SetFloat("_Metallic", 0.3f);
