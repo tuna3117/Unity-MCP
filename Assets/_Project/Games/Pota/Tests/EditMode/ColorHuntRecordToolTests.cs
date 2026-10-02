@@ -106,6 +106,18 @@ namespace Project.Tests
         }
 
         [Test]
+        public void Specials_StagesOnlyOnceTheStartUpScenarioHasSettled()
+        {
+            // the demo auto-plays its start scenario on entering Play; what it leaves in the air must not fly into the first frames
+            Assert.IsTrue(ColorHuntRecordTool.Settled(true, false, 0, 0, 0));
+            Assert.IsFalse(ColorHuntRecordTool.Settled(false, false, 0, 0, 0), "the demo's own start-up taps are still coming");
+            Assert.IsFalse(ColorHuntRecordTool.Settled(true, true, 0, 0, 0), "a step is running");
+            Assert.IsFalse(ColorHuntRecordTool.Settled(true, false, 2, 0, 0), "stickers on their way to the HUD");
+            Assert.IsFalse(ColorHuntRecordTool.Settled(true, false, 0, 1, 0), "a golden ball in the air");
+            Assert.IsFalse(ColorHuntRecordTool.Settled(true, false, 0, 0, 1), "a popup (×2, ÇİZGİ TOPU!) still rising");
+        }
+
+        [Test]
         public void ClipKeys_OneFilePerClip_UniqueAndSafe()
         {
             var a = AudioClip.Create("kombo", 10, 1, 44100, false);

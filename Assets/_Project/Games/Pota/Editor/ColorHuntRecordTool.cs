@@ -66,6 +66,8 @@ namespace Project.Editor.AITools
         public const float CloseupZoom = 2.4f, CloseupTimeScale = 0.3f;
         /// <summary>Specials: seconds recorded after the stop marker, and the longest a recording may run (recording clock).</summary>
         public const float SpecialsTail = 0.6f, SpecialsTimeout = 40f;
+        /// <summary>Specials: the longest the recorder steps (uncaptured, unscaled s) waiting for the demo's start-up scenario to settle.</summary>
+        public const float SettleTimeout = 20f;
         private const string ScenarioList = "birth, line, bomb, chain, golden";
 
         private static PuzzleLook _previousLook;
@@ -76,8 +78,8 @@ namespace Project.Editor.AITools
         private static ColorHuntGame _hooked;
         private static PotaSounds _sounds;
         private static string _until = "finish";
-        private static float _zoom = CloseupZoom, _stopAt = -1f, _previousFixed = 0.02f, _lastShot = -1f;
-        private static int _focus = -1, _landed;
+        private static float _zoom = CloseupZoom, _stopAt = -1f, _previousFixed = 0.02f, _lastShot = -1f, _settleStart = -1f;
+        private static int _focus = -1, _landed, _warm;
         private static readonly List<float> _gaps = new List<float>();
 
         /// <summary>"pota" | "candy" / "a" | "shatter" / "b", any case.</summary>
@@ -140,6 +142,13 @@ namespace Project.Editor.AITools
             request = new SpecialsRequest { Specials = true, Scenario = s, Look = look };
             return null;
         }
+
+        /// <summary>
+        /// Specials: the scene is quiet enough to stage the recorded scenario. The demo auto-plays its start scenario on entering Play; its
+        /// last taps, stickers, golden balls and popups ("×2", "ÇİZGİ TOPU!" rise for 0.9 s on unscaled time) would fly into the first frames.
+        /// </summary>
+        public static bool Settled(bool demoFinished, bool busy, int itemsInFlight, int goldensInFlight, int popups) =>
+            demoFinished && !busy && itemsInFlight == 0 && goldensInFlight == 0 && popups == 0;
 
         /// <summary>The first "tap" is "tap", the next "tap2", "tap3"…</summary>
         public static string NextKey(ICollection<string> keys, string key)
@@ -259,7 +268,7 @@ namespace Project.Editor.AITools
             if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
             Directory.CreateDirectory(_dir);
             _index = 0; _stepFrames = 0; _captured = 0; _tailFrames = 0; _dealt = false; _result = ""; _lastFrame = -1; _waits = 0; _tailStart = -1f;
-            _stopAt = -1f; _landed = 0;
+            _stopAt = -1f; _landed = 0; _settleStart = -1f; _warm = 0;
             _events.Clear();
             Time.captureDeltaTime = 1f / 30f;
             _floating = FrameRecorder.OpenFloatingGameView(new Rect(1040f, 70f, 380f, 700f));
@@ -360,9 +369,11 @@ namespace Project.Editor.AITools
             if (!_dealt)
             {
                 if (game.BoardRoot == null) return;
+                if (_specials && !StartUpSettled(game)) return;
                 Deal(game);
                 return;
             }
+            if (_warm > 0) { _warm--; return; }                  // the canvases just moved onto the camera lay out one frame late
             Capture();
             if (_specials) { TickSpecials(game); return; }
             if (_index >= _steps.Count)
@@ -430,10 +441,23 @@ namespace Project.Editor.AITools
                 if (fit != null && focus >= 0) { fit.Zoom = _zoom; fit.ZoomFocus = game.CellWorld(focus); }
             }
             _recorder = new FrameRecorder(game.Cam, _width, _aspect, true);
+            _warm = 1;
             _t0 = Time.unscaledTime;
             _sounds = game.Juice != null ? game.Juice.Sounds : null;
             if (_sounds != null) _sounds.StartLog(() => Now);
             _dealt = true;
+        }
+
+        /// <summary>Specials: <see cref="Settled"/> for the running scene, or true (with a warning) after <see cref="SettleTimeout"/>.</summary>
+        private static bool StartUpSettled(ColorHuntGame game)
+        {
+            var canvas = game.Juice != null && game.Juice.Popups != null ? game.Juice.Popups.Canvas : null;
+            int popups = canvas != null ? canvas.transform.childCount : 0;   // PopupText parents each live popup to its canvas
+            if (Settled(_demo.Finished, game.Busy, game.ItemsInFlight, game.GoldenInFlight, popups)) return true;
+            if (_settleStart < 0f) _settleStart = Time.unscaledTime;
+            if (Time.unscaledTime - _settleStart < SettleTimeout) return false;
+            Debug.LogWarning($"[ai_colorhunt_record] the demo's start-up scenario did not settle within {SettleTimeout:0} s; staging anyway.");
+            return true;
         }
 
         /// <summary>Specials: golden landings become markers; the recording ends <see cref="_tail"/> after the until marker (or "finish").</summary>
