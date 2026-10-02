@@ -344,5 +344,109 @@ namespace Project.Tests
             yield return WaitUntil(() => shatter.ActivePieces > 0, 1.5f);
             Assert.Greater(shatter.ActivePieces, 0, "the pieces fly in the giant hoop's space too");
         }
+
+        // ---------- 2026-10-02 candidates ----------
+
+        [UnityTest]
+        public IEnumerator Candidates123_EndOnAPlayableBoard_WithTheCountAsAmmo()
+        {
+            foreach (var c in new[] { FlowCandidate.BigShot, FlowCandidate.Dive, FlowCandidate.Stamp })
+            {
+                PotaFlowDirector d = null;
+                yield return Load(x => d = x);
+                d.CandidateOverride = c;
+                Assert.IsTrue(d.BeginTransition(158), c.ToString());
+                int maxNet = 0, guard = 0;
+                bool speedSeen = false, letterSeen = false;
+                while (d.Current == Phase.Transition && guard++ < 2000)
+                {
+                    d.Advance(Step);
+                    maxNet = Mathf.Max(maxNet, d.NetStream.ActiveCount);
+                    speedSeen |= d.Fx.SpeedLinesShown;
+                    letterSeen |= d.Fx.LetterShown;
+                    yield return null;
+                }
+                Assert.AreEqual(Phase.Puzzle, d.Current, c.ToString());
+                Assert.LessOrEqual(d.Clock, 3.5f, $"{c}: ready within 3.5 s");
+                yield return null;
+                Assert.AreEqual(ColorHuntGame.State.Playing, d.Game.Current);
+                Assert.AreEqual(158, d.Game.Board.Ammo);
+                Assert.AreEqual(158, d.Game.DisplayedAmmo);
+                Assert.AreEqual("158", d.Hud.transform.Find("AmmoPanel/AmmoWindow/Ammo").GetComponent<Text>().text);
+                Assert.IsFalse(d.Badge.Visible, $"{c}: badge merged");
+                Assert.IsFalse(d.Fx.SpeedLinesShown);
+                Assert.IsFalse(d.Fx.LetterShown);
+                for (int i = 0; i < d.Game.Board.Cells.Length; i++)
+                {
+                    var v = d.Game.ViewAt(i);
+                    Assert.AreEqual(1f, v.Scale, 1e-5f, $"{c} cell {i}");
+                    Assert.Less(Vector2.Distance(v.Pos, v.Home), 1e-4f, $"{c} cell {i} home");
+                }
+                Assert.Less(Vector3.Distance(d.Cam.transform.position, d.BoardCam.FitFor(d.S.BoardFov, d.Cam.aspect)), 0.3f, c.ToString());
+                switch (c)
+                {
+                    case FlowCandidate.BigShot:
+                        Assert.AreEqual(12, maxNet, "the basket's 12 balls flew to the hoop");
+                        Assert.AreEqual(GiantHoop.MaxPile, d.Hoop.Pile, "the net holds its pile");
+                        Assert.AreEqual(0, d.Stream.ActiveCount, "the basket emptied");
+                        var hero = d.Round.Column.Player.transform;
+                        var toHoop = d.Hoop.RimCenter - hero.position; toHoop.y = 0f;
+                        Assert.Less(Vector3.Angle(hero.forward, toHoop), 20f, "the hero faces the giant hoop");
+                        break;
+                    case FlowCandidate.Dive:
+                        Assert.IsTrue(speedSeen, "speed lines during the chase");
+                        Assert.IsTrue(letterSeen, "SWISH! at the rim");
+                        Assert.AreEqual(0, maxNet);
+                        Assert.AreEqual(d.Bin.RestingCapacity, d.Bin.Pile);
+                        break;
+                    case FlowCandidate.Stamp:
+                        Assert.AreEqual(0, maxNet);
+                        Assert.AreEqual(d.Bin.RestingCapacity, d.Bin.Pile);
+                        Assert.AreEqual(0, d.Hoop.Pile);
+                        break;
+                }
+                d.CandidateOverride = null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Candidates123_SkipFinishesQuickly()
+        {
+            foreach (var c in new[] { FlowCandidate.BigShot, FlowCandidate.Dive, FlowCandidate.Stamp })
+            {
+                PotaFlowDirector d = null;
+                yield return Load(x => d = x);
+                d.CandidateOverride = c;
+                d.BeginTransition(40);
+                for (int i = 0; i < 5; i++) yield return null;
+                float t0 = Time.realtimeSinceStartup;
+                d.Skip();
+                yield return WaitUntil(() => d.Current == Phase.Puzzle, 2f);
+                Assert.AreEqual(Phase.Puzzle, d.Current, c.ToString());
+                Assert.LessOrEqual(Time.realtimeSinceStartup - t0, 1.0f, c.ToString());
+                Assert.AreEqual(40, d.Game.DisplayedAmmo, c.ToString());
+                d.CandidateOverride = null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Stamp_BlocksHangAboveTheFrame_ThenLandHome()
+        {
+            PotaFlowDirector d = null;
+            yield return Load(x => d = x);
+            d.CandidateOverride = FlowCandidate.Stamp;
+            d.BeginTransition(10);
+            var s = d.S.Timing.Stamp;
+            d.Advance(s.RainStart + 0.01f);
+            int n = d.Game.Board.Size;
+            int topLeft = 0, topRight = n - 1;
+            Assert.Greater(d.Game.ViewAt(topLeft).Pos.y - d.Game.ViewAt(topLeft).Home.y, n * 0.9f, "column 0 hangs high");
+            Assert.AreEqual(1f, d.Game.ViewAt(topLeft).Scale, 1e-5f, "column 0 is visible");
+            Assert.Less(d.Game.ViewAt(topRight).Scale, 0.01f, "the last column has not started");
+            d.Advance(s.RainTime);
+            Assert.Less(Mathf.Abs(d.Game.ViewAt(topLeft).Pos.y - d.Game.ViewAt(topLeft).Home.y), 1e-3f, "column 0 landed");
+            Assert.Greater(d.Game.ViewAt(topLeft).Squash, 0.3f, "landing squash");
+            d.CandidateOverride = null;
+        }
     }
 }

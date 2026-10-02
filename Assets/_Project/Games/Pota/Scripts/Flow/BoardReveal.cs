@@ -29,6 +29,26 @@ namespace Project.Flow
             }
         }
 
+        /// <summary>
+        /// Candidate 3's block rain: every column's blocks hang (n + 1) cells above home, hidden, then fall with constant
+        /// acceleration column by column and squash on landing (Pota's own LandSquash through BlockView.Squash).
+        /// </summary>
+        public static void ApplyRain(ColorHuntGame game, FlowTimeline tl, float t)
+        {
+            var board = game.Board;
+            if (board == null) return;
+            int n = board.Size;
+            for (int cell = 0; cell < board.Cells.Length; cell++)
+            {
+                var v = game.ViewAt(cell);
+                if (v == null) continue;
+                int col = ColorHuntRules.Col(n, cell);
+                v.Pos = v.Home + new Vector2(0f, tl.RainOffset(t, col, n));
+                v.Scale = tl.RainVisible(t, col) ? 1f : 0.001f;
+                v.Squash = tl.RainSquash(t, col);
+            }
+        }
+
         public static void Finish(ColorHuntGame game)
         {
             var board = game.Board;
@@ -36,7 +56,10 @@ namespace Project.Flow
             for (int cell = 0; cell < board.Cells.Length; cell++)
             {
                 var v = game.ViewAt(cell);
-                if (v != null) v.Scale = 1f;
+                if (v == null) continue;
+                v.Scale = 1f;
+                v.Pos = v.Home;
+                v.Squash = 0f;
             }
         }
     }

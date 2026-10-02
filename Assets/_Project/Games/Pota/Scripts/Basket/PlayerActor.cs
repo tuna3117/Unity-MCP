@@ -65,6 +65,18 @@ namespace Project.Basket
             if (_animator != null) _animator.Play(IdleState, 0, 0f);
         }
 
+        /// <summary>Plays the shot once, where the hero stands, without the round's hide timer (PotaFlow candidate 1: the big shot into the giant hoop).</summary>
+        public void PlayShoot()
+        {
+            _hideAt = -1f;
+            if (_animator != null)
+            {
+                _animator.Play(ShootState, 0, 0f);
+                return;
+            }
+            _animT = 0f;
+        }
+
         private void OnShot(AimPoint aim)
         {
             if (this == null || _round == null) return;

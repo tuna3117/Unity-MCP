@@ -43,5 +43,30 @@ namespace Project.Flow
         public float BinEndLean = 2.5f;
         public Vector3 LaunchKick = new Vector3(0f, 0f, 0.8f);
 
+        [Header("Candidate 1: Büyük şut")]
+        [Tooltip("Shot pose: behind and beside the hero on the terrace, the giant hoop ahead (Pota 'saha' pose adapted; must stay in front of the tower face).")]
+        public Vector3 ShotPos = new Vector3(-2.8f, 3.0f, 3.4f);
+        public Vector3 ShotLook = new Vector3(0.3f, 4.8f, 30f);
+        public float ShotFov = 50f;
+        [Tooltip("Kick of the balls leaving the hero's basket toward the hoop.")]
+        public Vector3 NetLaunchKick = new Vector3(0f, 1.2f, 0.6f);
+        public float NetApexAbove = 6f;
+
+        [Header("Candidate 2: Çemberden dalış")]
+        [Tooltip("Chase waypoint low over the court.")]
+        public Vector3 DiveCourtPos = new Vector3(0f, 1.8f, 20f);
+        [Tooltip("The rise axis sits this far in front of the rim centre (clear of the rim arm behind it).")]
+        public float DiveRimForward = 0.3f;
+        [Tooltip("Below the rim centre (under the whole net) where the rise starts.")]
+        public float DiveUnderRim = 1.9f;
+        [Tooltip("Above the rim centre where the pull-back starts.")]
+        public float DiveAboveRim = 1.7f;
+        public float DiveChaseFov = 62f, DiveRimFov = 70f, DiveAboveFov = 66f;
+        public float SpeedLinesStrength = 0.9f;
+        public float SwishLetterWidth = 3.6f;
+
+        [Header("Candidate 3: Pano damgası")]
+        [Tooltip("Puff and star size on the glass (m).")]
+        public float StampPuffSize = 4.5f;
     }
 }

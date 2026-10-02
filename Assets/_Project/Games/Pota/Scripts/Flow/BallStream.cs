@@ -36,9 +36,9 @@ namespace Project.Flow
         private TrailRenderer[] _trails = new TrailRenderer[0];
         private Vector3[] _from = new Vector3[0], _entry = new Vector3[0], _axis = new Vector3[0];
         private float[] _apex = new float[0];
-        private FlowTimeline _tl;
+        private IBallSchedule _tl;
         private IBallReceiver _target;
-        private float _lastT;
+        private float _lastT, _holdFrom = float.PositiveInfinity;
         private bool _running;
 
         /// <summary>Creates the ball objects up front (no allocation or hitch when the transition starts).</summary>
@@ -75,17 +75,25 @@ namespace Project.Flow
             }
         }
 
-        public void Begin(FlowTimeline tl, Vector3 source, IBallReceiver target)
+        public void Begin(IBallSchedule tl, Vector3 source, IBallReceiver target) =>
+            Begin(tl, i => source + new Vector3((Hash(i, 1) - 0.5f) * 2f * Spread, 0f, (Hash(i, 2) - 0.5f) * Spread), target, float.PositiveInfinity);
+
+        /// <summary>
+        /// Flight from per-ball sources (candidate 1: the basket's pile slots) to <paramref name="target"/>. From
+        /// <paramref name="holdFrom"/> on, a ball that has not launched yet already shows at its source (the pile waits to fly).
+        /// </summary>
+        public void Begin(IBallSchedule tl, Func<int, Vector3> sourceOf, IBallReceiver target, float holdFrom)
         {
             Prewarm(tl.Visible);
             Clear();
             _tl = tl;
             _target = target;
+            _holdFrom = holdFrom;
             _lastT = float.NegativeInfinity;
             _running = true;
             for (int i = 0; i < tl.Visible; i++)
             {
-                _from[i] = source + new Vector3((Hash(i, 1) - 0.5f) * 2f * Spread, 0f, (Hash(i, 2) - 0.5f) * Spread);
+                _from[i] = sourceOf(i);
                 _entry[i] = target.EntryPoint(i);
                 _apex[i] = Mathf.Max(_from[i].y, _entry[i].y) + ApexAbove + Hash(i, 5) * ApexJitter;
                 var axis = new Vector3(Hash(i, 6) - 0.5f, Hash(i, 7) - 0.5f, Hash(i, 8) - 0.5f);
@@ -108,7 +116,8 @@ namespace Project.Flow
                     Landed?.Invoke(i);
                 }
                 bool resting = i < _target.RestingCapacity;
-                bool visible = t >= launch && (resting || t < land + DropTime);
+                bool holding = t >= _holdFrom && t < launch;
+                bool visible = holding || (t >= launch && (resting || t < land + DropTime));
                 var ball = _balls[i];
                 if (ball.gameObject.activeSelf != visible)
                 {
@@ -117,7 +126,12 @@ namespace Project.Flow
                 }
                 if (!visible) continue;
                 active++;
-                if (t < land)
+                if (holding)
+                {
+                    ball.position = _from[i];
+                    _trails[i].emitting = false;
+                }
+                else if (t < land)
                 {
                     float u = (t - launch) / (land - launch);
                     ball.position = PathPoint(_from[i], _entry[i], _apex[i], LaunchKick, u, EndLean);
@@ -139,6 +153,7 @@ namespace Project.Flow
         public void Clear()
         {
             _running = false;
+            _holdFrom = float.PositiveInfinity;
             ActiveCount = 0;
             for (int i = 0; i < _balls.Length; i++)
             {

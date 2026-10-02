@@ -60,14 +60,20 @@ namespace Project.Flow
         /// <summary>The hero's basket on the terrace: candidate A's balls land here.</summary>
         public BallBin Bin { get; private set; }
         public BallStream Stream { get; private set; }
+        /// <summary>Candidate 1's second flight: the basket's balls into the giant hoop's net.</summary>
+        public BallStream NetStream { get; private set; }
+        public FlowEffects Fx { get; private set; }
         public FlowBadge Badge { get; private set; }
         public event Action<Phase> PhaseChanged;
 
-        private CamPose _p0, _p1, _back;
+        private CamPose _p0, _p1, _back, _shotPose;
+        private CamPose[] _divePath;
+        private Vector3[] _diveTangents;
+        private float _rimU;
         private Vector3 _source;
         private Vector2 _cageViewport;
         private float _fogStart0, _fogEnd0, _skipSpeed, _lastT, _camU;
-        private bool _skipping, _heroShown, _badgeMerged, _revealSounded, _built, _prewarmed;
+        private bool _skipping, _heroShown, _badgeMerged, _revealSounded, _built, _prewarmed, _shotPlayed, _netShown, _swished, _stamped;
         private Quaternion _heroRot0 = Quaternion.identity;
         private int _shownCount;
         private Canvas _basketCanvas, _boardCanvas;
@@ -117,6 +123,20 @@ namespace Project.Flow
             Stream.Launched += OnLaunched;
             Stream.Landed += OnLanded;
 
+            var netGo = new GameObject("NetStream");
+            netGo.transform.SetParent(transform, false);
+            NetStream = netGo.AddComponent<BallStream>();
+            NetStream.BallMaterial = Game.S.BallMaterial;
+            NetStream.BallRadius = S.BallRadius;
+            NetStream.ApexAbove = S.NetApexAbove;
+            NetStream.LaunchKick = S.NetLaunchKick;
+            NetStream.EndLean = 0f;                                           // straight down through the rim
+            NetStream.Spread = 0f;
+            NetStream.Prewarm(S.Timing.BigShot.MaxVisible);
+            NetStream.Launched += OnNetLaunched;
+            NetStream.Landed += OnNetLanded;
+
+            Fx = FlowEffects.Create(transform, Game.S, Cam);
             Badge = FlowBadge.Create(transform, Game.S.Font, Game.S.GoldColor, Game.S.NavyColor);
 
             Round.RoundEnded += OnRoundEnded;
@@ -133,6 +153,7 @@ namespace Project.Flow
             if (Round != null) Round.RoundEnded -= OnRoundEnded;
             if (Game != null) Game.RoundEnded -= OnBoardEnded;
             if (Stream != null) { Stream.Launched -= OnLaunched; Stream.Landed -= OnLanded; }
+            if (NetStream != null) { NetStream.Launched -= OnNetLaunched; NetStream.Landed -= OnNetLanded; }
         }
 
         private void OnRoundEnded(int count) => BeginTransition(ForcedCount >= 0 ? ForcedCount : count);
@@ -154,6 +175,8 @@ namespace Project.Flow
             var look = RoundCam != null ? RoundCam.LookPoint : Cam.transform.position + Cam.transform.forward * 10f;
             _p0 = new CamPose(Cam.transform.position, look, Cam.fieldOfView);
             _p1 = new CamPose(S.MidPos, S.MidLook, S.MidFov);
+            _shotPose = new CamPose(S.ShotPos, S.ShotLook, S.ShotFov);
+            BuildDivePath();
             var cage = Round.Column.Cage;
             _source = new Vector3(0f, cage.TopY + 0.3f, cage.Depth * 0.5f + 0.6f);
             var cv = Cam.WorldToViewportPoint(_source + Vector3.up * 1.2f);   // off-screen (e.g. from the aim pose): start mid-low
@@ -168,13 +191,16 @@ namespace Project.Flow
             Bin.Clear();
             if (Timeline.Visible > 0) Stream.Begin(Timeline, _source, Bin);
             else Stream.Clear();
+            if (Timeline.Net.Visible > 0) NetStream.Begin(Timeline.Net, i => Bin.SlotPosition(i), Hoop, S.Timing.BigShot.LaunchStart);
+            else NetStream.Clear();
+            Fx.Clear();
             Badge.Show(Count);
             Hud.HideResult();
             Hud.SetIntro(0f);
 
             var player = Round.Column.Player;
             _heroRot0 = player != null ? player.transform.rotation : Quaternion.identity;
-            _heroShown = _skipping = _badgeMerged = _revealSounded = false;
+            _heroShown = _skipping = _badgeMerged = _revealSounded = _shotPlayed = _netShown = _swished = _stamped = false;
             Clock = 0f;
             _lastT = 0f;
             EnterPhase(Phase.Transition);
@@ -201,6 +227,8 @@ namespace Project.Flow
             Hud.HideResult();
             _back = new CamPose(Cam.transform.position, Cam.transform.position + Cam.transform.forward * 20f, Cam.fieldOfView);
             Stream.Clear();
+            NetStream.Clear();
+            Fx.Clear();
             Hoop.ClearPile();
             Bin.Clear();
             Badge.Hide();
@@ -258,8 +286,7 @@ namespace Project.Flow
             var T = S.Timing;
 
             var p2 = BoardPose();
-            _camU = tl.CameraProgress(t, CameraFlight.Split(_p0, _p1, p2));
-            var pose = CameraFlight.Evaluate(_p0, _p1, p2, _camU, S.LookLead);
+            var pose = CameraPose(t, p2);
             float settle = tl.SettleAt(t);
             if (settle >= 0f) pose = CameraFlight.Settle(p2, settle, S.SettleAmount);
             if (t < T.HighlightEnd) pose.Fov -= S.FovPunch * Mathf.Sin(Mathf.PI * t / T.HighlightEnd);
@@ -275,10 +302,20 @@ namespace Project.Flow
             if (player != null)
             {
                 if (!_heroShown && t >= T.HeroRevealAt) { _heroShown = true; player.Reveal(); }
-                if (_heroShown) player.transform.rotation = Quaternion.Slerp(_heroRot0, FacingBin(player.transform.position), tl.HeroTurn(t));
+                if (_heroShown)
+                {
+                    var rot = Quaternion.Slerp(_heroRot0, FacingBin(player.transform.position), tl.HeroTurn(t));
+                    float toHoop = tl.HeroTurnHoop(t);
+                    if (toHoop > 0f) rot = Quaternion.Slerp(rot, Facing(player.transform.position, Hoop.RimCenter), toHoop);
+                    player.transform.rotation = rot;
+                    if (tl.IsBigShot && !_shotPlayed && t >= T.BigShot.ShootAt) { _shotPlayed = true; player.PlayShoot(); }
+                }
             }
 
+            if (tl.IsBigShot && !_netShown && t >= T.BigShot.LaunchStart) { _netShown = true; Stream.Clear(); }   // the pile flies on
             Stream.Tick(t);
+            NetStream.Tick(t);
+            ApplyEffects(t);
             Hoop.Tick(Mathf.Max(0f, t - _lastT));
             Bin.Tick(Mathf.Max(0f, t - _lastT));
             _lastT = t;
@@ -286,10 +323,11 @@ namespace Project.Flow
             if (c != _shownCount) { _shownCount = c; Game.ShowAmmo(c); }
 
             PlaceBadge(t);
-            BoardReveal.Apply(Game, tl, t);
+            if (tl.IsStamp) BoardReveal.ApplyRain(Game, tl, t);
+            else BoardReveal.Apply(Game, tl, t);
             float glow = tl.FrameGlow(t);
             Hoop.SetGlow(glow);
-            if (!_revealSounded && t >= T.RevealStart) { _revealSounded = true; Sfx?.Play("multiply"); }
+            if (!_revealSounded && t >= tl.RevealStartTime) { _revealSounded = true; Sfx?.Play("multiply"); }
             Hud.SetIntro(tl.AmmoProgress(t), tl.HudProgress(t));
         }
 
@@ -297,11 +335,20 @@ namespace Project.Flow
         {
             if (_badgeMerged) return;
             var tl = Timeline;
-            bool stream = ActiveCandidate == FlowCandidate.Stream;
+            var c = ActiveCandidate;
+            bool high = c == FlowCandidate.Stream || c == FlowCandidate.Dive || c == FlowCandidate.BigShot;   // docks over the basket
             float dock = tl.BadgeDock(t), fly = tl.BadgeFly(t);
-            var dockPt = new Vector2(0.5f, stream ? 0.84f : 0.62f);
+            var dockPt = new Vector2(0.5f, high ? 0.84f : 0.62f);
+            float flying = high ? 0.72f : 1.15f + 0.12f * Mathf.Sin(Mathf.PI * _camU);
+            if (c == FlowCandidate.Stamp)
+            {
+                // Rides with the sweep toward the glass, hits it (StampScale) and waits there for its flight into the panel.
+                var cv = Cam.WorldToViewportPoint(GlassCenter);
+                var glass = cv.z > 0f ? new Vector2(Mathf.Clamp01(cv.x), Mathf.Clamp01(cv.y)) : dockPt;
+                dockPt = Vector2.Lerp(dockPt, glass, tl.StampCamera(t));
+                flying = (1.15f + 0.12f * Mathf.Sin(Mathf.PI * tl.StampCamera(t))) * tl.StampScale(t);
+            }
             var p = Vector2.Lerp(Vector2.Lerp(_cageViewport, dockPt, dock), Hud.AmmoViewportPoint, fly);
-            float flying = stream ? 0.72f : 1.15f + 0.12f * Mathf.Sin(Mathf.PI * _camU);
             float scale = t < S.Timing.HighlightEnd ? tl.HighlightScale(t) : Mathf.Lerp(1f, flying, dock) * Mathf.Lerp(1f, 0.45f, fly);
             float alpha = 1f - Mathf.Clamp01((fly - 0.7f) / 0.3f);
             Badge.Place(p, scale, alpha);
@@ -313,9 +360,102 @@ namespace Project.Flow
             }
         }
 
+        /// <summary>The camera for transition time t: every candidate shares the first beat (rise to the vista), then its own path.</summary>
+        private CamPose CameraPose(float t, CamPose p2)
+        {
+            var tl = Timeline;
+            var T = S.Timing;
+            switch (ActiveCandidate)
+            {
+                case FlowCandidate.BigShot:
+                {
+                    if (t < T.CameraMid) return FirstBeat(t, p2);
+                    float split = CameraFlight.Split(_p1, _shotPose, p2);
+                    float u = tl.BigShotCamera(t, split);
+                    _camU = 0.3f + 0.7f * u;
+                    return CameraFlight.Evaluate(_p1, _shotPose, p2, u, S.LookLead);
+                }
+                case FlowCandidate.Dive:
+                {
+                    if (t < T.CameraMid) return FirstBeat(t, p2);
+                    _divePath[_divePath.Length - 1] = p2;
+                    float u = tl.DiveCamera(t, _rimU);
+                    _camU = 0.3f + 0.7f * u;
+                    return CameraFlight.Path(_divePath, u, _diveTangents);
+                }
+                case FlowCandidate.Stamp:
+                {
+                    if (t < T.CameraMid) return FirstBeat(t, p2);
+                    float u = tl.StampCamera(t);
+                    _camU = 0.3f + 0.7f * u;
+                    return CameraFlight.Sweep(_p1, p2, u, T.Stamp.Rise);
+                }
+                default:
+                    _camU = tl.CameraProgress(t, CameraFlight.Split(_p0, _p1, p2));
+                    return CameraFlight.Evaluate(_p0, _p1, p2, _camU, S.LookLead);
+            }
+        }
+
+        /// <summary>The shared first beat, identical to A's (same curve through the board pose), ending exactly on the vista.</summary>
+        private CamPose FirstBeat(float t, CamPose p2)
+        {
+            float split = CameraFlight.Split(_p0, _p1, p2);
+            float u = Timeline.FirstBeat(t);
+            _camU = 0.3f * u;
+            return u >= 1f ? _p1 : CameraFlight.Evaluate(_p0, _p1, p2, split * u);
+        }
+
+        /// <summary>Candidate 2's path: vista → low over the court → under the net → above the rim → board (the last pose is refreshed per frame).</summary>
+        private void BuildDivePath()
+        {
+            var rim = Hoop.RimCenter;
+            var axis = rim + Vector3.back * S.DiveRimForward;                  // in front of the rim arm
+            var under = axis + Vector3.down * S.DiveUnderRim;
+            var above = axis + Vector3.up * S.DiveAboveRim;
+            var board = BoardPose();
+            _divePath = new[]
+            {
+                _p1,
+                new CamPose(S.DiveCourtPos, rim, S.DiveChaseFov),
+                new CamPose(under, axis + new Vector3(0f, 6f, 1f), S.DiveRimFov),
+                new CamPose(above, Game.transform.position, S.DiveAboveFov),
+                board,
+            };
+            var rise = Vector3.up * (S.DiveUnderRim + S.DiveAboveRim);               // straight up through the ring at both ends
+            _diveTangents = new[] { Vector3.zero, Vector3.zero, rise, rise, Vector3.zero };
+            _rimU = CameraFlight.PathUAtHeight(_divePath, 2, rim.y, _diveTangents);
+        }
+
+        private Vector3 GlassCenter => Game.transform.position + Vector3.back * 0.2f;
+
+        private void ApplyEffects(float t)
+        {
+            var tl = Timeline;
+            var T = S.Timing;
+            if (tl.IsDive)
+            {
+                Fx.SetSpeedLines(tl.SpeedLinesAlpha(t) * S.SpeedLinesStrength, tl.SpeedLinesFrame(t, FlowEffects.SpeedFrames), Cam.fieldOfView, Cam.aspect);
+                if (!_swished && t >= T.Dive.RimAt)
+                {
+                    _swished = true;
+                    Hoop.Swing();
+                    Sfx?.Play("swish");
+                    Shake?.Kick(0.2f);
+                }
+                Fx.SetSwish(Hoop.RimCenter, Hoop.RimRadius, tl.SwishRing(t), tl.SwishLetter(t), S.SwishLetterWidth);
+            }
+            else if (tl.IsStamp && !_stamped && tl.Stamped(t))
+            {
+                _stamped = true;
+                Fx.Stamp(GlassCenter, S.StampPuffSize);
+                Shake?.Kick(0.25f);
+            }
+        }
+
         private void FinishTransition()
         {
             BoardReveal.Finish(Game);
+            Fx.Clear();
             Hoop.SetGlow(0f);
             Hud.SetIntro(1f);
             Badge.Hide();
@@ -366,9 +506,11 @@ namespace Project.Flow
             PhaseChanged?.Invoke(p);
         }
 
-        private Quaternion FacingBin(Vector3 heroPos)
+        private Quaternion FacingBin(Vector3 heroPos) => Facing(heroPos, Bin.transform.position);
+
+        private Quaternion Facing(Vector3 heroPos, Vector3 target)
         {
-            var d = Bin.transform.position - heroPos;
+            var d = target - heroPos;
             d.y = 0f;
             return d.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(d, Vector3.up) : _heroRot0;
         }
@@ -398,5 +540,17 @@ namespace Project.Flow
         }
 
         private void OnLanded(int i) => Sfx?.Play("land", Mathf.Min(1.25f, 1f + 0.01f * i), 0.55f);
+
+        private void OnNetLaunched(int i)
+        {
+            if (i == 0) Sfx?.Play("shot", 0.9f, 0.6f);
+            else if (i % 3 == 0) Sfx?.Play("shot", 1.1f, 0.3f);
+        }
+
+        private void OnNetLanded(int i)
+        {
+            Sfx?.Play("land", Mathf.Min(1.3f, 1.05f + 0.02f * i), 0.6f);
+            if (i == 0) { Hoop.Swing(); Sfx?.Play("swish"); }
+        }
     }
 }

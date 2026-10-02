@@ -100,5 +100,74 @@ namespace Project.Tests
             AssertSame(Board, CameraFlight.Settle(Board, 1f, 0.35f));
             Assert.AreEqual(Board.Pos.z + 0.35f, CameraFlight.Settle(Board, 0.5f, 0.35f).Pos.z, 1e-4f);
         }
+
+        // ---------- 2026-10-02 candidates ----------
+
+        private static readonly CamPose[] Dive =
+        {
+            Mid,
+            new CamPose(new Vector3(0f, 1.8f, 20f), new Vector3(0f, 2.9f, 27.8f), 62f),
+            new CamPose(new Vector3(0f, 1.0f, 27.5f), new Vector3(0f, 8.9f, 28.5f), 70f),
+            new CamPose(new Vector3(0f, 4.6f, 27.5f), new Vector3(0f, 8.5f, 30f), 66f),
+            Board,
+        };
+
+        private static readonly Vector3[] Rise = { Vector3.zero, Vector3.zero, Vector3.up * 3.6f, Vector3.up * 3.6f, Vector3.zero };
+
+        [Test]
+        public void Path_IsExactAtTheEnds_AndPassesEveryPoint()
+        {
+            AssertSame(Dive[0], CameraFlight.Path(Dive, 0f));
+            AssertSame(Dive[4], CameraFlight.Path(Dive, 1f));
+            for (int i = 0; i < Dive.Length; i++) AssertSame(Dive[i], CameraFlight.Path(Dive, CameraFlight.PathU(Dive, i)));
+            Assert.AreEqual(0f, CameraFlight.PathU(Dive, 0));
+            Assert.AreEqual(1f, CameraFlight.PathU(Dive, 4), 1e-6f);
+            float u2 = CameraFlight.PathU(Dive, 2), u3 = CameraFlight.PathU(Dive, 3);
+            Assert.AreEqual((u2 + u3) * 0.5f, CameraFlight.PathU(Dive, 2, 0.5f), 1e-6f, "frac walks the segment");
+        }
+
+        [Test]
+        public void Path_CrossesTheRimPlane_AtTheRiseMidpoint_AndStaysInsideTheRing()
+        {
+            float uRim = CameraFlight.PathUAtHeight(Dive, 2, 2.9f, Rise);
+            var p = CameraFlight.Path(Dive, uRim, Rise);
+            Assert.AreEqual(2.9f, p.Pos.y, 1e-3f, "at the rim's height");
+            Assert.Greater(uRim, CameraFlight.PathU(Dive, 2));
+            Assert.Less(uRim, CameraFlight.PathU(Dive, 3));
+            Assert.Less(Mathf.Abs(p.Pos.x), 0.3f);
+            Assert.Less(Mathf.Abs(p.Pos.z - 27.5f), 0.3f, "on the rise axis, inside R 1.6");
+            // The rise itself stays inside the ring: every sample between the under and above points within 0.5 m of the axis.
+            for (float u = CameraFlight.PathU(Dive, 2); u <= CameraFlight.PathU(Dive, 3); u += 0.002f)
+            {
+                var q = CameraFlight.Path(Dive, u, Rise);
+                Assert.Less(new Vector2(q.Pos.x, q.Pos.z - 27.5f).magnitude, 0.05f, $"u={u}");
+            }
+        }
+
+        [Test]
+        public void Path_IsContinuous_AndNeverGoesUnderTheCourt()
+        {
+            var prev = CameraFlight.Path(Dive, 0f, Rise);
+            for (float u = 0.002f; u <= 1f; u += 0.002f)
+            {
+                var p = CameraFlight.Path(Dive, u, Rise);
+                Assert.Less(Vector3.Distance(prev.Pos, p.Pos), 0.4f, $"jump at u={u}");
+                Assert.Greater(p.Pos.y, 0.3f, $"under the roof at u={u}");
+                prev = p;
+            }
+            Assert.AreEqual(70f, CameraFlight.Path(Dive, CameraFlight.PathU(Dive, 2), Rise).Fov, 1e-4f);
+            // Without the vertical tangents the rise bulges toward the backboard (the 2026-10-02 bug); with them it is a line.
+            AssertSame(CameraFlight.Path(Dive, 0.5f), CameraFlight.Path(Dive, 0.5f, null));
+        }
+
+        [Test]
+        public void Sweep_IsExactAtTheEnds_AndRisesInTheMiddle()
+        {
+            AssertSame(Mid, CameraFlight.Sweep(Mid, Board, 0f, 3.5f));
+            AssertSame(Board, CameraFlight.Sweep(Mid, Board, 1f, 3.5f));
+            var half = CameraFlight.Sweep(Mid, Board, 0.5f, 3.5f);
+            Assert.AreEqual((Mid.Pos.y + Board.Pos.y) * 0.5f + 3.5f, half.Pos.y, 1e-4f, "Pota: sin(πu)·rise");
+            Assert.AreEqual((Mid.Fov + Board.Fov) * 0.5f, half.Fov, 1e-4f);
+        }
     }
 }

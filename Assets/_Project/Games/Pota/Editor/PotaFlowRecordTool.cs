@@ -14,7 +14,7 @@ namespace Project.Editor.AITools
     /// after the board is ready: Temp/record/&lt;name&gt;/f_NNNN_tS.SSS.png (t = director clock). Assemble with ffmpeg.
     /// </summary>
     [McpForUnityTool("ai_potaflow_record", Description =
-        "Record the PotaFlow transition in Play Mode (PotaFlow.unity open) as PNG frames with UI. action='start' {candidate:'A'|'B' (default: settings), " +
+        "Record the PotaFlow transition in Play Mode (PotaFlow.unity open) as PNG frames with UI. action='start' {candidate:'A'|'B'|'1'|'2'|'3' (A stream, B simple, 1 big shot, 2 dive, 3 stamp; default: settings), " +
         "count (forced basket count; default the round's), shoot (default true: play basket `level` with a programmatic shot x/power and record from its end; " +
         "false: start from the aim pose), level (default settings), x (0), power (0.6), width (540), aspect (0.5625), tail (s after ready, 0.6), name ('potaflow')}. " +
         "action='status' | 'cancel'. Frames: Temp/record/<name>/f_NNNN_tS.SSS.png.")]
@@ -23,7 +23,7 @@ namespace Project.Editor.AITools
         public class Parameters
         {
             [ToolParameter("'start' (default), 'status' or 'cancel'", Required = false)] public string action { get; set; }
-            [ToolParameter("'A' (stream) or 'B' (simple); default: the settings asset", Required = false)] public string candidate { get; set; }
+            [ToolParameter("'A' (stream), 'B' (simple), '1' (big shot), '2' (dive) or '3' (stamp); default: the settings asset", Required = false)] public string candidate { get; set; }
             [ToolParameter("Forced basket count (default: the round's own)", Required = false)] public int? count { get; set; }
             [ToolParameter("Play the basket round first (default true)", Required = false)] public bool? shoot { get; set; }
             [ToolParameter("Basket level (default: PotaFlowSettings.BasketLevel)", Required = false)] public int? level { get; set; }
@@ -61,7 +61,8 @@ namespace Project.Editor.AITools
             var d = Object.FindAnyObjectByType<PotaFlowDirector>();
             if (d == null) return new ErrorResponse("No PotaFlowDirector in the running scene.");
             string cand = (AIToolsCommon.GetString(p, "candidate", "") ?? "").ToUpperInvariant();
-            _candidate = cand == "A" ? FlowCandidate.Stream : cand == "B" ? FlowCandidate.Simple : (FlowCandidate?)null;
+            _candidate = ParseCandidate(cand);
+            if (cand.Length > 0 && _candidate == null) return new ErrorResponse($"Unknown candidate '{cand}': use A, B, 1, 2 or 3.");
             _count = AIToolsCommon.GetInt(p, "count", -1);
             _shoot = p["shoot"] == null || p["shoot"].Type != JTokenType.Boolean || p["shoot"].Value<bool>();
             _level = AIToolsCommon.GetInt(p, "level", d.S.BasketLevel);
@@ -141,6 +142,20 @@ namespace Project.Editor.AITools
             float t = d.Current == Phase.Transition ? d.Clock : d.Timeline.Ready + _tailFrames / 30f;
             _recorder.Capture(Path.Combine(_dir, $"f_{_captured:0000}_t{t:0.000}.png"));
             _captured++;
+        }
+
+        /// <summary>A = Stream, B = Simple, 1 = BigShot, 2 = Dive, 3 = Stamp (or the enum names); empty = the settings asset.</summary>
+        public static FlowCandidate? ParseCandidate(string cand)
+        {
+            switch ((cand ?? "").Trim().ToUpperInvariant())
+            {
+                case "A": case "STREAM": return FlowCandidate.Stream;
+                case "B": case "SIMPLE": return FlowCandidate.Simple;
+                case "1": case "BIGSHOT": return FlowCandidate.BigShot;
+                case "2": case "DIVE": return FlowCandidate.Dive;
+                case "3": case "STAMP": return FlowCandidate.Stamp;
+                default: return null;
+            }
         }
 
         private static object Status()
