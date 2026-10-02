@@ -76,8 +76,8 @@ def test_special_sheet_labels_count_from_the_anchor_in_turkish():
 
 
 def test_special_columns_land_on_each_looks_moments():
-    # measured in the 2026-10-01 recordings (tap-relative): Royal's split +0.24, the chain's screen flash +0.34, the fireball clear of
+    # measured in the 2026-10-01 recordings (tap-relative): Royal's split +0.24, the chain's screen flash +0.34–0.36, the fireball clear of
     # stickers +0.48, Court's SLAM! +0.56 (bomb) / +0.68 (chain), the column rockets +0.85
     assert {0.24, 0.36}.issubset(compare.special_moment("line")[1])
     assert {0.30, 0.40, 0.48, 0.56}.issubset(compare.special_moment("bomb")[1])
-    assert {0.34, 0.68, 0.85}.issubset(compare.special_moment("chain")[1])
+    assert {0.37, 0.68, 0.85}.issubset(compare.special_moment("chain")[1]), "+0.37: the flash peaks at fire2 (+0.34 or +0.36, one step of jitter) and lasts ~0.1 s"

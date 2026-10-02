@@ -38,10 +38,11 @@ SPECIAL_MOMENTS = {
     "birth": ("born4", [-0.2, -0.1, 0.0, 0.06, 0.12, 0.2, 0.35]),
     # line/bomb/chain columns sit on each look's moments (2026-10-01 recordings, tap-relative): Pota's flashes +0.08; Royal's split
     # +0.24 and its rockets crossing the row to +0.56; the bomb's wind-up +0.30, crack +0.40, the fireball clear of HUD stickers +0.48,
-    # Court's SLAM! +0.56; the chain's screen flash / COMBO! +0.34, the fireball / SLAM! +0.68, the column rockets / balls +0.85
+    # Court's SLAM! +0.56; the chain's screen flash / COMBO! +0.37 (the flash peaks at fire2, +0.34 or +0.36 — one step of jitter
+    # between runs — and lasts ~0.1 s), the fireball / SLAM! +0.68, the column rockets / balls +0.85
     "line": ("tap", [0.08, 0.17, 0.24, 0.3, 0.36, 0.44, 0.56]),
     "bomb": ("tap", [0.08, 0.2, 0.3, 0.4, 0.48, 0.56, 0.68]),
-    "chain": ("tap", [0.08, 0.2, 0.34, 0.45, 0.55, 0.68, 0.85]),
+    "chain": ("tap", [0.08, 0.2, 0.37, 0.45, 0.55, 0.68, 0.85]),
     "golden": ("land", [-0.8, -0.5, -0.25, 0.0, 0.1, 0.25, 0.5]),
 }
 
