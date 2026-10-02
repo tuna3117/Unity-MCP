@@ -32,8 +32,10 @@ MOMENTS = {
 ANCHORS = {"chain": "tap"}
 # special balls (spec 2026-10-01 §2): (anchor marker, seconds after it). Line/bomb: the squash or wind-up, the sweep or the blast, the
 # drops; chain: the three fires within 0.6 s; birth: the gather (Royal/Court) into the pop; golden: the gate, the arc, the landing.
+# Birth anchors at the scenario's fourth birth, the bomb from tap 32: its gathered caps are no target, so no HUD sticker covers the
+# pop (tap 44's golden birth gathers five jerseys whose stickers leave from the birth cell over the newborn ball for ~0.5 s).
 SPECIAL_MOMENTS = {
-    "birth": ("born", [-0.25, -0.12, 0.0, 0.06, 0.15, 0.3, 0.5]),
+    "birth": ("born4", [-0.2, -0.1, 0.0, 0.06, 0.12, 0.2, 0.35]),
     "line": ("tap", [0.0, 0.08, 0.17, 0.26, 0.36, 0.5, 0.75]),
     "bomb": ("tap", [0.0, 0.08, 0.17, 0.26, 0.36, 0.5, 0.75]),
     "chain": ("tap", [0.0, 0.1, 0.2, 0.3, 0.42, 0.55, 0.8]),
@@ -42,7 +44,7 @@ SPECIAL_MOMENTS = {
 
 
 # the anchors in the sheet's corner ("0 = dokunuş"); columns read "+0,08 sn" from it
-ANCHOR_NAMES = {"tap": "dokunuş", "born": "doğuş", "land": "iniş"}
+ANCHOR_NAMES = {"tap": "dokunuş", "born": "doğuş", "born4": "doğuş\n(bomba)", "land": "iniş"}
 
 
 def special_labels(scenario):

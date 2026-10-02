@@ -51,7 +51,8 @@ def test_a_row_without_a_label_is_refused():
 
 def test_special_moments_cover_the_scenarios():
     assert set(compare.SPECIAL_MOMENTS) == {"birth", "line", "bomb", "chain", "golden"}
-    assert compare.special_moment("birth")[0] == "born"
+    # the Birth sheet anchors at the bomb birth (tap 32): its gathered caps are no target, so no HUD sticker covers the pop
+    assert compare.special_moment("birth")[0] == "born4"
     assert compare.special_moment("golden")[0] == "land"
     assert {compare.special_moment(s)[0] for s in ("line", "bomb", "chain")} == {"tap"}
     for _, times in compare.SPECIAL_MOMENTS.values():
@@ -68,7 +69,7 @@ def test_special_sheet_labels_count_from_the_anchor_in_turkish():
     assert corner == "0 = dokunuş"
     assert labels[:3] == ["0", "+0,08 sn", "+0,17 sn"]
     corner, labels = compare.special_labels("birth")
-    assert corner == "0 = doğuş"
-    assert labels[0] == "−0,25 sn"
+    assert corner == "0 = doğuş\n(bomba)"
+    assert labels[0] == "−0,20 sn"
     assert compare.special_labels("golden")[0] == "0 = iniş"
     assert len(labels) == len(compare.special_moment("birth")[1])
