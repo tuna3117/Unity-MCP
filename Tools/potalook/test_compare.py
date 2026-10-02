@@ -67,9 +67,17 @@ def test_an_unknown_special_scenario_is_refused():
 def test_special_sheet_labels_count_from_the_anchor_in_turkish():
     corner, labels = compare.special_labels("bomb")
     assert corner == "0 = dokunuş"
-    assert labels[:3] == ["0", "+0,08 sn", "+0,17 sn"]
+    assert labels[:3] == ["+0,08 sn", "+0,20 sn", "+0,30 sn"]
     corner, labels = compare.special_labels("birth")
     assert corner == "0 = doğuş\n(bomba)"
     assert labels[0] == "−0,20 sn"
     assert compare.special_labels("golden")[0] == "0 = iniş"
     assert len(labels) == len(compare.special_moment("birth")[1])
+
+
+def test_special_columns_land_on_each_looks_moments():
+    # measured in the 2026-10-01 recordings (tap-relative): Royal's split +0.24, the chain's screen flash +0.34, the fireball clear of
+    # stickers +0.48, Court's SLAM! +0.56 (bomb) / +0.68 (chain), the column rockets +0.85
+    assert {0.24, 0.36}.issubset(compare.special_moment("line")[1])
+    assert {0.30, 0.40, 0.48, 0.56}.issubset(compare.special_moment("bomb")[1])
+    assert {0.34, 0.68, 0.85}.issubset(compare.special_moment("chain")[1])
