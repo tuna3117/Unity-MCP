@@ -3,6 +3,15 @@ using UnityEngine;
 
 namespace Project.ColorHunt
 {
+    /// <summary>One sound that played (the recorder's log): id, clip, the log clock's time, volume, the pitch it played at, its voice (-1: none).</summary>
+    public struct SoundLogEntry
+    {
+        public string Id;
+        public AudioClip Clip;
+        public float T, Volume, Pitch;
+        public int Voice;
+    }
+
     /// <summary>
     /// ses.ts on Unity: the clips ai_potalook_import rendered from Pota's own graph (samples wet through its room send, synth kombo /
     /// carpma), 2D, with Pota's volumes, sample rate jitter 0.97–1.03 (ornekCal) and rate limits (SINIR). Eight voices.
@@ -29,6 +38,31 @@ namespace Project.ColorHunt
 
         public AudioClip LastClip { get; private set; }
         public float LastVolume { get; private set; }
+
+        private List<SoundLogEntry> _log;
+        private System.Func<float> _logClock;
+
+        /// <summary>True while a recording logs the sounds (ai_colorhunt_record).</summary>
+        public bool Logging => _log != null;
+
+        /// <summary>
+        /// Logs every sound that plays from now on — whatever path it came by (PlayClip, Combo, Drop, Zip, Collect…), after the rate limits —
+        /// stamped with <paramref name="clock"/> (the recorder passes its frame clock; null: unscaled time).
+        /// </summary>
+        public void StartLog(System.Func<float> clock)
+        {
+            _log = new List<SoundLogEntry>();
+            _logClock = clock ?? (() => Time.unscaledTime);
+        }
+
+        /// <summary>Stops logging and hands over what played since StartLog (empty if it never started).</summary>
+        public List<SoundLogEntry> StopLog()
+        {
+            var log = _log ?? new List<SoundLogEntry>();
+            _log = null;
+            _logClock = null;
+            return log;
+        }
 
         private const int Rate = 44100;
         private AudioClip _collect, _done, _zip;
@@ -138,10 +172,13 @@ namespace Project.ColorHunt
             if (clip == null || !Allow(_last, id, Time.unscaledTime)) return;
             LastClip = clip;
             LastVolume = volume;
+            if (_voices == null && _log == null) return;
+            float p = pitch > 0f ? pitch : IsSample(id) ? Random.Range(0.97f, 1.03f) : 1f;
+            _log?.Add(new SoundLogEntry { Id = id, Clip = clip, T = _logClock(), Volume = volume, Pitch = p, Voice = _voices != null ? _next : -1 });
             if (_voices == null) return;
             var src = _voices[_next];
             _next = (_next + 1) % _voices.Length;
-            src.pitch = pitch > 0f ? pitch : IsSample(id) ? Random.Range(0.97f, 1.03f) : 1f;
+            src.pitch = p;
             src.clip = clip;
             src.volume = volume;
             src.Play();

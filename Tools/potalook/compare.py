@@ -5,6 +5,10 @@ Usage: uv run --with pillow Tools/potalook/compare.py OUT_PREFIX POTA_VIDEO POTA
 Each UNITY_DIR holds ai_colorhunt_record frames and events.json. For each moment whose anchor is in every events file ("tap", "chain",
 "rotate", "win") writes OUT_PREFIX-<moment>.jpg: one row for Pota, one per Unity dir, one column per time after the anchor (the
 sheet labels them +1 s). Pota frames are extracted from the video at 30 fps with ffmpeg; Pota's anchors come from its sync marker.
+
+Special balls (spec 2026-10-01): uv run --with pillow Tools/potalook/compare.py specials OUT_PREFIX SCENARIO LABEL=DIR [LABEL=DIR ...]
+writes OUT_PREFIX-SCENARIO.jpg: one row per Unity dir (the Pota look is a Unity row; no three.js video), one column per SPECIAL_MOMENTS
+time after the scenario's anchor marker (birth: born, golden: land, the rest: tap; the sheet labels them +1 s).
 """
 import json
 import os
@@ -26,6 +30,22 @@ MOMENTS = {
     "win": [0.56, 0.9, 1.5],
 }
 ANCHORS = {"chain": "tap"}
+# special balls (spec 2026-10-01 §2): (anchor marker, seconds after it). Line/bomb: the squash or wind-up, the sweep or the blast, the
+# drops; chain: the three fires within 0.6 s; birth: the gather (Royal/Court) into the pop; golden: the gate, the arc, the landing.
+SPECIAL_MOMENTS = {
+    "birth": ("born", [-0.25, -0.12, 0.0, 0.06, 0.15, 0.3, 0.5]),
+    "line": ("tap", [0.0, 0.08, 0.17, 0.26, 0.36, 0.5, 0.75]),
+    "bomb": ("tap", [0.0, 0.08, 0.17, 0.26, 0.36, 0.5, 0.75]),
+    "chain": ("tap", [0.0, 0.1, 0.2, 0.3, 0.42, 0.55, 0.8]),
+    "golden": ("land", [-0.8, -0.5, -0.25, 0.0, 0.1, 0.25, 0.5]),
+}
+
+
+def special_moment(scenario):
+    """(anchor, times) of a special-ball scenario; ValueError for any other name."""
+    if scenario not in SPECIAL_MOMENTS:
+        raise ValueError(f"unknown scenario '{scenario}' ({', '.join(SPECIAL_MOMENTS)})")
+    return SPECIAL_MOMENTS[scenario]
 
 
 def anchor_of(moment):
@@ -99,7 +119,33 @@ def pota_anchor_times(video, events_path, work):
     return frames, events
 
 
+def specials_main(argv):
+    """compare.py specials OUT_PREFIX SCENARIO LABEL=DIR [LABEL=DIR ...] → OUT_PREFIX-SCENARIO.jpg (rows = dirs, columns = moments)."""
+    if len(argv) < 3:
+        sys.exit(specials_main.__doc__)
+    prefix, scenario = argv[:2]
+    anchor, times = special_moment(scenario)
+    rows = parse_rows(argv[2:])
+    work = tempfile.mkdtemp(prefix="specials-")
+    try:
+        columns = []
+        for i, (label, folder) in enumerate(rows):
+            ev = json.load(open(os.path.join(folder, "events.json")))
+            if anchor not in ev:
+                marks = sorted(k for k, v in ev.items() if isinstance(v, (int, float)))
+                raise ValueError(f"{folder}: no '{anchor}' marker in events.json (has {marks})")
+            columns.append(f"{label}={aligned(frame_sheet.load_frames(folder), ev[anchor], os.path.join(work, f'row{i}'))}")
+        out = f"{prefix}-{scenario}.jpg"
+        frame_sheet.main([out, *columns, "--times", ",".join(f"{t + WINDOW:.4f}" for t in times), "--height", "400"])
+        return out
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main(argv):
+    if argv and argv[0] == "specials":
+        specials_main(argv[1:])
+        return
     if len(argv) < 4:
         sys.exit(__doc__)
     prefix, video, pota_events = argv[:3]

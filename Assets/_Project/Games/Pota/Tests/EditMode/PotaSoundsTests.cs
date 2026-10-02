@@ -61,5 +61,79 @@ namespace Project.Tests
             Assert.Greater(Peak(done), 0.2f);
             Assert.LessOrEqual(Peak(done), 1f);
         }
+
+        private static PotaSounds MakeSounds(out GameObject go)
+        {
+            go = new GameObject("Sounds");
+            var sounds = go.AddComponent<PotaSounds>();                 // Awake does not run in Edit Mode: no voices
+            sounds.S = ScriptableObject.CreateInstance<ColorHuntSettings>();
+            return sounds;
+        }
+
+        [Test]
+        public void SoundLog_IsOffUntilStarted_AndStampsEveryPlayedClip()
+        {
+            var sounds = MakeSounds(out var go);
+            var sample = PotaSounds.MakeCollect();                       // stands in for an imported sample
+            var synth = PotaSounds.MakeZip();                            // a runtime synth (AudioClip.Create), as Royal's and Court's
+            try
+            {
+                sounds.S.SfxRotate = sample;
+                sounds.Rotate();
+                Assert.IsFalse(sounds.Logging);
+                Assert.IsEmpty(sounds.StopLog(), "nothing is logged before StartLog");
+                float now = 1.5f;
+                sounds.StartLog(() => now);
+                Assert.IsTrue(sounds.Logging);
+                sounds.Rotate();
+                now = 2.25f;
+                sounds.PlayClip("swish", synth, 0.8f, 1.2f);
+                sounds.PlayClip("zip", synth);
+                var log = sounds.StopLog();
+                Assert.IsFalse(sounds.Logging);
+                Assert.AreEqual(3, log.Count);
+                Assert.AreEqual("dondur", log[0].Id);
+                Assert.AreSame(sample, log[0].Clip);
+                Assert.AreEqual(1.5f, log[0].T, 1e-6f);
+                Assert.AreEqual(1f, log[0].Volume, 1e-6f);
+                Assert.That(log[0].Pitch, Is.InRange(0.97f, 1.03f), "a sample keeps Pota's jitter, logged as played");
+                Assert.AreEqual(-1, log[0].Voice, "no voices outside Play Mode");
+                Assert.AreEqual("swish", log[1].Id);
+                Assert.AreSame(synth, log[1].Clip, "a synthesised clip is logged like a sample");
+                Assert.AreEqual(2.25f, log[1].T, 1e-6f);
+                Assert.AreEqual(0.8f, log[1].Volume, 1e-6f);
+                Assert.AreEqual(1.2f, log[1].Pitch, 1e-6f, "a given pitch is used as given");
+                Assert.AreEqual(1f, log[2].Pitch, 1e-6f, "a synth id at pitch 1 plays at 1");
+                sounds.Rotate();
+                Assert.AreEqual(3, log.Count, "StopLog hands the list over; later sounds are not added");
+            }
+            finally
+            {
+                Object.DestroyImmediate(sample);
+                Object.DestroyImmediate(synth);
+                Object.DestroyImmediate(sounds.S);
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void SoundLog_SkipsWhatTheRateLimitRefused()
+        {
+            var sounds = MakeSounds(out var go);
+            var clip = PotaSounds.MakeCollect();
+            try
+            {
+                sounds.StartLog(() => 0f);
+                sounds.PlayClip("kombo", clip);
+                sounds.PlayClip("kombo", clip);                           // the same unscaled time: SINIR kombo 80 ms refuses it
+                Assert.AreEqual(1, sounds.StopLog().Count);
+            }
+            finally
+            {
+                Object.DestroyImmediate(clip);
+                Object.DestroyImmediate(sounds.S);
+                Object.DestroyImmediate(go);
+            }
+        }
     }
 }

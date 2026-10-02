@@ -20,6 +20,8 @@ namespace Project.Editor.AITools
         private readonly Texture2D _tex;
         private readonly List<Canvas> _moved = new List<Canvas>();
         private readonly List<int> _orders = new List<int>();
+        /// <summary>With UI and no explicit list: look for overlay canvases created after the start at every capture.</summary>
+        private readonly bool _scan;
         /// <summary>On the camera a canvas sorts with the world's transparents; this lifts it over every effect as the overlay was.</summary>
         private const int AboveWorld = 1000;
 
@@ -35,7 +37,13 @@ namespace Project.Editor.AITools
             _tex = new Texture2D(w, h, TextureFormat.RGB24, false);
             if (!includeUi) return;
             _cam.targetTexture = _rt;
-            var list = canvases ?? UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include);
+            _scan = canvases == null;
+            Adopt(canvases ?? UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include));
+        }
+
+        /// <summary>Moves the root Screen Space Overlay canvases of <paramref name="list"/> onto the camera, above the world's effects.</summary>
+        private void Adopt(IEnumerable<Canvas> list)
+        {
             foreach (var c in list)
             {
                 if (c == null || !c.isRootCanvas || c.renderMode != RenderMode.ScreenSpaceOverlay) continue;
@@ -50,6 +58,7 @@ namespace Project.Editor.AITools
 
         public void Capture(string path)
         {
+            if (_scan) Adopt(UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include));   // a canvas built since (Royal's screen flash, a popup canvas)
             var prev = _cam.targetTexture;
             _cam.targetTexture = _rt;
             if (_includeUi) Canvas.ForceUpdateCanvases();

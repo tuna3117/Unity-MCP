@@ -29,6 +29,10 @@ namespace Project.ColorHunt
         public bool Finished => _finished;
         public string LabelText => _label != null ? _label.text : "";
         public event Action ScenarioFinished;
+        /// <summary>A scripted tap was made (its cell), whatever Tap returned — the recorder's "tap" marker.</summary>
+        public event Action<int> Tapped;
+        /// <summary>Whether the demo's rows and label show (the recorder hides them; the HUD stays).</summary>
+        public bool UiVisible => _showUi;
 
         private int[] _taps = new int[0];
         private int _next;
@@ -38,6 +42,8 @@ namespace Project.ColorHunt
         private SpecialLook _shownLook;
         private SpecialScenario _shownScenario;
         private Text _label;
+        private Canvas _canvas;
+        private bool _showUi = true;
         private Sprite _face, _faceOn;
         private readonly Dictionary<SpecialScenario, Image> _scenarioButtons = new Dictionary<SpecialScenario, Image>();
         private readonly Dictionary<SpecialLook, Image> _lookButtons = new Dictionary<SpecialLook, Image>();
@@ -73,6 +79,13 @@ namespace Project.ColorHunt
             RefreshLabel();
         }
 
+        /// <summary>Shows or hides the demo's buttons and label (before the UI is built, the choice waits for it).</summary>
+        public void ShowUi(bool on)
+        {
+            _showUi = on;
+            if (_canvas != null) _canvas.enabled = on;
+        }
+
         private void StageScenario()
         {
             _pending = false;
@@ -99,6 +112,8 @@ namespace Project.ColorHunt
                 int cell = _taps[_next++];
                 string r = Game.Tap(cell);
                 if (r != "broken") Debug.LogWarning($"[SpecialsDemo] {Current}: the scripted tap on cell {cell} returned \"{r}\".");
+                try { Tapped?.Invoke(cell); }
+                catch (Exception e) { Debug.LogException(e); }
                 _wait = Beat;
                 return;
             }
@@ -136,6 +151,8 @@ namespace Project.ColorHunt
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 20;                                         // over the HUD (0) and the popups (5)
+            _canvas = canvas;
+            canvas.enabled = _showUi;
             var scaler = canvasGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080f, 1920f);

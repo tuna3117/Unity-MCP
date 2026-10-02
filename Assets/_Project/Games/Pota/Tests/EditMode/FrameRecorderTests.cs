@@ -117,5 +117,39 @@ namespace Project.Tests
                 Object.DestroyImmediate(camGo);
             }
         }
+
+        [Test]
+        public void WithUi_MovesCanvasesCreatedAfterItStarted_AtTheNextCapture()
+        {
+            // Royal's screen flash (or a PopupText canvas) may be built on the first combo, after the recorder started (Task 12).
+            var camGo = new GameObject("RecCam");
+            var cam = camGo.AddComponent<Camera>();
+            GameObject lateGo = null;
+            Directory.CreateDirectory(Dir);
+            string path = Path.Combine(Dir, "late.png");
+            try
+            {
+                using (var rec = new FrameRecorder(cam, 64, 1f, true))
+                {
+                    lateGo = new GameObject("Late", typeof(Canvas));
+                    var late = lateGo.GetComponent<Canvas>();
+                    late.renderMode = RenderMode.ScreenSpaceOverlay;
+                    late.sortingOrder = 7;
+                    rec.Capture(path);
+                    Assert.AreEqual(RenderMode.ScreenSpaceCamera, late.renderMode, "joined at the capture after it appeared");
+                    Assert.AreEqual(cam, late.worldCamera);
+                    Assert.AreEqual(1007, late.sortingOrder, "above the world's effects and Court's letters (30)");
+                }
+                var canvas = lateGo.GetComponent<Canvas>();
+                Assert.AreEqual(RenderMode.ScreenSpaceOverlay, canvas.renderMode, "put back like the others");
+                Assert.AreEqual(7, canvas.sortingOrder);
+            }
+            finally
+            {
+                if (lateGo != null) Object.DestroyImmediate(lateGo);
+                Object.DestroyImmediate(camGo);
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
     }
 }

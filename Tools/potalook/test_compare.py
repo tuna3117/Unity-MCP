@@ -47,3 +47,17 @@ def test_rows_are_label_equals_dir():
 def test_a_row_without_a_label_is_refused():
     with pytest.raises(ValueError):
         compare.parse_rows(["Temp/record/a"])
+
+
+def test_special_moments_cover_the_scenarios():
+    assert set(compare.SPECIAL_MOMENTS) == {"birth", "line", "bomb", "chain", "golden"}
+    assert compare.special_moment("birth")[0] == "born"
+    assert compare.special_moment("golden")[0] == "land"
+    assert {compare.special_moment(s)[0] for s in ("line", "bomb", "chain")} == {"tap"}
+    for _, times in compare.SPECIAL_MOMENTS.values():
+        assert min(times) >= -compare.WINDOW, "aligned() drops frames more than WINDOW before the anchor"
+
+
+def test_an_unknown_special_scenario_is_refused():
+    with pytest.raises(ValueError):
+        compare.special_moment("free")

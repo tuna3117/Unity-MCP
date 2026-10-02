@@ -566,6 +566,10 @@ namespace Project.ColorHunt
         public event Action SpecialLookChanged;
         /// <summary>A block burst — its swell peak, a consumed special's fire, a gathered block's arrival — with the cell it had at its step's start.</summary>
         public event Action<int> CellBurst;
+        /// <summary>A special ball was born (its kind and cell), right after the look drew it — the recorder's "born" marker.</summary>
+        public event Action<SpecialKind, int> SpecialBorn;
+        /// <summary>A special fired, right after the look's Fire — the recorder's "fire" marker.</summary>
+        public event Action<SpecialFire> SpecialFired;
         /// <summary>Golden balls that reached the hoop since the deal (no HUD for them yet: U25).</summary>
         public int GoldenLanded { get; private set; }
         /// <summary>Golden balls on their way to the hoop; the board is locked meanwhile (Pota kilitliMi).</summary>
@@ -891,6 +895,8 @@ namespace Project.ColorHunt
                 RaiseCellBurst(f.Cell);
             }
             Specials.Fire(f);
+            try { SpecialFired?.Invoke(f); }
+            catch (Exception e) { Debug.LogException(e); }
         }
 
         public int ItemsInFlight => _flights;
@@ -1044,6 +1050,8 @@ namespace Project.ColorHunt
                 if (v == null) continue;
                 v.SetBlock(Block.MakeSpecial(b.Kind), b.Cell);
                 Specials.Birth(v, b.Kind);
+                try { SpecialBorn?.Invoke(b.Kind, b.Cell); }
+                catch (Exception e) { Debug.LogException(e); }
             }
             for (int k = 0; k < st.Step.ToBasket.Count; k++)
             {
