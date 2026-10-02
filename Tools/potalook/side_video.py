@@ -36,7 +36,8 @@ FPS = 30
 HEAD_H = 56
 BG = (16, 22, 34)
 GOLD = (255, 200, 61)
-FONT = os.path.join(os.path.dirname(os.path.dirname(HERE)), "Assets/_Project/Games/Pota/Art/Fonts/LilitaOne-Regular.ttf")
+# labels and title cards are Turkish: the game's Lilita One has no ğ/ş/İ ("Doğuş" drew as "Do u"), Arial Black has them all
+FONT = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
 
 
 def resample(frames, fps):
@@ -90,14 +91,25 @@ def build_filter(columns, width, height):
     return ";".join(parts)
 
 
+@functools.lru_cache(maxsize=64)
+def fitted(text, max_width, size):
+    """FONT at `size`, or smaller until `text` fits in `max_width` px (down to 12)."""
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    while True:
+        font = ImageFont.truetype(FONT, size)
+        if size <= 12 or probe.textlength(text, font=font) <= max_width:
+            return font
+        size -= 1
+
+
 def header_image(labels, width):
-    """A HEAD_H-tall strip, one centred gold label per column of `width`."""
+    """A HEAD_H-tall strip, one centred gold label per column of `width` (shrunk to fit it)."""
     strip = Image.new("RGB", (width * len(labels), HEAD_H), BG)
     draw = ImageDraw.Draw(strip)
-    font = ImageFont.truetype(FONT, 34)
     for i, text in enumerate(labels):
+        font = fitted(text, width - 24, 34)
         w = draw.textlength(text, font=font)
-        draw.text((i * width + (width - w) / 2, 10), text, font=font, fill=GOLD)
+        draw.text((i * width + (width - w) / 2, (HEAD_H - font.size) / 2 - 4), text, font=font, fill=GOLD)
     return strip
 
 

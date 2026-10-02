@@ -196,19 +196,16 @@ def font(size):
 
 
 def strip(width, text):
-    img = Image.new("RGB", (width, STRIP_H), BG)
-    d = ImageDraw.Draw(img)
-    f = font(34)
-    d.text(((width - d.textlength(text, font=f)) / 2, 10), text, font=f, fill=GOLD)
-    return img
+    return side_video.header_image([text], width)
 
 
 def card(width, height, title, look):
     img = Image.new("RGB", (width, height), BG)
     d = ImageDraw.Draw(img)
     y = height * 0.38
-    for text, f, color, dy in ((title, font(96), GOLD, 0), (look, font(52), (240, 240, 240), 120)):
+    for text, size, color, dy in ((title, 96, GOLD, 0), (look, 52, (240, 240, 240), 120)):
         if text:
+            f = side_video.fitted(text, width - 40, size)
             d.text(((width - d.textlength(text, font=f)) / 2, y + dy), text, font=f, fill=color)
     return img
 

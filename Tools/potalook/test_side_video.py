@@ -84,3 +84,19 @@ def test_encode_pipes_frames_into_an_mp4(tmp_path):
     out = str(tmp_path / "x.mp4")
     side.encode((Image.new("RGB", (32, 32), (i * 40, 0, 0)) for i in range(5)), (32, 32), out)
     assert os.path.getsize(out) > 0
+
+
+def test_the_label_font_draws_every_turkish_letter():
+    # titles and labels are Turkish ("Doğuş", "Altın", "İniş"): a font without a glyph leaves a hole ("Do u")
+    from PIL import ImageFont
+    font = ImageFont.truetype(side.FONT, 40)
+    missing = [ch for ch in "ÇçĞğİıÖöŞşÜü·×" if font.getmask(ch).getbbox() is None]
+    assert missing == []
+
+
+def test_a_long_label_shrinks_to_fit_its_column():
+    from PIL import Image, ImageDraw
+    draw = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    font = side.fitted("Bomba ×0,3 · 2 · Basketbol", 540 - 24, 34)
+    assert draw.textlength("Bomba ×0,3 · 2 · Basketbol", font=font) <= 540 - 24
+    assert side.fitted("Pota", 540, 34).size == 34, "a short label keeps its size"
