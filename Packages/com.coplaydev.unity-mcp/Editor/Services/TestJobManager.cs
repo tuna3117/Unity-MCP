@@ -561,7 +561,10 @@ namespace MCPForUnity.Editor.Services
                     last_finished_test_full_name = job.LastFinishedTestFullName,
                     last_finished_unix_ms = job.LastFinishedUnixMs,
                     stuck_suspected = IsStuck(job),
-                    editor_is_focused = InternalEditorUtility.isApplicationActive,
+                    // Project patch: always report focused. The server only reads this to "focus nudge" a stalled run
+                    // (osascript, 3-12 s in front); its PID lookup misses "-projectPath" and fronts Unity Hub instead,
+                    // pulling the user off whatever they were doing. KeepEditorAwake keeps Play Mode running in the background.
+                    editor_is_focused = true,
                     blocked_reason = GetBlockedReason(job),
                     failures_so_far = BuildFailuresPayload(job.FailuresSoFar),
                     failures_capped = (job.FailuresSoFar != null && job.FailuresSoFar.Count >= FailureCap)

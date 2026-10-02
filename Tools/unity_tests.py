@@ -15,7 +15,6 @@ import functools
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UV = os.path.expanduser("~/.local/bin/uv")
-UNITY_APP = "/Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app"
 print = functools.partial(print, flush=True)   # progress shows up even when the output is redirected
 
 
@@ -102,8 +101,7 @@ def main(argv):
     if not args or args[0] not in ("EditMode", "PlayMode"):
         sys.exit(__doc__)
     mode, names = args[0], args[1:]
-    # Without focus the Test Runner may find 0 PlayMode tests and asset refreshes stall (seen 2026-09-29).
-    subprocess.run(["open", "-a", UNITY_APP], check=False)
+    # Never bring Unity to the front (it pulled Tuna off other apps): KeepEditorAwake keeps it working behind them.
     call("manage_editor", {"action": "stop"})
     if compile_first:
         errs = compile_errors()

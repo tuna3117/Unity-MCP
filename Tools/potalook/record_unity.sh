@@ -16,7 +16,6 @@ if s not in ("colorhunt", "specials"):
 print("Specials" if s == "specials" else "ColorHunt")
 ' "$extra") || exit 1
 M() { ~/.local/bin/uv run Tools/mcp_call.py "$@" 2>&1; }
-open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app
 M call manage_editor '{"action":"stop"}' > /dev/null; sleep 3
 tmp=$(mktemp -d)
 python3 - "$tmp/open.json" "$scene" <<'EOF'

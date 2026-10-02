@@ -19,8 +19,8 @@ else
   [[ -d "$APP" ]] || { echo "Unity $VERSION not found at $APP" >&2; exit 2; }
   echo "Opening '$NAME' in Unity $VERSION ..."
   SINCE="$(date -u +%Y-%m-%dT%H:%M:%S)"
-  # -n: start a separate Unity even when another project (e.g. Kaptan) is already open.
-  open -na "$APP" --args -projectPath "$ROOT"
+  # -n: start a separate Unity even when another project (e.g. Kaptan) is already open; -g: leave it in the background.
+  open -gna "$APP" --args -projectPath "$ROOT"
 fi
 
 cd "$ROOT"

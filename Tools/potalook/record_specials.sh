@@ -93,7 +93,6 @@ if [[ $stage == all || $stage == build ]]; then
 fi
 
 if [[ $stage == cost ]]; then
-  open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app
   M call manage_editor '{"action":"stop"}' > /dev/null; sleep 3
   before=$(git status --short ProjectSettings)
   tmp=$(mktemp -d)
@@ -109,7 +108,10 @@ EOF
   M call execute_code @"$tmp/open.json" | grep '"result"' | grep -q Specials || { echo "could not open Specials (unsaved scene?)"; exit 1; }
   M call manage_editor '{"action":"play"}' > /dev/null
   for i in {1..30}; do sleep 2; M read mcpforunity://editor/state | grep -q '"is_playing": true' && break; done; sleep 4
-  open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app     # real time: Unity stays in front with the Game view showing
+  # The only place a script brings Unity to the front on purpose: GPU cost needs real-time frames, and in the background
+  # the editor ticks ~7 times a second. Say so before running this stage.
+  echo "[cost] bringing Unity to the front for the measurement"
+  open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app
   M call execute_custom_tool '{"tool_name":"ai_specials_cost","parameters":{"looks":"pota,royal,court","runs":'$COST_RUNS',"scenario":"chain"}}' | grep '"message"' | head -1
   for i in {1..100}; do
     sleep 3

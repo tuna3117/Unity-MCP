@@ -5,13 +5,11 @@ set -u
 ROOT="${0:A:h:h}"; cd "$ROOT"
 UV="$HOME/.local/bin/uv"
 CAND="$1"; NAME="$2"; COUNT="${3:-158}"; TAIL="${4:-0.5}"
-open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app
 if [[ "$CAND" != "wait" ]]; then
   "$UV" run --quiet Tools/mcp_call.py --timeout 60 call execute_custom_tool "{\"tool_name\":\"ai_potaflow_record\",\"parameters\":{\"candidate\":\"$CAND\",\"count\":$COUNT,\"name\":\"$NAME\",\"tail\":$TAIL}}" | sed -n 3p
 fi
 for i in {1..120}; do
   sleep 8
-  open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app   # the editor's loop only runs while it has focus
   r=$("$UV" run --quiet Tools/mcp_call.py --timeout 30 call execute_custom_tool '{"tool_name":"ai_potaflow_record","parameters":{"action":"status"}}' 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin)['data']; print(d['running'], d['phase'], d['frames'], d['result'])" 2>/dev/null)
   case "$r" in False*) echo "$r"; exit 0;; esac
 done
