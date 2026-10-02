@@ -57,8 +57,8 @@ namespace Project.Tests
         public void VisibleBalls_AreCappedAt25_AndLandInsideTheWindow()
         {
             var tl = new FlowTimeline(T, 158, FlowCandidate.Stream);
-            Assert.AreEqual(14, tl.Visible, "fewer, separate balls read better than a chain (spec cap 25)");
-            Assert.LessOrEqual(tl.Visible, 25);
+            Assert.AreEqual(27, tl.Visible, "real-size balls (r 0.12): the whole 3 × 3 × 3 basket is flown (2026-10-02)");
+            Assert.LessOrEqual(tl.Visible, 27);
             Assert.AreEqual(0.25f, tl.LaunchTime(0), 1e-5f);
             Assert.LessOrEqual(tl.LaunchTime(tl.Visible - 1), 0.85f + 1e-4f);
             Assert.AreEqual(0.95f, tl.LandTime(0), 1e-5f, "balls land in the hero's basket while the camera shows him");
@@ -271,7 +271,7 @@ namespace Project.Tests
         {
             var tl = new FlowTimeline(T, 158, FlowCandidate.BigShot);
             var b = T.BigShot;
-            Assert.AreEqual(12, tl.Net.Visible, "the basket holds 12 resting balls");
+            Assert.AreEqual(27, tl.Net.Visible, "the basket holds 27 resting balls");
             Assert.AreEqual(3, new FlowTimeline(T, 3, FlowCandidate.BigShot).Net.Visible);
             Assert.AreEqual(0, new FlowTimeline(T, 158, FlowCandidate.Stream).Net.Visible, "only candidate 1 shoots again");
             Assert.GreaterOrEqual(b.LaunchStart, T.LastLand, "the pile must be complete before it flies");

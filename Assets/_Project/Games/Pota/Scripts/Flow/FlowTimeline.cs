@@ -19,8 +19,8 @@ namespace Project.Flow
         public float TurnStart = 1.45f, TurnEnd = 1.65f;
         public float ShootAt = 1.55f;
         [Header("Balls: basket → hoop")]
-        public float LaunchStart = 1.65f, LaunchInterval = 0.03f;
-        [Min(1)] public int MaxVisible = 12;
+        public float LaunchStart = 1.65f, LaunchInterval = 0.02f;
+        [Min(1)] public int MaxVisible = 27;
         public float FirstLand = 2.45f, LastLand = 2.85f;
         [Header("Camera")]
         [Tooltip("Vista → shot pose (behind the hero, hoop ahead).")]
@@ -93,8 +93,9 @@ namespace Project.Flow
         public float HighlightEnd = 0.30f;
         [Header("Balls (A)")]
         public float LaunchStart = 0.25f;
-        public float LaunchInterval = 0.04f;
-        [Min(1)] public int MaxVisible = 14;
+        public float LaunchInterval = 0.022f;
+        [Tooltip("Real-size balls (r 0.12): the basket holds 27 (3 × 3 × 3), all of them visibly flown.")]
+        [Min(1)] public int MaxVisible = 27;
         public float FirstLand = 0.95f;
         public float LastLand = 1.45f;
         [Header("Camera")]

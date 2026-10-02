@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73a42a99f5d60401fb8dabde6499ae8a, type: 3}
   m_Name: PotaFlowSettings
   m_EditorClassIdentifier: Pota.Runtime::Project.Flow.PotaFlowSettings
-  Candidate: 0
+  Candidate: 4
   Timing:
     HighlightEnd: 0.3
     LaunchStart: 0.25
-    LaunchInterval: 0.04
-    MaxVisible: 14
+    LaunchInterval: 0.022
+    MaxVisible: 27
     FirstLand: 0.95
     LastLand: 1.45
     CameraStart: 0.3
@@ -52,8 +52,8 @@ MonoBehaviour:
       TurnEnd: 1.65
       ShootAt: 1.55
       LaunchStart: 1.65
-      LaunchInterval: 0.03
-      MaxVisible: 12
+      LaunchInterval: 0.02
+      MaxVisible: 27
       FirstLand: 2.45
       LastLand: 2.85
       CameraResume: 1.5
@@ -108,7 +108,7 @@ MonoBehaviour:
   SettleAmount: 0.35
   BoardFogStart: 30
   BoardFogEnd: 130
-  BallRadius: 0.19
+  BallRadius: 0.12
   ApexAbove: 5
   BinPosition: {x: 1.4, y: 0, z: 7.5}
   BinEndLean: 2.5

@@ -101,7 +101,7 @@ Tek sahne `Scenes/PotaFlow.unity`: Basket kulesi orijinde, terasın arkasında t
 - **Araçlar:** `ai_potaflow_build_scene` (sahneyi Basket ve Renk Avı yardımcılarıyla kurar, Build Settings'e ve `PotaProfile`'a ekler), `ai_potaflow_record` (`{"candidate":"A"|"B","count":158,"shoot":true}`: bölüm 20'yi programatik atışla oynatır, geçişi 30 fps PNG olarak `Temp/record/<ad>/` altına yazar; UI dâhil), `Tools/frame_sheet.py` (kare klasörlerinden zamanlı levha). Kayıtta overlay UI kameraya düşmez: `FrameRecorder` overlay canvas'ları kayıt süresince kamera kipine alır; rozet bu yüzden ekran oranı çapasıyla yerleşir.
 - **Pota'dan alınan sayılar:** dev pota ölçüleri `src/sahaYerlesim.ts` DEV_POTA ve `src/pota.ts` (çember R 1,6, panonun altında ve öne R+0,6, 6 halkalı file), zemin rengi `src/saha.ts`, akış `src/akis.ts` (`fazABitti` → `fazBBasla`, cephane = sepet sayısı), kamera `src/kameraYonetmeni.ts` (1,4 sn karışım; bizimki ~2,5 sn, dokununca kısalır). Pota karşılaştırması Pota'nın **kopyasından** kaydedildi (scratch'te rsync + vite + kendi Playwright betiğimiz); Pota klasörüne hiçbir şey yazılmadı.
 
-### PotaFlow: üç yeni aday (2026-10-02, Tuna'nın seçimi bekleniyor)
+### PotaFlow: üç yeni aday (2026-10-02; Tuna **3 "Pano damgası"**nı seçti, varsayılan artık `Stamp`)
 
 Tuna "basketten bulmacaya geçiş için 3 alternatif, aynı varlıklarla" istedi. Tasarım `docs/superpowers/specs/2026-10-02-potaflow-candidates-design.md`,
 plan `docs/superpowers/plans/2026-10-02-potaflow-candidates.md`. Üçü de A'nın ilk 1,45 sn'sini paylaşır (kafes vurgusu, toplar kahramanın
@@ -137,6 +137,10 @@ sepetine, kahraman sepete döner, kamera yan manzaraya); fark sepet dolunca baş
   kendi döner. Yan yana video `Tools/potaflow_side.py OUT.mp4 Etiket=klasör …` (sütunlar kendi zamanına göre yeniden örneklenir,
   kısa sütun son karesini tutar). Pota sütunu: scratch kopyası + vite :5199 + `pota-record.mjs` (`__pota.sepetBitir(158)`, mor
   işaretle hizalanır).
+- **Top boyu (Tuna, 2026-10-02: "toplar neden sepete kocaman doluyor?"):** geçişin topları 0,19 yarıçapla çiziliyordu; bu sayı
+  Pota'nın tahta ölçeğindeki salvo topundan kopyalanmıştı, oysa turun kendi topu 0,12 (`BasketSettings.BallRadius`). Düzeltildi:
+  `PotaFlowSettings.BallRadius` 0,12, sepet bel hizasında 0,92 × 0,72 × 0,92 ve 3 × 3 × 3 = 27 top alıyor (`BallBin.Layer`),
+  görünür top 27 (0,022 sn arayla), aday 1'de 27'si de fileye uçar (0,02 sn arayla; filede 10 durur). Önce/sonra: `docs/screenshots/2026-10-02-potaflow-ball-size-sheet.jpg`; levha ve video yeni boyutla yenilendi.
 - **Testler:** `FlowTimelineTests` (+8), `CameraFlightTests` (+4), `PotaFlowPlayTests` (+3: üç aday oynanabilir tahtada biter,
   atlama, damga yağmuru). Dürüst notlar: Blender'da yeni varlık üretilmedi (mevcut flipbook'lar kullanıldı); adaylar A'dan 0,4–0,8 sn
   uzun (dokunma atlaması ≤ 0,35 sn); Pota bu arada sapan atışı ve parmakla tahta çevirmeye geçti, kendi geçişi hâlâ 1,4 sn tek kayma.

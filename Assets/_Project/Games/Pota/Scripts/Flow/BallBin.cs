@@ -6,20 +6,22 @@ namespace Project.Flow
     /// <summary>
     /// The hero's ball basket on the terrace (PotaFlow A, Tuna 2026-09-30: "the balls should fill a basket next to the
     /// guy"): the tower cage's wire look at basket size. The balls from the cage drop in from above and pile up in three
-    /// layers of four; its fill is the ammo the board receives. Local origin = floor centre on the terrace (y = 0).
+    /// layers of 3 × 3; its fill is the ammo the board receives. Local origin = floor centre on the terrace (y = 0).
+    /// 2026-10-02 (Tuna: "why are the balls so big?"): sized for real basketballs (r 0.12, the round's own), waist-high.
     /// </summary>
     public class BallBin : MonoBehaviour, IBallReceiver
     {
-        public float Width = 1.3f;
-        public float Height = 0.95f;
-        public float Depth = 1.1f;
-        public float FloorY = 0.12f;
-        public float BallRadius = 0.19f;
+        public float Width = 0.92f;
+        public float Height = 0.72f;
+        public float Depth = 0.92f;
+        public float FloorY = 0.1f;
+        public float BallRadius = 0.12f;
         public Color WireColor = new Color(0.1f, 0.1f, 0.11f);
         public Color RimColor = new Color(1f, 0.416f, 0.102f);   // BasketSettings.RimColor
 
         public int Pile { get; private set; }
-        public int RestingCapacity => 12;
+        public const int Layer = 3;
+        public int RestingCapacity => Layer * Layer * 3;
         private Transform _body;
         private float _kick;
 
@@ -52,14 +54,14 @@ namespace Project.Flow
             return transform.TransformPoint(new Vector3(x, FloorY + Height + 0.1f, z));
         }
 
-        /// <summary>Three layers of 2 × 2, each layer shifted a little so the heap does not look like a grid.</summary>
+        /// <summary>Three layers of 3 × 3, each layer shifted a little so the heap does not look like a grid.</summary>
         public Vector3 SlotPosition(int i)
         {
             i = Mathf.Clamp(i, 0, RestingCapacity - 1);
-            int layer = i / 4, col = i % 2, row = (i / 2) % 2;
-            float gap = BallRadius * 2.05f;
-            float shift = layer == 1 ? 0.06f : layer == 2 ? -0.05f : 0f;
-            var local = new Vector3((col - 0.5f) * gap + shift, FloorY + BallRadius + layer * BallRadius * 1.95f, (row - 0.5f) * gap - shift);
+            int per = Layer * Layer, layer = i / per, col = i % Layer, row = (i / Layer) % Layer;
+            float gap = BallRadius * 2.05f, mid = (Layer - 1) * 0.5f;
+            float shift = layer == 1 ? 0.04f : layer == 2 ? -0.035f : 0f;
+            var local = new Vector3((col - mid) * gap + shift, FloorY + BallRadius + layer * BallRadius * 1.9f, (row - mid) * gap - shift);
             return transform.TransformPoint(local);
         }
 

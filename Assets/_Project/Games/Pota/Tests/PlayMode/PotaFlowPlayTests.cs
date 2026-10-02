@@ -237,6 +237,7 @@ namespace Project.Tests
         {
             PotaFlowDirector d = null;
             yield return Load(x => d = x);
+            d.CandidateOverride = FlowCandidate.Stream;      // A's ring reveal / early ammo panel (the default is Stamp since 2026-10-02)
             d.BeginTransition(10);
             d.Advance(1.80f);
             int n = d.Game.Board.Size, centre = -1;
@@ -251,6 +252,7 @@ namespace Project.Tests
         {
             PotaFlowDirector d = null;
             yield return Load(x => d = x);
+            d.CandidateOverride = FlowCandidate.Stream;      // A's ring reveal / early ammo panel (the default is Stamp since 2026-10-02)
             var ammo = (RectTransform)d.Hud.transform.Find("AmmoPanel");
             var targets = (RectTransform)d.Hud.transform.Find("TargetPanel");
             d.Hud.SetIntro(1f);
@@ -386,7 +388,7 @@ namespace Project.Tests
                 switch (c)
                 {
                     case FlowCandidate.BigShot:
-                        Assert.AreEqual(12, maxNet, "the basket's 12 balls flew to the hoop");
+                        Assert.AreEqual(d.Bin.RestingCapacity, maxNet, "the whole basket flew to the hoop");
                         Assert.AreEqual(GiantHoop.MaxPile, d.Hoop.Pile, "the net holds its pile");
                         Assert.AreEqual(0, d.Stream.ActiveCount, "the basket emptied");
                         var hero = d.Round.Column.Player.transform;

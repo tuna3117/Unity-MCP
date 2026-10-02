@@ -34,7 +34,7 @@ namespace Project.Flow
         public float BoardFogEnd = 130f;
 
         [Header("Balls")]
-        public float BallRadius = 0.19f;   // Pota's salvo ball
+        public float BallRadius = 0.12f;   // the basket round's own ball (BasketSettings.BallRadius); 0.19 was Pota's board-scale salvo ball
         [Tooltip("Arc top above the higher end (cage mouth or basket).")]
         public float ApexAbove = 5f;
         [Tooltip("The hero's basket on the terrace (floor centre), beside him on the camera side.")]
