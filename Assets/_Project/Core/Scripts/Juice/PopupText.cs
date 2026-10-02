@@ -65,7 +65,9 @@ namespace Project.Juice
                 rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
                 var screen = Cam.WorldToScreenPoint(world);
                 if (screen.z < 0f) { Destroy(go); return; }
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, screen, null, out var local);
+                // an overlay canvas takes no camera; a camera canvas (a frame recorder moves the overlays onto its camera) needs its own
+                var uiCam = Canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : Canvas.worldCamera;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, screen, uiCam, out var local);
                 start = local;
             }
             rt.anchoredPosition = start;

@@ -5,6 +5,8 @@
 # Usage: Tools/potalook/record_specials.sh [all|record|build|cost]
 #   LOOKS="royal" SCENARIOS="bomb line" CLOSEUPS=0 Tools/potalook/record_specials.sh record   → re-record a subset after a fix
 #   CRF=30 Tools/potalook/record_specials.sh build                                            → smaller videos
+# The side video (three 540-px columns) has its own SIDE_CRF (30); the moment sheets are saved at JPEG quality SHEET_Q (56): their dense
+# boards made quality 80 ~610 KB each, 56 keeps them under 400 KB with no visible loss at 2× zoom.
 set -u
 cd "${0:A:h:h:h}"
 stage=${1:-all}
@@ -12,6 +14,8 @@ LOOKS=(${=LOOKS:-pota royal court})
 SCENARIOS=(${=SCENARIOS:-birth line bomb chain golden})
 CLOSEUPS=${CLOSEUPS:-1}
 CRF=${CRF:-28}
+SIDE_CRF=${SIDE_CRF:-30}
+SHEET_Q=${SHEET_Q:-56}
 ASPECT=0.4623                         # PotaProfile 1170×2532 → 540 × 1168 frames
 UV=~/.local/bin/uv
 R=Temp/record
@@ -64,13 +68,13 @@ if [[ $stage == all || $stage == build ]]; then
   for s in $ALL; do
     $UV run -q --with pillow Tools/potalook/compare.py specials $R/specials $s \
       "Pota=$R/sp-$s-pota" "1 Royal=$R/sp-$s-royal" "2 Court=$R/sp-$s-court" || exit 1
-    Tools/keep_screenshot.sh $R/specials-$s.jpg 2026-10-01-specials-sheet-$s || exit 1
+    Tools/keep_screenshot.sh $R/specials-$s.jpg 2026-10-01-specials-sheet-$s $SHEET_Q || exit 1
   done
   groups=()
   for s in $ALL; do
     groups+=(--group "${TITLE[$s]}" "Pota=$R/sp-$s-pota" "1 · Royal=$R/sp-$s-royal" "2 · Basketbol=$R/sp-$s-court")
   done
-  $UV run -q --with pillow Tools/potalook/side_video.py groups $OUT-side.mp4 "${groups[@]}" --crf $CRF || exit 1
+  $UV run -q --with pillow Tools/potalook/side_video.py groups $OUT-side.mp4 "${groups[@]}" --crf $SIDE_CRF || exit 1
   segs=()
   for s in $ALL; do for l in pota royal court; do segs+=("${TITLE[$s]}|${LOOK[$l]}=$R/sp-$s-$l"); done; done
   $UV run -q --with pillow --with numpy Tools/potalook/seq_video.py $OUT-voiced.mp4 "${segs[@]}" --crf $CRF \
