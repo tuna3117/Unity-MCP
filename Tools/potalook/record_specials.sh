@@ -16,6 +16,7 @@ CLOSEUPS=${CLOSEUPS:-1}
 CRF=${CRF:-28}
 SIDE_CRF=${SIDE_CRF:-30}
 SHEET_Q=${SHEET_Q:-56}
+COST_RUNS=${COST_RUNS:-10}             # Chain runs per look: a locked Mac throttles Play Mode to ~7 fps, more runs = more samples
 ASPECT=0.4623                         # PotaProfile 1170×2532 → 540 × 1168 frames
 UV=~/.local/bin/uv
 R=Temp/record
@@ -109,7 +110,7 @@ EOF
   M call manage_editor '{"action":"play"}' > /dev/null
   for i in {1..30}; do sleep 2; M read mcpforunity://editor/state | grep -q '"is_playing": true' && break; done; sleep 4
   open -a /Applications/Unity/Hub/Editor/6000.6.2f1/Unity.app     # real time: Unity stays in front with the Game view showing
-  M call execute_custom_tool '{"tool_name":"ai_specials_cost","parameters":{"looks":"pota,royal,court","runs":3,"scenario":"chain"}}' | grep '"message"' | head -1
+  M call execute_custom_tool '{"tool_name":"ai_specials_cost","parameters":{"looks":"pota,royal,court","runs":'$COST_RUNS',"scenario":"chain"}}' | grep '"message"' | head -1
   for i in {1..100}; do
     sleep 3
     r=$(M call execute_custom_tool '{"tool_name":"ai_specials_cost","parameters":{"action":"status"}}' | grep '"result"' | head -1)

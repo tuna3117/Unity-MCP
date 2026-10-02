@@ -68,6 +68,17 @@ namespace Project.Tests
             Assert.AreEqual(90, c.Frames);
         }
 
+        [Test]
+        public void Coverage_NotesAThrottledEditor_WhoseWindowsHeldFewFrames()
+        {
+            // a locked Mac or a background editor runs Play Mode at ~7 fps: the p95 then rests on a handful of frames per run
+            StringAssert.Contains("7 frames per 1-s window",
+                SpecialsCostTool.Coverage(Project.ColorHunt.SpecialLook.Royal, new SpecialsCostTool.Summary { Frames = 20 }, 3));
+            Assert.IsNull(SpecialsCostTool.Coverage(Project.ColorHunt.SpecialLook.Royal, new SpecialsCostTool.Summary { Frames = 170 }, 3),
+                "~57 frames per window: a phone's 60, nothing to note");
+            Assert.IsNull(SpecialsCostTool.Coverage(Project.ColorHunt.SpecialLook.Pota, new SpecialsCostTool.Summary(), 0), "no run, no note");
+        }
+
         private const string PcAsset = "Assets/Settings/PC_RPAsset.asset";
 
         [Test]

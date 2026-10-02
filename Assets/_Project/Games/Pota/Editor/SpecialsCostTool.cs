@@ -112,6 +112,21 @@ namespace Project.Editor.AITools
             return r;
         }
 
+        /// <summary>Frames a run's peak window must hold to stand for a phone's 60 fps; fewer means a throttled editor (locked Mac, background).</summary>
+        public const int PhoneFramesPerWindow = 45;
+
+        /// <summary>
+        /// A note for the JSON when the runs' peak windows held fewer than <see cref="PhoneFramesPerWindow"/> frames each: Play Mode was
+        /// throttled, so the p95 rests on a few frames per run (the per-frame costs themselves stay valid). Null otherwise.
+        /// </summary>
+        public static string Coverage(SpecialLook look, Summary s, int runs)
+        {
+            if (runs <= 0) return null;
+            int perRun = Mathf.RoundToInt((float)s.Frames / runs);
+            return perRun >= PhoneFramesPerWindow * PeakWindow ? null
+                : $"{look}: {perRun} frames per 1-s window (throttled editor: locked Mac or Unity in the background); p95 from few frames per run";
+        }
+
         /// <summary>Runs of one look: timings by median (ignoring unmeasured), counts by the worst run, frames summed.</summary>
         public static Summary Combine(IList<Summary> runs)
         {
@@ -350,6 +365,8 @@ namespace Project.Editor.AITools
                 if (!_results.TryGetValue(look, out var runs) || runs.Count == 0 || combined.ContainsKey(look)) continue;
                 var c = Combine(runs);
                 combined[look] = c;
+                string coverage = Coverage(look, c, runs.Count);
+                if (coverage != null) _notes.Add(coverage);
                 looks[look.ToString()] = ToJson(c, runs.Count);
             }
             if (combined.TryGetValue(SpecialLook.Pota, out var pota))
