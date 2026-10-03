@@ -130,6 +130,70 @@ namespace Project.Tests
             Assert.IsTrue(bounced, "a landing block was wider than tall");
         }
 
+        /// <summary>A one-red-block level: tapping any affordable red block wins. Returns that cell.</summary>
+        private static int StageOneRedTarget(ColorHuntGame game, int ammo)
+        {
+            var design = game.S.ToDesign();
+            design.Targets = new[] { (0, 1) };
+            game.Prepare(ammo, 7, design);
+            game.Begin();
+            for (int i = 0; i < game.Board.Cells.Length; i++)
+                if (game.Board.Cells[i].Color == 0 && game.Board.Cells[i].Hp <= game.Board.Ammo) return i;
+            return -1;
+        }
+
+        [UnityTest]
+        public IEnumerator Finale_WithLeftoverAmmo_FliesBallsIntoBlocks_CoinsByPotasFormula_ThenTheRoundEnds()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            int cell = StageOneRedTarget(game, 140);
+            Assume.That(cell >= 0, "an affordable red block");
+            bool ended = false;
+            game.RoundEnded += (won, reason) => ended = won;
+            Assert.AreEqual("broken", game.Tap(cell));
+            yield return StudioLookPlayTests.WaitUntil(() => game.Current == ColorHuntGame.State.Ended, 6f);
+            Assert.AreEqual(ColorHuntGame.State.Ended, game.Current);
+            int remaining = game.Board.Ammo;
+            Assume.That(remaining >= 10, "enough ammo left for coins");
+            yield return null;
+            Assert.IsTrue(hud.Finale.Running, "the finale starts at the win");
+            Assert.IsFalse(ended, "the result waits for the finale");
+            float t = 0f;
+            while (hud.Finale.Running && t < 2.5f) { t += Time.unscaledDeltaTime; yield return null; }
+            Assert.IsFalse(hud.Finale.Running, "the finale is over within the cap");
+            Assert.LessOrEqual(t, game.S.Feel.FinaleMax + 0.3f);
+            Assert.AreEqual(FeelCurves.LeftoverCoins(remaining), hud.Finale.CoinsShown);
+            Assert.GreaterOrEqual(hud.Finale.Flights, game.S.Feel.FinaleMinFlights);
+            Assert.LessOrEqual(hud.Finale.Flights, game.S.Feel.FinaleMaxFlights);
+            Assert.AreEqual(0, game.DisplayedAmmo, "the counter rolled down to zero");
+            yield return StudioLookPlayTests.WaitUntil(() => ended, game.S.WinWait + 0.6f);
+            Assert.IsTrue(ended, "RoundEnded follows the finale and the disperse");
+        }
+
+        [UnityTest]
+        public IEnumerator Finale_WithNoAmmoLeft_TakesNoFlights_ShowsNoBadge_AndEndsAtOnce()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            int probe = StageOneRedTarget(game, 158);
+            Assume.That(probe >= 0);
+            int cell = StageOneRedTarget(game, game.Board.Cells[probe].Hp);   // the same deal with exactly that block's cost
+            Assume.That(cell == probe, "the cheapest-covered red block is the same cell");
+            bool ended = false;
+            game.RoundEnded += (won, reason) => ended = won;
+            Assert.AreEqual("broken", game.Tap(cell));
+            yield return StudioLookPlayTests.WaitUntil(() => game.Current == ColorHuntGame.State.Ended, 6f);
+            Assert.AreEqual(0, game.Board.Ammo);
+            yield return null;
+            Assert.AreEqual(0, hud.Finale.Flights);
+            Assert.IsFalse(hud.Finale.BadgeVisible);
+            yield return StudioLookPlayTests.WaitUntil(() => ended, game.S.WinWait + 0.4f);
+            Assert.IsTrue(ended);
+        }
+
         [UnityTest]
         public IEnumerator AffordableCount_CountsBlocksTheAmmoCovers()
         {

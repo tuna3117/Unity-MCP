@@ -49,6 +49,7 @@ namespace Project.ColorHunt
         public AmmoCounter AmmoCounter { get; private set; }
         public AmmoTension Tension { get; private set; }
         public LevelIntro Intro { get; private set; }
+        public LeftoverFinale Finale { get; private set; }
         public int FlyingCount => _flying.Count + (Collect != null ? Collect.Flying : 0);
 
         internal RectTransform FlyersRoot => _flyers;
@@ -101,7 +102,24 @@ namespace Project.ColorHunt
             Intro = GetComponent<LevelIntro>();
             if (Intro == null) Intro = gameObject.AddComponent<LevelIntro>();
             Intro.Init(this);
+            Finale = GetComponent<LeftoverFinale>();
+            if (Finale == null) Finale = gameObject.AddComponent<LeftoverFinale>();
+            Finale.Init(this, game);
+            game.Finale = Finale;
         }
+
+        /// <summary>A .sayac-style counter panel (face, lip, soft shadow) for the feel layer's badges.</summary>
+        internal RectTransform NewCounter(string name, Vector2 anchor, Vector2 sizeCss)
+        {
+            var face = PanelSprite(128, Mathf.RoundToInt(18f * Css), PotaLook.HudPanelTop, PotaLook.HudNavy, PotaLook.HudGold, Mathf.RoundToInt(3f * Css), 0.18f, Mathf.RoundToInt(2f * Css));
+            var lip = PanelSprite(128, Mathf.RoundToInt(18f * Css), PotaLook.HudGold2, PotaLook.HudGold2, PotaLook.HudGold2, 0, 0f, 0);
+            var soft = ShadowSprite(128, Mathf.RoundToInt(18f * Css), Mathf.RoundToInt(12f * Css));
+            return Counter(transform, name, anchor, sizeCss, face, lip, soft);
+        }
+
+        /// <summary>A HUD text in the HUD font (sizes in CSS px), centred under <paramref name="anchor"/>.</summary>
+        internal Text MakeLabel(RectTransform parent, string name, float sizeCss, Vector2 anchor, Vector2 pos, Vector2 size, Color color, string text) =>
+            MakeText(parent, name, sizeCss, anchor, new Vector2(0.5f, 0.5f), pos, size, TextAnchor.MiddleCenter, color, text);
 
         /// <summary>F1: a target row's icon, count and tick are hidden until its goal chip arrives (the tick only when the goal is done).</summary>
         internal void SetRowShown(int color, bool on)

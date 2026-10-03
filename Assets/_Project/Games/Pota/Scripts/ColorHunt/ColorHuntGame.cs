@@ -19,6 +19,8 @@ namespace Project.ColorHunt
         public ColorHuntFx Fx;
         public BallSalvo Salvo;
         public ColorHuntJuice Juice;
+        /// <summary>F3: the HUD's leftover finale (set by ColorHuntHud.Bind); the win disperses after it.</summary>
+        [NonSerialized] public LeftoverFinale Finale;
         public ColorHuntHud Hud;
         public Camera Cam;
         [Tooltip("Deal a board on Start. PotaFlow turns this off and stages the board itself (Prepare → Begin).")]
@@ -377,8 +379,38 @@ namespace Project.ColorHunt
             _endReason = reason;
             Select(-1);
             Juice?.Result(won);
+            if (won && Feel && Finale != null && Board.Ammo > 0)
+            {
+                // F3: the leftover balls burst blocks into coins first; the board disperses and the card waits after that
+                Finale.Play(Board.Ammo, () => { if (Current == State.Ended && Won) { Disperse(); _resultTimer = S.WinWait; } });
+                return;
+            }
             if (won) Disperse();
             _resultTimer = won ? S.WinWait : S.LoseWait;
+        }
+
+        /// <summary>F3: a live cell chosen for the finale's next ball; −1 when the board is empty.</summary>
+        public int RandomLiveCell(System.Random rng)
+        {
+            if (_views.Count == 0) return -1;
+            int pick = rng.Next(_views.Count), i = 0;
+            foreach (var cell in _views.Keys) if (i++ == pick) return cell;
+            return -1;
+        }
+
+        /// <summary>
+        /// F3: bursts a live block for show only — the rules are untouched (no item counted, no cell event): the view leaves its cell,
+        /// swells to the tap peak and plays the Pota burst, like FinishSalvo without the bookkeeping.
+        /// </summary>
+        public void BurstCell(int cell)
+        {
+            var view = ViewAt(cell);
+            if (view == null) return;
+            _views.Remove(cell);
+            _loose.Add(view);
+            view.Dim = false;
+            var tone = BurstTone(view.Block);
+            _swells.Start(view, S.TapSwellTime, S.TapSwell, true, () => { Juice?.Break(); Style.TapBurst(view, tone); });
         }
 
         /// <summary>
