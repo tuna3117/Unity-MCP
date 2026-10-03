@@ -239,5 +239,6 @@ Pota'ya teslim `docs/handoff/2026-10-03-pota-oyun-ici-his.md` (anlar, sayılar, 
   ve `…-feel-all.mp4` (Önce | Sonra; Pota sütunu yok: Playwright Chromium'u öne alır, Tuna uygun saatte isterse eklenir).
 - **Testler:** EditMode `FeelCurvesTests`, `BoardClipInstallerTests`, `BasketRecordToolTests`, eklemeler (`ColorHuntHintTests`, `BurstStyleTests`,
   `BlockViewTests`, `StudioAssetsTests`, `ColorHuntRecordToolTests`); PlayMode `FeelPlayTests`, `BasketFeelPlayTests`. Blender `tests/test_recipes_feel.py`.
+  2026-10-03 sonu: EditMode 427/427, PlayMode 152/152 (önceki 387 / 128); Blender `tools/run.sh test` yeni 3 tarif testi + miss levhası.
 - **Dürüst notlar:** Pota'ya dokunulmadı; menü/ödül katmanı (kazanma penceresi, harita, ana ekran, market, öğretici eli) 2. alt proje. Finale
   paraları ve topları `Default` katmanda (maske kırpmasın). Kahramanın eğimi arkadan bakınca az okunuyor; başı potaya çevirme yapılmadı.
