@@ -1,0 +1,46 @@
+{
+  "id": "bird-flock",
+  "game": "Pota",
+  "kind": "prop",
+  "version": 1,
+  "files": {
+    "glb": "bird-flock.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 340,
+    "materials": 1,
+    "textures": [],
+    "bones": 16,
+    "clips": [
+      "flap"
+    ],
+    "size_m": [
+      3.42,
+      1.3663,
+      0.25
+    ]
+  },
+  "source": {
+    "recipe": "recipes/bird_flock.py",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [
+      "flock"
+    ],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-10-03T02:46:04Z"
+}

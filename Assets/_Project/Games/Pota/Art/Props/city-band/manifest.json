@@ -1,0 +1,42 @@
+{
+  "id": "city-band",
+  "game": "Pota",
+  "kind": "prop",
+  "version": 1,
+  "files": {
+    "glb": "city-band.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 1668,
+    "materials": 2,
+    "textures": [],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      152.7364,
+      73.2664,
+      34.2804
+    ]
+  },
+  "source": {
+    "recipe": "recipes/city_band.py",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-10-03T02:46:08Z"
+}

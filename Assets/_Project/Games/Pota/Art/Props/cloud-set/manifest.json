@@ -1,0 +1,46 @@
+{
+  "id": "cloud-set",
+  "game": "Pota",
+  "kind": "prop",
+  "version": 1,
+  "files": {
+    "glb": "cloud-set.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 1080,
+    "materials": 1,
+    "textures": [],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      38.0342,
+      5.6793,
+      4.1641
+    ]
+  },
+  "source": {
+    "recipe": "recipes/cloud_set.py",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [
+      "Cloud_0",
+      "Cloud_1",
+      "Cloud_2"
+    ],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-10-03T02:46:52Z"
+}

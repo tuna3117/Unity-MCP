@@ -28,6 +28,7 @@ namespace Project.Editor.AITools
             "vfx-fire-toon", "vfx-flame-jet", "vfx-dust-ring", "vfx-speed-lines", "vfx-floor-crack",
             "vfx-letter-slam", "vfx-letter-swish", "vfx-letter-combo",
             "vfx-ball-halves", "vfx-bomb-shell", "vfx-coin", "vfx-basketball",
+            "vfx-letter-miss", "cloud-set", "bird-flock", "city-band",             // feel layer (spec 2026-10-03)
         };
 
         public class Parameters
@@ -54,6 +55,7 @@ namespace Project.Editor.AITools
         public static void Menu() => AIToolsCommon.Log(string.Join(" | ", Import(DefaultWorkshop)));
 
         public static string Folder(string id) => $"Assets/_Project/Games/Pota/Art/VFX/{id}";
+        public static string PropFolder(string id) => $"Assets/_Project/Games/Pota/Art/Props/{id}";
 
         public static List<string> Import(string workshop)
         {
@@ -84,6 +86,11 @@ namespace Project.Editor.AITools
             s.RoyalShell = Model("vfx-bomb-shell");
             s.RoyalCoin = Model("vfx-coin");
             s.CourtBall = Model("vfx-basketball");
+            s.LetterMiss = Sheet("vfx-letter-miss");
+            s.Clouds = Prop("cloud-set");
+            s.Birds = Prop("bird-flock");
+            s.BirdFlap = Clip("bird-flock", "flap");
+            s.CityBand = Prop("city-band");
             EditorUtility.SetDirty(s);
             AssetDatabase.SaveAssets();
             report.Add($"settings: puff={s.CandyPuff != null} ring={s.CandyRing != null} smoke={s.ShatterSmoke != null} " +
@@ -98,5 +105,14 @@ namespace Project.Editor.AITools
         private static Texture2D Sheet(string id) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{Folder(id)}/{id}.png");
 
         private static GameObject Model(string id) => AssetDatabase.LoadAssetAtPath<GameObject>($"{Folder(id)}/{id}.glb");
+
+        private static GameObject Prop(string id) => AssetDatabase.LoadAssetAtPath<GameObject>($"{PropFolder(id)}/{id}.glb");
+
+        private static AnimationClip Clip(string id, string clipName)
+        {
+            foreach (var a in AssetDatabase.LoadAllAssetsAtPath($"{PropFolder(id)}/{id}.glb"))
+                if (a is AnimationClip clip && clip.name == clipName) return clip;
+            return null;
+        }
     }
 }

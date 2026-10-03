@@ -172,5 +172,25 @@ namespace Project.Tests
             Assert.AreEqual(skin, m.GetTexture("_BaseMap"));
             Object.DestroyImmediate(m);
         }
+
+        private const string FeelHint = "run the Blender recipes (plan 2026-10-03 Task 7: cloud_set, bird_flock, city_band, lettering miss), then execute_custom_tool ai_studio_import";
+
+        [Test]
+        public void FeelSkyProps_AreImportedAndWired()
+        {
+            var s = Settings();
+            Assert.IsNotNull(s.LetterMiss, FeelHint);
+            Assert.AreEqual(512, s.LetterMiss.width);
+            Assert.AreEqual(256, s.LetterMiss.height);
+            Assert.IsNotNull(s.Clouds, FeelHint);
+            Assert.AreEqual(3, s.Clouds.GetComponentsInChildren<MeshFilter>(true).Length, "three clouds");
+            Assert.IsNotNull(s.Birds, FeelHint);
+            Assert.IsNotNull(s.Birds.GetComponentInChildren<SkinnedMeshRenderer>(true), "a skinned flock");
+            Assert.IsNotNull(s.BirdFlap, FeelHint);
+            Assert.AreEqual("flap", s.BirdFlap.name);
+            Assert.IsTrue(s.BirdFlap.isLooping, "the flap loops");
+            Assert.IsNotNull(s.CityBand, FeelHint);
+            Assert.GreaterOrEqual(s.CityBand.GetComponentsInChildren<MeshFilter>(true).Length, 28, "28 buildings plus window strips");
+        }
     }
 }

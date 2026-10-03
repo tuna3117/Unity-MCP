@@ -149,6 +149,18 @@ namespace Project.ColorHunt
         [Tooltip("2 Court: vfx_mesh basketball, a 0.45 m low-poly ball in Pota's classic skin.")]
         public GameObject CourtBall;
 
+        [Header("Feel layer props (Blender hand-offs, ai_studio_import; spec 2026-10-03 F8, F11)")]
+        [Tooltip("F11: vfx_flipbook lettering style miss, \"KAÇTI!\" 512×256 still (red, navy outline).")]
+        public Texture2D LetterMiss;
+        [Tooltip("F8: recipe cloud_set — Cloud_0..2, white, flat-bottomed; SkyLife dresses them in Project/Toon.")]
+        public GameObject Clouds;
+        [Tooltip("F8: recipe bird_flock — one skinned V of five birds on an armature.")]
+        public GameObject Birds;
+        [Tooltip("F8: the flock's looping 0.5 s flap clip (played through a PlayableGraph).")]
+        public AnimationClip BirdFlap;
+        [Tooltip("F8 (U27): recipe city_band — a 180° arc of low-poly buildings, wall + glass materials.")]
+        public GameObject CityBand;
+
         [Header("Court special look (spec 2026-10-01 §2 · 2 Basketbol): game seconds, board cells")]
         [Tooltip("Every number of the Court look; the timing fields also drive the trigger plan (CourtSpecials.TimingFor).")]
         public CourtTuning Court = new CourtTuning();
