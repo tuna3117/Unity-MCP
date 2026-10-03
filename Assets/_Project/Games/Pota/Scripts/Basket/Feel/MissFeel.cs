@@ -75,6 +75,12 @@ namespace Project.Basket
         {
             if (!_bound) Bind();
             float dt = Time.unscaledDeltaTime;
+            if (_letter != null && _letter.Shown)
+            {
+                // the camera drops to the cage after a miss (2026-10-03 recording cut the word at the top): the word rides in front of it
+                var cam = Cam != null ? Cam.GetComponent<Camera>() : Camera.main;
+                if (cam != null) _letter.MoveTo(cam.transform.position + cam.transform.forward * 7f + cam.transform.up * 1.5f);
+            }
             _letter?.Tick(dt);
             if (_t < 0f) return;
             if (!Feel) { Stop(); return; }

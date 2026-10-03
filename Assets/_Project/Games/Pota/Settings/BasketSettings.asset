@@ -79,8 +79,6 @@ MonoBehaviour:
     CamBackM: 0.4
     CamDownDeg: 2
     HoopGlowTime: 0.2
-    LineWidthMin: 0.06
-    LineWidthMax: 0.11
     MissTime: 1
     MissCamSag: 0.2
     RimBlinkTime: 0.3

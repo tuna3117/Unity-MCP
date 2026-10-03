@@ -182,11 +182,11 @@ namespace Project.Tests
         public void ChainSeed_FindsABoardWhoseBestTapChainsAtLeastFourSteps()
         {
             var design = ScriptableObject.CreateInstance<ColorHuntSettings>().ToDesign();
-            uint seed = ColorHuntRecordTool.ChainSeed(design, 158, 4, 80);
+            uint seed = ColorHuntRecordTool.ChainSeed(design, 158, 4, 200);
             Assert.Greater(seed, 0u);
             var b = ColorHuntRules.Create(design, 158, seed);
             int best = ColorHuntHint.Best(b);
-            Assert.GreaterOrEqual(ColorHuntRules.Break(b, best).Steps.Count, 4);
+            Assert.GreaterOrEqual(ColorHuntRecordTool.ExplodingSteps(ColorHuntRules.Break(b, best)), 4, "four exploding steps = the tap and a depth-3 chain (Süper!)");
         }
     }
 }

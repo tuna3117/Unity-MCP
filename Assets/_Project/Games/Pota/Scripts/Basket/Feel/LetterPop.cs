@@ -48,6 +48,13 @@ namespace Project.Basket
             Place();
         }
 
+        /// <summary>Moves a shown word (the miss lettering follows the camera as it drops to the cage).</summary>
+        public void MoveTo(Vector3 world)
+        {
+            _at = world;
+            if (_t >= 0f) Place();
+        }
+
         public void Hide()
         {
             _t = -1f;

@@ -69,16 +69,27 @@ namespace Project.Editor.AITools
             }
         }
 
-        /// <summary>The first seed in 1..maxSeeds whose best affordable tap (ColorHuntHint.Best) chains at least minSteps; 0 when none does.</summary>
+        /// <summary>
+        /// The first seed in 1..maxSeeds whose best affordable tap (ColorHuntHint.Best) explodes blocks in at least minSteps steps (the
+        /// tap's own step counted: depth 3 words need 4 exploding steps); 0 when none does. Plain Steps.Count also counts drop-only steps.
+        /// </summary>
         public static uint ChainSeed(LevelDesign design, int ammo, int minSteps, int maxSeeds)
         {
             for (uint seed = 1; seed <= maxSeeds; seed++)
             {
                 var b = ColorHuntRules.Create(design, ammo, seed);
                 int best = ColorHuntHint.Best(b);
-                if (best >= 0 && ColorHuntRules.Break(b, best).Steps.Count >= minSteps) return seed;
+                if (best >= 0 && ExplodingSteps(ColorHuntRules.Break(b, best)) >= minSteps) return seed;
             }
             return 0;
+        }
+
+        /// <summary>Steps of a break that explode at least one block (the chain depth the game shows is this minus one).</summary>
+        public static int ExplodingSteps(BreakResult r)
+        {
+            int n = 0;
+            foreach (var s in r.Steps) if (s.Exploded.Count > 0) n++;
+            return n;
         }
 
         public class Parameters
@@ -328,7 +339,7 @@ namespace Project.Editor.AITools
             _zoom = Mathf.Clamp(AIToolsCommon.GetFloat(p, "zoom", CloseupZoom), 1f, 6f);
             _focus = AIToolsCommon.GetInt(p, "focus", -1);
             _until = (AIToolsCommon.GetString(p, "until", "finish") ?? "finish").Trim().ToLowerInvariant();
-            _seed = AIToolsCommon.GetInt(p, "seed", _presetName.Length > 0 && _preset.ChainSeed ? (int)Mathf.Max(1, ChainSeed(game.S.ToDesign(), game.S.Ammo, 4, 80)) : 7);
+            _seed = AIToolsCommon.GetInt(p, "seed", _presetName.Length > 0 && _preset.ChainSeed ? (int)Mathf.Max(1, ChainSeed(game.S.ToDesign(), game.S.Ammo, 4, 200)) : 7);
             _ammo = AIToolsCommon.GetInt(p, "ammo", _presetName.Length > 0 && _preset.Ammo >= 0 ? _preset.Ammo : game.S.Ammo);
             _width = Mathf.Clamp(AIToolsCommon.GetInt(p, "width", 540), 120, 2160);
             _aspect = Mathf.Clamp(AIToolsCommon.GetFloat(p, "aspect", 0.5625f), 0.3f, 3f);

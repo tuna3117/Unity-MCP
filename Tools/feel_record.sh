@@ -77,9 +77,9 @@ anchor() { case "$1" in
   intro|idle) echo start;; lowammo|chain) echo tap;; finale) echo result;; lose) echo result;; pull) echo pull;; miss) echo miss;; swish) echo shot;; esac; }
 before() { case "$1" in intro|idle) echo 0;; lowammo) echo 0.5;; finale|lose) echo 0.8;; chain) echo 0.3;; pull) echo 0.4;; miss) echo 1.2;; swish) echo 0.3;; esac; }
 times() { case "$1" in
-  intro) echo "0.1,0.4,0.8,1.0,1.3,1.7,2.2";; lowammo) echo "0.5,1.2,1.6,2.0,2.5,3.0";; finale) echo "1.4,1.8,2.1,2.5,2.9,3.3,3.9,4.6";;
-  lose) echo "0.1,0.4,0.8,1.2,1.6,2.2";; chain) echo "0.7,1.0,1.2,1.4,1.6,1.9";; idle) echo "0.5,5.6,5.8,6.0,6.3,7.2";;
-  pull) echo "0.3,0.8,1.3,1.8,2.1,2.6,3.4";; miss) echo "1.2,2.0,2.6,3.0,3.3,3.8";; swish) echo "0.5,1.2,1.5,1.7,2.0,2.6";; esac; }
+  intro) echo "0.1,0.4,0.8,1.0,1.3,1.7,2.2";; lowammo) echo "-0.4,0.2,0.6,1.0,1.5,2.0";; finale) echo "-0.9,-0.5,0.1,0.5,0.9,1.3,1.8,2.6";;
+  lose) echo "-0.3,0.1,0.4,0.8,1.2,1.5";; chain) echo "0.4,0.6,0.75,0.9,1.05,1.3";; idle) echo "0.5,5.6,5.8,6.0,6.3,7.2";;
+  pull) echo "-0.1,0.4,0.9,1.4,1.7,2.2,3.0";; miss) echo "-1.2,-0.4,0.0,0.3,0.6,1.2";; swish) echo "0.2,0.9,1.2,1.4,1.7,2.3";; esac; }
 if [[ "$what" == videos || "$what" == all ]]; then
   mkdir -p "$OUT"
   parts=()
@@ -88,7 +88,7 @@ if [[ "$what" == videos || "$what" == all ]]; then
     [[ -f "$off/events.json" && -f "$on/events.json" ]] || { echo "skip $m: no recordings"; continue; }
     side="$OUT/$DATE-feel-$m-side.mp4"
     $UV run --with pillow Tools/potalook/side_video.py groups "$side" --group "$(title $m)" "Önce=$off" "Sonra=$on" --anchor "$(anchor $m)" --before "$(before $m)" --width 540 || continue
-    $UV run --with pillow Tools/frame_sheet.py "$OUT/$DATE-feel-$m-sheet.jpg" "Önce=$off" "Sonra=$on" --times "$(times $m)" --height 420
+    $UV run --with pillow Tools/frame_sheet.py "$OUT/$DATE-feel-$m-sheet.jpg" "Önce=$off" "Sonra=$on" --times "$(times $m)" --anchor "$(anchor $m)" --height 420
     parts+=("$side")
   done
   if (( ${#parts} > 1 )); then

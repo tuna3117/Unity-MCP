@@ -2,7 +2,8 @@
 """Contact sheet from recorded frame folders: one row per folder, one column per time.
 
 Usage: uv run --with pillow Tools/frame_sheet.py OUT.jpg LABEL=DIR [LABEL=DIR ...] [--times 0.2,0.8,1.3,1.8,2.3,2.6] [--height 480]
-       [--labels "A|B|…"] [--corner TEXT]
+       [--labels "A|B|…"] [--corner TEXT] [--anchor MARKER]
+--anchor MARKER: times are relative to each folder's events.json marker (e.g. tap), so rows whose moments differ in absolute time line up.
 Frames are PNGs named ..._t<seconds>... (ai_potaflow_record, ai_basket_record, or renamed ffmpeg output). Columns are labelled by
 their time unless --labels gives one label per time ('|'-separated); --corner writes a note in the top-left cell.
 """
@@ -46,7 +47,7 @@ def load_frames(folder):
 
 
 def main(argv):
-    times, height, rows, out, labels, corner = [0.2, 0.8, 1.3, 1.8, 2.3, 2.6], 480, [], None, None, None
+    times, height, rows, out, labels, corner, anchor = [0.2, 0.8, 1.3, 1.8, 2.3, 2.6], 480, [], None, None, None, None
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -66,15 +67,21 @@ def main(argv):
             corner = argv[i + 1]
             i += 2
             continue
+        if a == "--anchor":
+            anchor = argv[i + 1]
+            i += 2
+            continue
         if out is None:
             out = a
         else:
             label, folder = a.split("=", 1)
-            rows.append((label, load_frames(folder)))
+            rows.append((label, load_frames(folder), folder))
         i += 1
     if out is None or not rows:
         sys.exit(__doc__)
     heads = column_labels(times, labels)
+    if anchor and labels is None:
+        heads = [f"{anchor} {t:+.1f} s" for t in times]
     first = Image.open(rows[0][1][0][0])
     w = round(first.width * height / first.height)
     label_w, head_h = 150, 44
@@ -89,11 +96,18 @@ def main(argv):
         draw.text((label_w + c * w + 10, 8), head, fill=(240, 240, 240), font=font)
     if corner:
         draw.text((12, 12), corner, fill=(255, 200, 60), font=small)
-    for r, (label, frames) in enumerate(rows):
+    for r, (label, frames, folder) in enumerate(rows):
         y = head_h + r * height
         draw.text((12, y + height // 2 - 14), label, fill=(255, 200, 60), font=font)
+        offset = 0.0
+        if anchor:
+            import json
+            events = json.load(open(os.path.join(folder, "events.json")))
+            if anchor not in events:
+                sys.exit(f"{folder}: no '{anchor}' marker in events.json")
+            offset = float(events[anchor])
         for c, t in enumerate(times):
-            img = Image.open(nearest(frames, t)).convert("RGB").resize((w, height), Image.LANCZOS)
+            img = Image.open(nearest(frames, t + offset)).convert("RGB").resize((w, height), Image.LANCZOS)
             sheet.paste(img, (label_w + c * w, y))
     sheet.save(out, quality=85)
     print(f"{out}: {len(rows)} rows × {len(times)} times, {sheet.width}×{sheet.height}")

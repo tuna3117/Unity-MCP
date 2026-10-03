@@ -255,8 +255,9 @@ namespace Project.ColorHunt
             b.Trail.gameObject.SetActive(true);
             _balls.Add(b);
             _remaining -= _plan[i];
-            _game.ShowAmmo(Mathf.Max(0, _remaining));
-            _hud.PopAmmo();
+            // the counter rolls 0.18 s per step: a new value every launch (0.08 s) stacked two rolls on top of each other in the
+            // 2026-10-03 recording, so the number only drops once the last roll has landed (and snaps to 0 at the end, in Finish)
+            if (_hud.AmmoCounter == null || !_hud.AmmoCounter.Rolling) { _game.ShowAmmo(Mathf.Max(0, _remaining)); _hud.PopAmmo(); }
         }
 
         private void Hit(Ball b)
@@ -302,6 +303,7 @@ namespace Project.ColorHunt
             foreach (var c in _coins) HideCoin(c);
             _coins.Clear();
             if (_badge != null && _coins0 > 0) { _amount.text = "+" + _coins0; _badge.localScale = Vector3.one; }
+            if (_game != null && _game.DisplayedAmmo != 0 && _plan != null && _plan.Length > 0) _game.ShowAmmo(0);
             done?.Invoke();
         }
 
