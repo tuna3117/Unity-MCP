@@ -18,7 +18,8 @@ namespace Project.Meta
         private RectTransform _face;
         private Image _lip;
         private float _press, _release = -1f, _lipHome;
-        private bool _down;
+        private bool _down, _pulse;
+        private float _pulseT;
 
         public RectTransform Rect => (RectTransform)transform;
         public RectTransform Face => _face;
@@ -26,6 +27,8 @@ namespace Project.Meta
         public Image Icon { get; private set; }
         public Button Button { get; private set; }
         public bool Pressed => _down;
+        /// <summary>Breathing (Pota nabizDugme: 1 → 1.035 over 1.8 s) on the whole button; only with the feel layer.</summary>
+        public bool Pulsing => _pulse && _feel != null && _feel.Enabled;
         public float Scale => _face != null ? _face.localScale.x : 1f;
         public bool Interactable { get => Button.interactable; set => Button.interactable = value; }
         public event Action Clicked;
@@ -138,6 +141,8 @@ namespace Project.Meta
             return img;
         }
 
+        public void Pulse(bool on) { _pulse = on; if (!on) { Rect.localScale = Vector3.one; _pulseT = 0f; } }
+
         public void OnPointerDown(PointerEventData e) { if (!Button.interactable) return; _down = true; _release = -1f; }
         public void OnPointerUp(PointerEventData e) { if (!_down) return; _down = false; _release = 0f; }
         public void OnPointerClick(PointerEventData e) { if (Button.interactable) Clicked?.Invoke(); }
@@ -178,6 +183,7 @@ namespace Project.Meta
             }
             else scale = 1f;
             _face.localScale = Vector3.one * scale;
+            if (_pulse) { _pulseT += dt; Rect.localScale = Vector3.one * (Pulsing ? 1f + 0.035f * (0.5f - 0.5f * Mathf.Cos(_pulseT / 1.8f * 2f * Mathf.PI)) : 1f); }
             _lip.rectTransform.offsetMin = new Vector2(0f, lip);
             _lip.rectTransform.offsetMax = new Vector2(0f, lip);
         }

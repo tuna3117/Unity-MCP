@@ -17,7 +17,7 @@ namespace Project.Meta
         {
             Level = s.Level, Coins = s.Coins, Lives = s.Lives, MaxLives = s.MaxLives, Trophies = s.Trophies, BestScore = s.BestScore, FirstTry = s.FirstTry,
             ScoreBlocks = s.ScoreBlocks, ScoreChain = s.ScoreChain, ScoreSpecial = s.ScoreSpecial, ScoreGold = s.ScoreGold, ScoreLeft = s.ScoreLeft,
-            ScoreObstacle = s.ScoreObstacle, LeftoverBalls = s.LeftoverBalls, RemainingOnLoss = s.RemainingOnLoss, MedalSilver = s.MedalSilver, MedalGold = s.MedalGold,
+            ScoreObstacle = s.ScoreObstacle, LeftoverBalls = s.LeftoverBalls, Ammo = s.Ammo, GoalItem = s.GoalItem, GoalCount = s.GoalCount, RemainingOnLoss = s.RemainingOnLoss, MedalSilver = s.MedalSilver, MedalGold = s.MedalGold,
         };
 
         /// <summary>0 bronze, 1 silver, 2 gold (skor.ts madalya: ≥ gold → gold, ≥ silver → silver, else bronze).</summary>
@@ -30,9 +30,11 @@ namespace Project.Meta
             return Mathf.RoundToInt(sum * (s.FirstTry ? 1.2f : 1f));
         }
 
-        public static WinResult Win(MetaSettings settings, int score, int leftover)
+        public static WinResult Win(MetaSettings settings, int score, int leftover) => Win(settings, settings.Save, score, leftover);
+
+        /// <summary>A win over <paramref name="before"/> (the current save, not the sample).</summary>
+        public static WinResult Win(MetaSettings settings, SampleSave before, int score, int leftover)
         {
-            var before = settings.Save;
             var save = Copy(before);
             int leftoverCoins = ColorHunt.FeelCurves.LeftoverCoins(leftover);
             int gained = settings.LevelReward + (before.FirstTry ? settings.FirstTryReward : 0) + leftoverCoins;
@@ -50,9 +52,11 @@ namespace Project.Meta
             };
         }
 
-        public static SampleSave Lose(MetaSettings settings)
+        public static SampleSave Lose(MetaSettings settings) => Lose(settings.Save);
+
+        public static SampleSave Lose(SampleSave before)
         {
-            var save = Copy(settings.Save);
+            var save = Copy(before);
             save.Lives = Mathf.Max(0, save.Lives - 1);
             save.FirstTry = false;
             return save;

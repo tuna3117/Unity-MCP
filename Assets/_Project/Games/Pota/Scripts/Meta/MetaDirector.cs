@@ -11,7 +11,7 @@ namespace Project.Meta
     /// </summary>
     public class MetaDirector : MonoBehaviour
     {
-        public enum Screen { Menu, Map, Market, Level, Win, Lose, League, Promotion, Bonus, Settings }
+        public enum Screen { Menu, Map, Market, Level, Game, Win, Lose, League, Promotion, Bonus, Settings }
 
         public MetaSettings S;
         [SerializeField] private RectTransform _root;
@@ -22,9 +22,16 @@ namespace Project.Meta
         [SerializeField] private Toast _toast;
         [SerializeField] private CoinFlight _coins;
         [SerializeField] private DevStrip _dev;
+        [SerializeField] private LevelWindow _level;
+        [SerializeField] private WinWindow _win;
+        [SerializeField] private LoseWindow _lose;
+        [SerializeField] private Confetti _confetti;
+        [SerializeField] private Image _fade;
 
         private SampleSave _save;
         private ScreenSlide _mapSlide, _marketSlide;
+        private WinResult _lastWin;
+        private float _fadeT = -1f;
 
         public Screen Current { get; private set; } = Screen.Menu;
         public SampleSave Save => _save;
@@ -37,6 +44,11 @@ namespace Project.Meta
         public Toast Toast => _toast;
         public CoinFlight Coins => _coins;
         public DevStrip Dev => _dev;
+        public LevelWindow Level => _level;
+        public WinWindow Win => _win;
+        public LoseWindow Lose => _lose;
+        public Confetti Confetti => _confetti;
+        public WinResult LastWin => _lastWin;
         public event Action<Screen> ScreenChanged;
 
         /// <summary>The scene tool hands over the canvas; the screens are built on Play (Awake).</summary>
@@ -51,6 +63,12 @@ namespace Project.Meta
             _marketPage = Page(root, "MarketPage", null, new Color(20f / 255f, 40f / 255f, 80f / 255f, 0.82f));
             _tabs = TabBar.Create(root, S);
             _settings = SettingsWindow.Create(root, S);
+            _level = LevelWindow.Create(root, S);
+            _confetti = Confetti.Create(root);
+            _win = WinWindow.Create(root, S, root, _confetti);
+            _lose = LoseWindow.Create(root, S);
+            _fade = Page(root, "Fade", null, Color.black).GetComponent<Image>();
+            _fade.gameObject.SetActive(false);
             _toast = Toast.Create(root, S.Lilita, S.Feel);
             _coins = CoinFlight.Create(root, S.Coin, S.Feel);
             _dev = DevStrip.Create(root, S);
@@ -91,10 +109,100 @@ namespace Project.Meta
             _marketSlide = _marketPage.GetComponent<ScreenSlide>() ?? ScreenSlide.Attach(_marketPage, S.Feel);
             _tabs.Selected -= OnTab; _tabs.Selected += OnTab;
             _menu.Gear.Clicked -= OpenSettings; _menu.Gear.Clicked += OpenSettings;
+            _menu.Play.Clicked -= OpenLevel; _menu.Play.Clicked += OpenLevel;
+            _level.Play.Clicked -= StartGame; _level.Play.Clicked += StartGame;
+            _level.Window.Closed -= OnLevelClosed; _level.Window.Closed += OnLevelClosed;
+            _win.Done -= OnWinDone; _win.Done += OnWinDone;
+            _lose.Window.Closed -= OnLoseClosed; _lose.Window.Closed += OnLoseClosed;
+            _lose.Recommended.Clicked -= RetryLevel; _lose.Recommended.Clicked += RetryLevel;
+            foreach (var b in new[] { _lose.Basket, _lose.More, _lose.Video }) { b.Clicked -= CloseLose; b.Clicked += CloseLose; }
             _menu.Refresh(_save, false);
             _menu.Enter();
             _dev?.Bind(this);
+            if (_dev != null)
+            {
+                _dev.Win.Clicked -= ShowWin; _dev.Win.Clicked += ShowWin;
+                _dev.Lose.Clicked -= ShowLose; _dev.Lose.Clicked += ShowLose;
+            }
         }
+
+        // ---------- level → "game" → result ----------
+
+        public void OpenLevel()
+        {
+            _level.Open(_save);
+            Set(Screen.Level);
+        }
+
+        private void OnLevelClosed() { if (Current == Screen.Level) Set(Screen.Menu); }
+
+        /// <summary>"Oyna": the box shrinks, the screen fades to black and back (M2) — the showcase has no round; the dev strip gives the result.</summary>
+        private void StartGame()
+        {
+            Set(Screen.Game);
+            _level.Window.Hide();
+            if (S.Feel.Enabled) { _fadeT = 0f; _fade.gameObject.SetActive(true); _fade.color = new Color(0f, 0f, 0f, 0f); }
+            else EndGameFade();
+        }
+
+        private void EndGameFade()
+        {
+            _fadeT = -1f;
+            _fade.gameObject.SetActive(false);
+            Set(Screen.Menu);
+            _toast.Show("Oyun burada oynanır — sonucu şeritten seç: Kazan / Kaybet");
+        }
+
+        private void Update()
+        {
+            if (_fadeT < 0f) return;
+            _fadeT += Time.unscaledDeltaTime;
+            float f = Mathf.Max(0.01f, S.Feel.PlayFade), hold = 0.25f;
+            float a = _fadeT < f ? _fadeT / f : _fadeT < f + hold ? 1f : 1f - (_fadeT - f - hold) / f;
+            _fade.color = new Color(0f, 0f, 0f, Mathf.Clamp01(a));
+            if (_fadeT >= 2f * f + hold || !S.Feel.Enabled) EndGameFade();
+        }
+
+        /// <summary>The dev strip's "Kazan": Pota's win over the current save, shown by the win window's sequence.</summary>
+        public void ShowWin()
+        {
+            var before = _save;
+            int score = MetaRules.Score(before);
+            var r = MetaRules.Win(S, before, score, before.LeftoverBalls);
+            var seq = new WinSequence(S, score, before.MedalSilver, before.MedalGold, before.Trophies, r.Save.Trophies, r.CoinsGained);
+            _lastWin = r;
+            _save = r.Save;
+            _save.Coins = before.Coins;                     // the flight adds the coins (GainCoins)
+            _win.Open(seq, r, before, (amount, from) => GainCoins(amount, from));
+            Set(Screen.Win);
+        }
+
+        private void OnWinDone()
+        {
+            _win.Window.Hide(() =>
+            {
+                _menu.Refresh(_save, true);
+                Set(Screen.Menu);
+                if (_lastWin.Promoted) _toast.Show("Yeni lig! (terfi penceresi: görev 5)");
+            });
+        }
+
+        /// <summary>The dev strip's "Kaybet": a life goes, the lose window shows what remained.</summary>
+        public void ShowLose()
+        {
+            _save = MetaRules.Lose(_save);
+            _lose.Open(_save.RemainingOnLoss);
+            Set(Screen.Lose);
+        }
+
+        private void OnLoseClosed()
+        {
+            _menu.Refresh(_save, true);
+            if (Current == Screen.Lose) Set(Screen.Menu);
+        }
+
+        private void RetryLevel() => _lose.Window.Hide(OpenLevel);
+        private void CloseLose() => _lose.Window.Hide();
 
         /// <summary>The sample save again (tests, the recorder).</summary>
         public void ResetSave()
@@ -116,6 +224,7 @@ namespace Project.Meta
         private void Set(Screen s)
         {
             Current = s;
+            _dev?.transform.SetAsLastSibling();             // the strip stays above every window
             ScreenChanged?.Invoke(s);
         }
 

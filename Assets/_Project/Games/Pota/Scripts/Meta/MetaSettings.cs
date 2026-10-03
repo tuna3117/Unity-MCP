@@ -60,6 +60,9 @@ namespace Project.Meta
         [Tooltip("The showcase win's score lines (Pota skorHesapla): blok, zincir, özel, altın, kalan, engel; carpan 1.2 on a first try.")]
         public int ScoreBlocks = 120, ScoreChain = 30, ScoreSpecial = 40, ScoreGold = 100, ScoreLeft = 9, ScoreObstacle = 0;
         public int LeftoverBalls = 137;
+        [Tooltip("The level window's ammo (Pota turCephane) and goal: item index (esya-forma…) and how many.")]
+        public int Ammo = 158;
+        public int GoalItem = 0, GoalCount = 12;
         public int RemainingOnLoss = 3;
         [Tooltip("Level 20's medal thresholds (Pota renkAviBolum madalya): silver, gold.")]
         public int MedalSilver = 300, MedalGold = 420;

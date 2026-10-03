@@ -140,5 +140,99 @@ namespace Project.Tests
             Assert.Greater(most, 1.02f);
             Assert.AreEqual(1f, b.Scale, 1e-3f);
         }
+
+        // ---------- Task 3: level, win, lose windows ----------
+
+        [UnityTest]
+        public IEnumerator LevelWindow_OpensFromPlay_ShowsGoalsAmmoReward()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Menu.Play.Tap();
+            yield return null;
+            Assert.AreEqual(MetaDirector.Screen.Level, d.Current);
+            Assert.IsTrue(d.Level.Window.IsOpen);
+            Assert.AreEqual("Bölüm 20", d.Level.Window.Title.text);
+            Assert.AreEqual("Oyna · 158 top", d.Level.Play.Label.text);
+            yield return WaitUntil(() => d.Level.Window.State == MetaWindow.Phase.Open, 1f);
+            d.Level.Window.Hide();
+            yield return WaitUntil(() => d.Level.Window.State == MetaWindow.Phase.Closed, 1f);
+            Assert.AreEqual(MetaDirector.Screen.Menu, d.Current);
+        }
+
+        [UnityTest]
+        public IEnumerator Win_CountsTheScore_EscalatesTheMedal_RollsCoins_PulsesContinue()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Win.Tap();
+            yield return null;
+            Assert.AreEqual(MetaDirector.Screen.Win, d.Current);
+            var w = d.Win;
+            Assert.AreEqual("Bölüm 20 bitti", w.Window.Title.text);
+            float f0 = d.S.Feel.ScoreAt + d.S.Feel.ScoreTime + 0.3f;
+            yield return Wait(f0);
+            Assert.AreEqual(w.Sequence.Score.ToString(), w.ScoreText, "the count-up reached the total");
+            Assert.AreEqual(w.Sequence.FinalMedal, w.MedalShown, "the medal the score earns");
+            yield return WaitUntil(() => !d.Coins.Running && w.Elapsed > d.S.Feel.ContinueAt + 0.2f, 4f);
+            Assert.AreEqual(d.S.Save.Coins + w.Sequence.CoinsGained, d.Menu.Coins.Value, "the strip's coins rolled up by the reward");
+            Assert.IsTrue(w.ContinuePulsing);
+            Assert.AreEqual(d.S.Save.Coins + w.Sequence.CoinsGained, d.Save.Coins);
+        }
+
+        [UnityTest]
+        public IEnumerator Win_FeelOff_IsPotasInstantWindow()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.S.Feel.Enabled = false;
+            d.Dev.Win.Tap();
+            yield return null;
+            yield return null;
+            var w = d.Win;
+            Assert.AreEqual(w.Sequence.Score.ToString(), w.ScoreText, "no count-up");
+            Assert.AreEqual(w.Sequence.FinalMedal, w.MedalShown);
+            Assert.IsFalse(w.ContinuePulsing);
+            Assert.AreEqual(d.S.Save.Coins + w.Sequence.CoinsGained, d.Menu.Coins.Value, "coins credited at once");
+            d.S.Feel.Enabled = true;
+        }
+
+        [UnityTest]
+        public IEnumerator Win_FeelTurnedOffMidSequence_LandsOnTheFinalState()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Win.Tap();
+            yield return Wait(0.6f);
+            d.S.Feel.Enabled = false;
+            yield return null;
+            yield return null;
+            var w = d.Win;
+            Assert.AreEqual(w.Sequence.Score.ToString(), w.ScoreText);
+            Assert.AreEqual(w.Sequence.FinalMedal, w.MedalShown);
+            Assert.IsFalse(d.Coins.Running, "no coins left in the air");
+            Assert.AreEqual(d.S.Save.Coins + w.Sequence.CoinsGained, d.Menu.Coins.Value);
+            d.S.Feel.Enabled = true;
+        }
+
+        [UnityTest]
+        public IEnumerator Lose_ShakesIn_StampsTheRemaining_TagsANearMiss_PulsesTheOrangeButton()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Lose.Tap();
+            yield return null;
+            Assert.AreEqual(MetaDirector.Screen.Lose, d.Current);
+            var l = d.Lose;
+            Assert.AreEqual("Cephane bitti", l.Window.Title.text);
+            Assert.AreEqual("3", l.RemainingText);
+            Assert.IsTrue(l.NearMissShown, "3 left is a near miss");
+            yield return Wait(0.6f);
+            Assert.Greater(l.ShakePeak, 1f, "the box shook");
+            Assert.AreEqual(0f, l.ShakeOffset, 1e-3f, "and settled");
+            yield return Wait(d.S.Feel.LosePulseAt);
+            Assert.IsTrue(l.Recommended.Pulsing);
+            Assert.AreEqual(d.S.Save.Lives - 1, d.Save.Lives);
+        }
     }
 }
