@@ -30,7 +30,7 @@ namespace Project.Meta
             var rt = (RectTransform)go.transform;
             rt.anchorMin = new Vector2(0f, 0f); rt.anchorMax = new Vector2(1f, 0f); rt.pivot = new Vector2(0.5f, 0f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(0f, (HeightCss + 10f) * css);
+            rt.sizeDelta = new Vector2(0f, (HeightCss + 14f) * css);
             var bg = go.GetComponent<Image>();
             bg.sprite = ColorHunt.ColorHuntHud.PanelSprite(128, 1, MetaStyle.PanelTop, MetaStyle.Navy, MetaStyle.PanelTop, 0, 0f, 0);
             bg.type = Image.Type.Sliced;
@@ -76,7 +76,7 @@ namespace Project.Meta
                 lgo.transform.SetParent(e.Root, false);
                 var lrt = (RectTransform)lgo.transform;
                 lrt.anchorMin = new Vector2(0f, 0f); lrt.anchorMax = new Vector2(1f, 0f); lrt.pivot = new Vector2(0.5f, 0f);
-                lrt.anchoredPosition = new Vector2(0f, 14f * css); lrt.sizeDelta = new Vector2(0f, 18f * css);
+                lrt.anchoredPosition = new Vector2(0f, 18f * css); lrt.sizeDelta = new Vector2(0f, 18f * css);
                 e.Label = lgo.GetComponent<Text>();
                 e.Label.font = s.Lilita; e.Label.fontSize = Mathf.RoundToInt(13f * css); e.Label.alignment = TextAnchor.MiddleCenter;
                 e.Label.color = Color.white; e.Label.text = labels[i]; e.Label.raycastTarget = false;
@@ -118,7 +118,7 @@ namespace Project.Meta
                 e.Card.localScale = new Vector3(card, card, 1f);
                 e.Card.gameObject.SetActive(e.U > 0.001f);
                 e.Label.color = Color.Lerp(new Color(1f, 1f, 1f, 0.8f), MetaStyle.Navy, k);
-                e.Label.rectTransform.anchoredPosition = new Vector2(0f, (14f - 8f * k) * css);
+                e.Label.rectTransform.anchoredPosition = new Vector2(0f, (18f - 6f * k) * css);
                 e.Icon.SetAsLastSibling(); e.Label.transform.SetAsLastSibling();
             }
         }

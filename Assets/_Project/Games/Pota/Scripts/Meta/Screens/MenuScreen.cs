@@ -36,7 +36,8 @@ namespace Project.Meta
         public bool ShineVisible => _shine != null && _shine.gameObject.activeSelf;
         /// <summary>The coin badge's centre on the root canvas (coin flights land here).</summary>
         public Vector2 CoinsPoint => CanvasPoint(CoinsBadge.Rect);
-        public Vector2 TrophiesPoint => CanvasPoint(_badges[1]);
+        public Vector2 TrophiesPoint => CanvasPoint(_trophiesRect);
+        private RectTransform _trophiesRect;
 
         public static MenuScreen Create(Transform parent, MetaSettings s)
         {
@@ -94,19 +95,28 @@ namespace Project.Meta
             hrt.sizeDelta = new Vector2(44f, 62f) * css; hrt.anchoredPosition = new Vector2(0f, 2f * css);
             var hi = hero.GetComponent<Image>(); hi.sprite = s.Hero; hi.preserveAspect = true; hi.raycastTarget = false;
             m.LevelPill = Pill(avatar.Rect, s, "LevelPill", s.Save.Level.ToString(), new Vector2(24f, -44f) * css, MetaStyle.Orange);
-            var league = Badge(srt, s, "LeagueBadge", s.LeagueBadges[s.LeagueOf(s.Save.Trophies)], MetaStyle.KupaKisa(s.Save.Trophies), new Vector2(-150f, 0f), 26f);
+            // the right group: a row, right-aligned, gap 4 (Pota #menuUst), each badge as wide as its label needs
+            var right = new GameObject("Right", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            right.transform.SetParent(srt, false);
+            var rrt = (RectTransform)right.transform;
+            rrt.anchorMin = new Vector2(1f, 0.5f); rrt.anchorMax = new Vector2(1f, 0.5f); rrt.pivot = new Vector2(1f, 0.5f);
+            rrt.anchoredPosition = new Vector2(-14f * css, 0f); rrt.sizeDelta = new Vector2(320f, 50f) * css;
+            var rh = right.GetComponent<HorizontalLayoutGroup>();
+            rh.spacing = 4f * css; rh.childAlignment = TextAnchor.MiddleRight; rh.childControlWidth = false; rh.childControlHeight = false; rh.childForceExpandWidth = false; rh.childForceExpandHeight = false;
+            var league = Badge(rrt, s, "LeagueBadge", s.LeagueBadges[s.LeagueOf(s.Save.Trophies)], MetaStyle.KupaKisa(s.Save.Trophies), Vector2.zero, 26f);
             m.LeagueIcon = league.Icon;
-            var coins = Badge(srt, s, "CoinsBadge", s.Coin, s.Save.Coins.ToString(), new Vector2(-98f, 0f), 20f);
+            var coins = Badge(rrt, s, "CoinsBadge", s.Coin, s.Save.Coins.ToString(), Vector2.zero, 20f);
             m.CoinsBadge = coins;
-            var lives = Badge(srt, s, "LivesBadge", s.Heart, s.Save.Lives >= s.Save.MaxLives ? "TAM" : s.Save.Lives.ToString(), new Vector2(-50f, 0f), 20f);
-            m.Gear = MetaButton.Create(srt, "Gear", MetaButton.Kind.Round, MetaButton.Tone.Navy, "", new Vector2(44f, 44f), s.Lilita, 12f, s.Feel);
-            Place(m.Gear.Rect, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-14f * css, -3f * css));
+            var lives = Badge(rrt, s, "LivesBadge", s.Heart, s.Save.Lives >= s.Save.MaxLives ? "TAM" : s.Save.Lives.ToString(), Vector2.zero, 20f);
+            m.Gear = MetaButton.Create(rrt, "Gear", MetaButton.Kind.Round, MetaButton.Tone.Navy, "", new Vector2(44f, 44f), s.Lilita, 12f, s.Feel);
             var gi = new GameObject("Icon", typeof(RectTransform), typeof(Image)); gi.transform.SetParent(m.Gear.Face, false);
             var girt = (RectTransform)gi.transform; girt.anchorMin = girt.anchorMax = new Vector2(0.5f, 0.5f); girt.sizeDelta = Vector2.one * (26f * css);
             var gimg = gi.GetComponent<Image>(); gimg.sprite = s.Gear; gimg.preserveAspect = true; gimg.raycastTarget = false;
-            m._badges = new[] { avatar.Rect, league.Rect, coins.Rect, lives.Rect, m.Gear.Rect };
+            // the entrance moves the avatar and the whole right group (its badges are placed by the layout group every frame)
+            m._badges = new[] { avatar.Rect, rrt };
             m._badgeHomes = new Vector2[m._badges.Length];
             for (int i = 0; i < m._badges.Length; i++) m._badgeHomes[i] = m._badges[i].anchoredPosition;
+            m._trophiesRect = league.Rect;
             m.Trophies = RollingNumber.Attach(league.Label, s.Feel, 6f);
             m.Coins = RollingNumber.Attach(coins.Label, s.Feel, 6f);
             m.Lives = RollingNumber.Attach(lives.Label, s.Feel, 6f);
@@ -138,8 +148,8 @@ namespace Project.Meta
         private static MetaButton Badge(RectTransform strip, MetaSettings s, string name, Sprite icon, string label, Vector2 rightCss, float iconCss)
         {
             float css = MetaStyle.Css;
-            var b = MetaButton.Create(strip, name, MetaButton.Kind.Small, MetaButton.Tone.Navy, label, new Vector2(46f + label.Length * 9f, 32f), s.Lilita, 15f, s.Feel);
-            Place(b.Rect, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), rightCss * css);
+            var b = MetaButton.Create(strip, name, MetaButton.Kind.Small, MetaButton.Tone.Navy, label, new Vector2(iconCss + 14f + label.Length * 10f, 32f), s.Lilita, 15f, s.Feel);
+            b.gameObject.AddComponent<LayoutElement>().preferredWidth = b.Rect.sizeDelta.x;
             b.Face.GetComponent<Image>().sprite = MetaStyle.Pill();
             b.WithIcon(icon, iconCss);
             b.Icon.rectTransform.anchoredPosition = new Vector2(4f * css, 0f);

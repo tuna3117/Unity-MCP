@@ -66,7 +66,7 @@ namespace Project.Meta
             w.Content = (RectTransform)content.transform;
             w.Content.anchorMin = new Vector2(0f, 1f); w.Content.anchorMax = new Vector2(1f, 1f);
             w.Content.pivot = new Vector2(0.5f, 1f);
-            w.Content.offsetMin = new Vector2(20f * css, 0f); w.Content.offsetMax = new Vector2(-20f * css, -16f * css);
+            w.Content.offsetMin = new Vector2(20f * css, 0f); w.Content.offsetMax = new Vector2(-20f * css, -36f * css);   // under the ribbon's inside part
             var layout = content.GetComponent<VerticalLayoutGroup>();
             layout.spacing = 12f * css;
             layout.padding = new RectOffset(0, 0, Mathf.RoundToInt(10f * css), Mathf.RoundToInt(26f * css));
@@ -81,7 +81,7 @@ namespace Project.Meta
             w._ribbon.anchorMin = w._ribbon.anchorMax = new Vector2(0.5f, 1f);
             w._ribbon.pivot = new Vector2(0.5f, 0.5f);
             w._ribbon.sizeDelta = new Vector2((widthCss + 24f) * css, 54f * css);
-            w._ribbonHome = new Vector2(0f, 2f * css);
+            w._ribbonHome = new Vector2(0f, -3f * css);                 // Pota: the ribbon hangs 24 css above the box edge, the rest inside
             w._ribbon.anchoredPosition = w._ribbonHome;
             var rimg = ribbon.GetComponent<Image>();
             rimg.sprite = MetaStyle.Ribbon(); rimg.type = Image.Type.Sliced;
@@ -124,14 +124,19 @@ namespace Project.Meta
         /// <summary>Sizes the box to its content (call after filling Content).</summary>
         public void Fit()
         {
+            bool wasActive = gameObject.activeSelf;
+            if (!wasActive) gameObject.SetActive(true);                 // an inactive hierarchy lays out to 0 (the first settings window was a bare ribbon)
+            Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(Content);
-            _box.sizeDelta = new Vector2(_box.sizeDelta.x, Content.rect.height + 16f * MetaStyle.Css);
+            _box.sizeDelta = new Vector2(_box.sizeDelta.x, Mathf.Max(120f * MetaStyle.Css, Content.rect.height + 36f * MetaStyle.Css));
+            if (!wasActive) gameObject.SetActive(false);
         }
 
         public void Show()
         {
             gameObject.SetActive(true);
             transform.SetAsLastSibling();
+            Fit();
             State = Phase.Opening;
             _t = 0f;
             Apply();
