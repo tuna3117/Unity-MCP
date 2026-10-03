@@ -21,8 +21,6 @@ namespace Project.Basket
         public float CamDownDeg = 2f;
         [Tooltip("Rim glow fade time on the aimed hoop.")]
         public float HoopGlowTime = 0.2f;
-        [Tooltip("Trajectory line width at zero and full pull.")]
-        public float LineWidthMin = 0.06f, LineWidthMax = 0.11f;
 
         [Header("F11 miss")]
         public float MissTime = 1f;

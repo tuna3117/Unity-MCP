@@ -12,7 +12,7 @@ namespace Project.Basket
         private Material _lineMat;
         private static readonly Color White = new Color(1f, 1f, 1f, 0.92f);
         private static readonly Color Red = new Color(1f, 0.35f, 0.3f, 0.95f);
-        private float _power, _widthMin = 0.06f, _widthMax = 0.11f;
+        private float _power, _widthMin = 0.06f, _widthMax = 0.085f;   // 0.11 read as a fat worm in the first screenshot
         private bool _over;
 
         /// <summary>The line's current start width (F10: thickens with the pull).</summary>
