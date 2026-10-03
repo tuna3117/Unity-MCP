@@ -32,6 +32,7 @@ namespace Project.Meta
         [SerializeField] private LeagueWindow _league;
         [SerializeField] private PromotionWindow _promotion;
         [SerializeField] private BonusWindow _bonus;
+        [SerializeField] private TutorialHand _hand;
         private int _leagueSeen;
         private Action _afterPromotion;
 
@@ -61,6 +62,7 @@ namespace Project.Meta
         public LeagueWindow League => _league;
         public PromotionWindow Promotion => _promotion;
         public BonusWindow Bonus => _bonus;
+        public TutorialHand Hand => _hand;
         public event Action<Screen> ScreenChanged;
 
         /// <summary>The scene tool hands over the canvas; the screens are built on Play (Awake).</summary>
@@ -88,6 +90,7 @@ namespace Project.Meta
             _fade.gameObject.SetActive(false);
             _toast = Toast.Create(root, S.Lilita, S.Feel);
             _coins = CoinFlight.Create(root, S.Coin, S.Feel);
+            _hand = TutorialHand.Create(root, S);
             _dev = DevStrip.Create(root, S);
             _tabs.transform.SetAsLastSibling();
             _dev.transform.SetAsLastSibling();
@@ -150,7 +153,16 @@ namespace Project.Meta
                 _dev.Lose.Clicked -= ShowLose; _dev.Lose.Clicked += ShowLose;
                 _dev.Promotion.Clicked -= ShowPromotion; _dev.Promotion.Clicked += ShowPromotion;
                 _dev.Bonus.Clicked -= ShowBonus; _dev.Bonus.Clicked += ShowBonus;
+                _dev.Tutorial.Clicked -= ShowTutorial; _dev.Tutorial.Clicked += ShowTutorial;
             }
+        }
+
+        /// <summary>The dev strip's "Öğretici" (M11): the hand points at Oyna (three taps), arcs to the Harita tab (two taps), leaves. Tapping Oyna ends it.</summary>
+        public void ShowTutorial()
+        {
+            _tabs.Select(TabBar.Tab.Home);
+            _hand.PointAt(_menu.Play.Rect, "Oynamak için dokun", 3, () =>
+                _hand.ArcMove(_tabs.RectOf(TabBar.Tab.Map), "Harita burada", 2, () => _hand.Hide()));
         }
 
         // ---------- league, promotion, bonus, market ----------
@@ -212,6 +224,7 @@ namespace Project.Meta
 
         public void OpenLevel()
         {
+            if (_hand != null && _hand.Visible) _hand.Hide();
             _level.Open(_save);
             Set(Screen.Level);
         }

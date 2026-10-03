@@ -29,6 +29,7 @@ namespace Project.Editor.AITools
             "vfx-letter-slam", "vfx-letter-swish", "vfx-letter-combo",
             "vfx-ball-halves", "vfx-bomb-shell", "vfx-coin", "vfx-basketball",
             "vfx-letter-miss", "cloud-set", "bird-flock", "city-band",             // feel layer (spec 2026-10-03)
+            "vfx-hand-pointer", "vfx-cloud-still",                                  // menu/reward layer (M11 hand, M7 clouds)
         };
 
         public class Parameters
@@ -100,6 +101,14 @@ namespace Project.Editor.AITools
                 EditorUtility.SetDirty(basket);
                 report.Add("basket settings: sky props wired");
             }
+            var meta = AssetDatabase.LoadAssetAtPath<Project.Meta.MetaSettings>(Project.Meta.MetaSettings.AssetPath);
+            if (meta != null)
+            {
+                meta.HandSprite = SpriteOf("vfx-hand-pointer");
+                meta.CloudSprite = SpriteOf("vfx-cloud-still");
+                EditorUtility.SetDirty(meta);
+                report.Add($"meta settings: hand={meta.HandSprite != null} cloud={meta.CloudSprite != null}");
+            }
             AssetDatabase.SaveAssets();
             report.Add($"settings: puff={s.CandyPuff != null} ring={s.CandyRing != null} smoke={s.ShatterSmoke != null} " +
                        $"shock={s.ShockRing != null} pieces={s.ShatterPieces != null}");
@@ -111,6 +120,23 @@ namespace Project.Editor.AITools
         }
 
         private static Texture2D Sheet(string id) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{Folder(id)}/{id}.png");
+
+        /// <summary>A one-frame sheet as a UI sprite (the import leaves flipbooks as plain textures).</summary>
+        private static Sprite SpriteOf(string id)
+        {
+            string path = $"{Folder(id)}/{id}.png";
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp == null) return null;
+            if (imp.textureType != TextureImporterType.Sprite)
+            {
+                imp.textureType = TextureImporterType.Sprite;
+                imp.spriteImportMode = SpriteImportMode.Single;
+                imp.alphaIsTransparency = true;
+                imp.mipmapEnabled = false;
+                imp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
 
         private static GameObject Model(string id) => AssetDatabase.LoadAssetAtPath<GameObject>($"{Folder(id)}/{id}.glb");
 

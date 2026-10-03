@@ -76,6 +76,8 @@ namespace Project.Meta
         public static Sprite SmallButton(Color light, Color dark) => ColorHuntHud.PanelSprite(128, R(12), light, dark, light, 0, 0f, 0);
         public static Sprite Pill() => ColorHuntHud.PanelSprite(128, R(18), PanelTop, Navy, Gold, R(3), 0.18f, R(2));
         public static Sprite Circle(int sizeCss, Color top, Color bottom, Color border, int borderCss) => ColorHuntHud.CircleSprite(R(sizeCss), top, bottom, border, R(borderCss));
+        /// <summary>A hollow ring (CircleSprite paints a clear fill black; PanelSprite keeps it clear).</summary>
+        public static Sprite Ring(int sizeCss, Color color, int borderCss) => ColorHuntHud.PanelSprite(R(sizeCss) + 8, R(sizeCss) / 2, Color.clear, Color.clear, color, R(borderCss), 0f, 0);
         public static Sprite CloseButton() => ColorHuntHud.CircleSprite(R(46), Red, RedDark, Color.white, R(3));
 
         public static int R(float css) => Mathf.Max(1, Mathf.RoundToInt(css * Css));

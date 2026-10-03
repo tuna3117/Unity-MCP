@@ -1,0 +1,64 @@
+{
+  "id": "vfx-hand-pointer",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-hand-pointer.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 1,
+    "rows": 1,
+    "frames": 1,
+    "frame_px": 512,
+    "frame_h": 512,
+    "duration_s": 0.35,
+    "linear": false,
+    "loop": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-hand-pointer.png",
+        "size": [
+          512,
+          512
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:hand_pointer",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 1
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.2486
+    ],
+    "passed": true
+  },
+  "made": "2026-10-03T13:30:56Z"
+}

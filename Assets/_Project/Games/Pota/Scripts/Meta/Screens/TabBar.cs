@@ -19,6 +19,7 @@ namespace Project.Meta
         public Tab Current { get; private set; } = Tab.Home;
         public event Action<Tab> Selected;
         public RectTransform Rect => (RectTransform)transform;
+        public RectTransform RectOf(Tab tab) => _entries[(int)tab].Root;
 
         public const float HeightCss = 86f;
 

@@ -65,6 +65,9 @@ MonoBehaviour:
     ScoreLeft: 9
     ScoreObstacle: 0
     LeftoverBalls: 137
+    Ammo: 158
+    GoalItem: 0
+    GoalCount: 12
     RemainingOnLoss: 3
     MedalSilver: 300
     MedalGold: 420
@@ -78,6 +81,8 @@ MonoBehaviour:
   - All-Star
   - "\u015Eampiyonlar Ligi"
   MapLevels: 50
+  BonusColumns: 7
+  BonusSeed: -1
   Lilita: {fileID: 12800000, guid: 7640cc1b4d6424a6291580a4262bff67, type: 3}
   FredokaSemiBold: {fileID: 12800000, guid: f6bd82476966a4ccca268235ab6701ca, type: 3}
   FredokaBold: {fileID: 12800000, guid: 314227d13accf4a9a97736d23600363b, type: 3}
@@ -131,5 +136,5 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 3f4808def6d254202b97d1bcdc20bdcb, type: 3}
   - {fileID: 21300000, guid: 8c40eac5e7aad4409b97cda067dca290, type: 3}
   - {fileID: 21300000, guid: 80e5484e27d3a4d80a5048da5a60a3b1, type: 3}
-  HandSprite: {fileID: 0}
-  CloudSprite: {fileID: 0}
+  HandSprite: {fileID: 21300000, guid: 341183579a0a4403989d054dc7e5e7b1, type: 3}
+  CloudSprite: {fileID: 21300000, guid: c28fbc2fc84484a9694472813e6bc2ee, type: 3}

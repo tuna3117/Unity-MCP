@@ -427,5 +427,55 @@ namespace Project.Tests
             Assert.AreEqual("Giyili", d.Market.ChipLabel(2));
             d.S.Feel.Enabled = true;
         }
+
+        // ---------- Task 6: tutorial hand, menu clouds ----------
+
+        [UnityTest]
+        public IEnumerator Tutorial_HandGlidesToPlayIn0_3s_TapsEverySecond_ThenArcsToTheMapTab()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Tutorial.Tap();
+            yield return null;
+            var h = d.Hand;
+            Assert.IsTrue(h.Visible);
+            Assert.IsTrue(h.Moving);
+            yield return Wait(0.4f);
+            Assert.IsFalse(h.Moving, "reached the Play button within 0.3 s");
+            Assert.Less(Vector2.Distance(h.Position, h.Target), 4f * MetaStyle.Css);
+            Assert.AreEqual("Oynamak için dokun", h.Bubble.text);
+            yield return WaitUntil(() => h.TapCount >= 2, 2.6f);
+            Assert.GreaterOrEqual(h.TapCount, 2, "taps every second");
+            yield return WaitUntil(() => h.Arcing, 2.5f);
+            Assert.IsTrue(h.Arcing, "after three taps it slides along an arc to the map tab");
+            yield return WaitUntil(() => !h.Visible, 6f);
+            Assert.IsFalse(h.Visible, "and leaves after the last taps");
+        }
+
+        [UnityTest]
+        public IEnumerator Tutorial_FeelOff_IsPotasBlinkingRing()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.S.Feel.Enabled = false;
+            d.Dev.Tutorial.Tap();
+            yield return null;
+            var h = d.Hand;
+            Assert.IsTrue(h.Visible);
+            Assert.IsFalse(h.HandShown, "no hand sprite: Pota's ring");
+            Assert.IsTrue(h.RingShown);
+            d.S.Feel.Enabled = true;
+        }
+
+        [UnityTest]
+        public IEnumerator Menu_CloudsDrift()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            Assert.IsNotNull(d.S.CloudSprite, "ai_studio_import brings cloud_still");
+            float x0 = d.Menu.CloudX(0);
+            yield return Wait(0.5f);
+            Assert.Greater(d.Menu.CloudX(0), x0, "clouds move right");
+        }
     }
 }

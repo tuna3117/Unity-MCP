@@ -59,7 +59,7 @@ namespace Project.Meta
             m._dotSprite = MetaStyle.Circle(13, Color.white, Color.white, Color.white, 0);
             m._softSprite = MetaStyle.Shadow(36, 16);
             m._lipSprite = MetaStyle.Circle(Mathf.RoundToInt(NodeCss), new Color(0f, 0f, 0f, 0.28f), new Color(0f, 0f, 0f, 0.28f), Color.clear, 0);
-            m._shackleSprite = MetaStyle.Circle(14, Color.clear, Color.clear, Color.white, 3);
+            m._shackleSprite = MetaStyle.Ring(14, Color.white, 3);
             m._bodySprite = MetaStyle.Lip(3, Color.white);
             // viewport (between the header and the tab bar) + content
             var vp = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D), typeof(Image));
@@ -165,7 +165,7 @@ namespace Project.Meta
             var rt = (RectTransform)go.transform;
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f); rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = Vector2.one * (NodeCss * css);
-            var ring = MetaUiKit.Picture(rt, "Ring", MetaStyle.Circle(80, Color.clear, Color.clear, MetaStyle.Gold, 4), 80f, new Vector2(0.5f, 0.5f), Vector2.zero);
+            var ring = MetaUiKit.Picture(rt, "Ring", MetaStyle.Ring(80, MetaStyle.Gold, 4), 80f, new Vector2(0.5f, 0.5f), Vector2.zero);
             ring.name = "Ring";
             _stars = new Image[8];
             for (int i = 0; i < 8; i++) _stars[i] = MetaUiKit.Picture(rt, "Star" + i, MetaStyle.Circle(8, MetaStyle.GoldLight, MetaStyle.Gold, MetaStyle.Gold, 0), 8f, new Vector2(0.5f, 0.5f), Vector2.zero);

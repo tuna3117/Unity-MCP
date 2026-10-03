@@ -156,7 +156,7 @@ namespace Project.Meta
             burst.transform.SetParent(rt, false);
             m._ring = (RectTransform)burst.transform;
             m._ring.anchorMin = m._ring.anchorMax = new Vector2(0.5f, 0.5f); m._ring.sizeDelta = Vector2.one * (60f * css);
-            MetaUiKit.Picture(m._ring, "Ring", MetaStyle.Circle(70, Color.clear, Color.clear, MetaStyle.Gold, 4), 70f, new Vector2(0.5f, 0.5f), Vector2.zero);
+            MetaUiKit.Picture(m._ring, "Ring", MetaStyle.Ring(70, MetaStyle.Gold, 4), 70f, new Vector2(0.5f, 0.5f), Vector2.zero);
             m._stars = new Image[12];
             for (int i = 0; i < 12; i++) m._stars[i] = MetaUiKit.Picture(m._ring, "Star" + i, MetaStyle.Circle(8, MetaStyle.GoldLight, MetaStyle.Gold, MetaStyle.Gold, 0), 8f, new Vector2(0.5f, 0.5f), Vector2.zero);
             burst.SetActive(false);

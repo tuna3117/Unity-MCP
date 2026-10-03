@@ -37,6 +37,8 @@ namespace Project.Meta
         public bool ShineVisible => _shine != null && _shine.gameObject.activeSelf;
         /// <summary>The coin badge's centre on the root canvas (coin flights land here).</summary>
         public Vector2 CoinsPoint => CanvasPoint(CoinsBadge.Rect);
+        /// <summary>A cloud's x (canvas px); the clouds drift right and wrap (M7).</summary>
+        public float CloudX(int i) => _clouds != null && i < _clouds.Length && _clouds[i] != null ? _clouds[i].anchoredPosition.x : 0f;
         public Vector2 TrophiesPoint => CanvasPoint(_trophiesRect);
         private RectTransform _trophiesRect;
 
