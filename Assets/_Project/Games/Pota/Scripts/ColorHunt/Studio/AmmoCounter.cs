@@ -37,7 +37,7 @@ namespace Project.ColorHunt
             game.SelectionChanged += OnSelection;
             game.RoundStarted += () => { _last = -1; StopRoll(); };
             _window = RollWindow.Wrap(ammo, 12f);
-            _window.enabled = game.Studio;
+            _window.enabled = game.Polish;
             _home = ammo.rectTransform.anchoredPosition;
             _old = Instantiate(ammo, ammo.transform.parent);
             _old.name = "AmmoOld";
@@ -77,7 +77,7 @@ namespace Project.ColorHunt
         {
             var game = _hud.Game;
             int v = game.DisplayedAmmo;
-            if (game.Studio && _last >= 0 && v < _last)
+            if (game.Polish && _last >= 0 && v < _last)
             {
                 _old.text = _last.ToString();
                 _old.enabled = true;
@@ -107,7 +107,7 @@ namespace Project.ColorHunt
             var game = _hud.Game;
             var ammo = _hud.AmmoText;
             float dt = Time.unscaledDeltaTime;
-            bool studio = game.Studio;
+            bool studio = game.Polish;
             if (!studio && _wasStudio) { StopRoll(); ammo.color = PotaLook.HudGold; ammo.transform.localScale = Vector3.one; _ghostTarget = 0f; }
             _wasStudio = studio;
             _window.enabled = studio;

@@ -6,6 +6,13 @@ namespace Project.ColorHunt
     public sealed class PotaBurstStyle : IBurstStyle
     {
         private ColorHuntGame _game;
+        private CandyHud _hud;
+
+        /// <summary>F4: the chain word under the Pota look — from Feel.WordFromDepth, only with the feel layer on; null otherwise.</summary>
+        public static string Word(ColorHuntSettings s, int depth) =>
+            s != null && s.Feel != null && s.Feel.Enabled && depth >= s.Feel.WordFromDepth ? CandyHud.WordFor(depth) : null;
+
+        public CandyHud Hud => _hud;
 
         public bool Ready => true;
         public bool ShowsChainNumber => true;
@@ -32,8 +39,20 @@ namespace Project.ColorHunt
             fx.Burst(v.Pos, tone, depth);
         }
 
-        public void ChainPeak(int depth, Vector2 at, Color tone) { }
-        public void Clear() { }   // the game clears ColorHuntFx itself (Prepare)
+        /// <summary>F4 (feel layer): the chain word, screen-edge glow, and at 5+ the confetti and a 0.25 s ×0.5 slow motion (A's rule).</summary>
+        public void ChainPeak(int depth, Vector2 at, Color tone)
+        {
+            if (_game == null || Word(_game.S, depth) == null) return;
+            if (_hud == null) _hud = CandyHud.Attach(_game);
+            if (_hud == null) return;
+            _hud.Word(depth, _game.BoardRoot.TransformPoint(new Vector3(at.x, at.y + 0.7f, -PotaLook.LabelZ)));
+            _hud.EdgeGlow(tone, depth);
+            if (depth < 5) return;
+            _game.Fx?.Confetti(_game.Board.Size, _game.S.ConfettiCount / 2);
+            _game.Juice?.TimeCtl?.SlowMo(0.5f, 0.25f);
+        }
+
+        public void Clear() => _hud?.Clear();   // the game clears ColorHuntFx itself (Prepare)
     }
 
     /// <summary>A look whose style is not written yet (or a future enum value): never ready, so the game plays Pota's burst.</summary>

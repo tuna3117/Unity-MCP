@@ -73,6 +73,26 @@ MonoBehaviour:
     CoinCells: 0.42
     LandStars: 10
     InkWidth: 0.022
+  Feel:
+    Enabled: 1
+    WordFromDepth: 3
+    IntroGoalFlyAt: 0.7
+    IntroBoardAt: 0.95
+    IntroSkipTime: 0.3
+    IntroRibbonHold: 0.25
+    TensionEdgeAlpha: 0.18
+    FinaleMinFlights: 6
+    FinaleMaxFlights: 14
+    FinaleGap: 0.08
+    FinaleBallTime: 0.22
+    FinaleCoinTime: 0.45
+    FinaleMax: 2
+    LandBounceTime: 0.18
+    LoseDim: 0.6
+    LoseDimTime: 0.4
+    LoseCamBack: 0.3
+    NearMissMax: 3
+  LevelNumber: 20
   Size: 7
   ColorCount: 5
   HpMin: 3

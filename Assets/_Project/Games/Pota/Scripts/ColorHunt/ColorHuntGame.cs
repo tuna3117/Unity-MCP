@@ -505,6 +505,10 @@ namespace Project.ColorHunt
         public PuzzleLook Look { get; private set; } = PuzzleLook.Pota;
         /// <summary>The studio polish runs for every look but Pota (spec §3).</summary>
         public bool Studio => Look != PuzzleLook.Pota;
+        /// <summary>The studio polish that the feel layer opens to the Pota look too: board intro, idle hint, ammo pulse and roll, chain words.</summary>
+        public bool Polish => Studio || (S != null && S.Feel != null && S.Feel.Enabled);
+        /// <summary>The feel layer's switch (spec 2026-10-03); false in A/B and when the asset turns it off.</summary>
+        public bool Feel => S != null && S.Feel != null && S.Feel.Enabled;
         /// <summary>The studio sticker flight: always under A/B, under the Pota look while <see cref="ColorHuntSettings.StudioFlight"/> is on.</summary>
         public bool StudioFlight => Studio || (S != null && S.StudioFlight);
         public IBurstStyle Style => _style ?? (_style = Resolve(Look));
@@ -1196,7 +1200,7 @@ namespace Project.ColorHunt
         /// <summary>Studio board intro (a no-op under Pota): call between Prepare and Begin, as NewRound does.</summary>
         public void StartIntro()
         {
-            if (!Studio) return;
+            if (!Polish) return;
             _intro = 0f;
             foreach (var v in _views.Values) v.Scale = 0f;
         }
@@ -1220,7 +1224,7 @@ namespace Project.ColorHunt
         /// <summary>After 5 s without a touch the best move wiggles (±4°, twice) and glows; again every 5 s; any touch or job stops it.</summary>
         private void TickHint(float dt)
         {
-            if (!Studio || Current != State.Playing || Busy || _selected >= 0) { _idle = 0f; StopHint(); return; }
+            if (!Polish || Current != State.Playing || Busy || _selected >= 0) { _idle = 0f; StopHint(); return; }
             if (_hintT >= 0f)
             {
                 _hintT += dt;

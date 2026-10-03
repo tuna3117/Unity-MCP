@@ -29,6 +29,12 @@ namespace Project.ColorHunt
         [Tooltip("1 · Royal: every number of the Royal special look (timing, birth, idle, rockets, bomb, 2+ specials, golden landing, ink).")]
         public RoyalTuning Royal = new RoyalTuning();
 
+        [Header("Feel layer (spec 2026-10-03: level intro, ammo tension, leftover finale, words, hint, bounce, clip, sky, lose)")]
+        [Tooltip("Off = today's behaviour exactly (for the Pota | before | after recordings).")]
+        public FeelTuning Feel = new FeelTuning();
+        [Tooltip("Shown on the level-intro ribbon (\"BÖLÜM 20\"); Pota level 20 is the calibration board.")]
+        public int LevelNumber = 20;
+
         [Header("Level (Pota level 20 calibration)")]
         public int Size = 7;
         public int ColorCount = 5;

@@ -72,6 +72,24 @@ MonoBehaviour:
   GlassColor: {r: 0.16, g: 0.3, b: 0.48, a: 1}
   BuildEnvironment: 1
   RoundTimeout: 30
+  Feel:
+    Enabled: 1
+    LeanDeg: 12
+    CrouchM: 0.06
+    CamBackM: 0.4
+    CamDownDeg: 2
+    HoopGlowTime: 0.2
+    LineWidthMin: 0.06
+    LineWidthMax: 0.11
+    MissTime: 1
+    MissCamSag: 0.2
+    RimBlinkTime: 0.3
+    SlumpDeg: 8
+    SlumpTime: 0.4
+    StampPeak: 2.2
+    StampRest: 1.8
+    StampTime: 0.35
+    CageGlowTime: 0.3
   SwishSlowMoScale: 0.35
   SwishSlowMoSeconds: 0.4
   SwishShake: 0.04

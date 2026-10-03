@@ -87,6 +87,9 @@ namespace Project.Basket
         [Header("End")]
         public float RoundTimeout = 30f;
 
+        [Header("Feel layer (spec 2026-10-03: slingshot, miss, SWISH!, count stamp)")]
+        public BasketFeelTuning Feel = new BasketFeelTuning();
+
         [Header("Juice")]
         public float SwishSlowMoScale = 0.35f;
         public float SwishSlowMoSeconds = 0.4f;
