@@ -79,6 +79,12 @@ namespace Project.ColorHunt
             return local <= duration ? local / duration : -1f;
         }
 
+        /// <summary>F13: the basket counter's pop size, 0.25 at rest shrinking to 0.1 as landings come fast (rate 0..1).</summary>
+        public static float CountPop(float rate) => Mathf.Lerp(0.25f, 0.1f, Mathf.Clamp01(rate));
+
+        /// <summary>F10: the slingshot pull 0..1 from the aim's power (1 = full power; over-power is a full pull).</summary>
+        public static float PullFraction(float power) => Mathf.Clamp01(power);
+
         /// <summary>A 0..1 sine breath at <paramref name="hz"/>: 0 at t = 0, 1 half a period later.</summary>
         public static float Breath(float t, float hz) => 0.5f - 0.5f * Mathf.Cos(t * hz * 2f * Mathf.PI);
     }

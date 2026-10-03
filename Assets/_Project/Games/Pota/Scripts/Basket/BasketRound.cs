@@ -116,6 +116,21 @@ namespace Project.Basket
 
         public void ShootProgrammatic(float x, float power) => Shoot(AimMapper.FromXPower(x, power));
 
+        /// <summary>F10: the top hoop the aim is closest to in x (null before the column exists).</summary>
+        public Hoop TargetHoopFor(AimPoint aim)
+        {
+            if (Column == null) return null;
+            Hoop best = null;
+            float bestDx = float.MaxValue;
+            foreach (var h in Column.Hoops)
+            {
+                if (!h.Spec.IsTop) continue;
+                float dx = Mathf.Abs(h.Spec.X - aim.X);
+                if (dx < bestDx) { bestDx = dx; best = h; }
+            }
+            return best;
+        }
+
         private IEnumerator SpawnBalls(AimPoint aim)
         {
             int n = Layout.BallCount;

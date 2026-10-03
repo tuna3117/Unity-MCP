@@ -15,6 +15,12 @@ namespace Project.Basket
         public Button RetryButton;
         [Tooltip("Open the result panel when the round ends (off in PotaFlow: the director flies on to the board).")]
         public bool ShowResultPanel = true;
+        /// <summary>F13 (set by BasketCountFeel): the basket number rolls instead of popping, and the pop is this much (0.25 today).</summary>
+        [System.NonSerialized] public bool Roll;
+        [System.NonSerialized] public float PopAmount = 0.25f;
+        private Text _old;
+        private float _roll = -1f;
+        private Vector2 _basketHome;
 
         private BasketRound _round;
         private int _lastBasket;
@@ -25,7 +31,7 @@ namespace Project.Basket
             _round = round;
             round.StateChanged += OnState;
             round.RoundEnded += OnEnded;
-            round.MissedDeclared += () => { if (MissedText != null) MissedText.enabled = true; };
+            round.MissedDeclared += () => { if (MissedText != null && !(round.Settings != null && round.Settings.Feel != null && round.Settings.Feel.Enabled)) MissedText.enabled = true; };
             if (RetryButton != null) RetryButton.onClick.AddListener(() => { ResultPanel.SetActive(false); _round.ResetRound(); });
             OnState(round.Current);
         }
@@ -58,13 +64,48 @@ namespace Project.Basket
             if (_round == null || _round.Layout == null) return;
             if (BallsText != null)
                 BallsText.text = (_round.Current == BasketRound.State.Aim ? _round.Layout.BallCount : _round.BallsToThrow).ToString();
-            if (_round.BasketCount != _lastBasket) { _lastBasket = _round.BasketCount; _pop = 1f; }
+            if (_round.BasketCount != _lastBasket)
+            {
+                if (Roll && BasketText != null) StartRoll(_lastBasket);
+                _lastBasket = _round.BasketCount;
+                _pop = 1f;
+            }
             if (BasketText != null)
             {
                 BasketText.text = _lastBasket.ToString();
                 _pop = Mathf.Max(0f, _pop - Time.unscaledDeltaTime * 4f);
-                BasketText.transform.localScale = Vector3.one * (1f + 0.25f * _pop);
+                BasketText.transform.localScale = Vector3.one * (1f + (Roll ? PopAmount : 0.25f) * _pop);
+                TickRoll();
             }
+        }
+
+        // F13: the old number slides up and fades while the new one slides in from below (Project.ColorHunt.RollWindow clips the slot)
+        private void StartRoll(int old)
+        {
+            if (_old == null)
+            {
+                _basketHome = BasketText.rectTransform.anchoredPosition;
+                Project.ColorHunt.RollWindow.Wrap(BasketText, 12f);
+                _old = Instantiate(BasketText, BasketText.transform.parent);
+                _old.name = "BasketOld";
+                _old.enabled = false;
+            }
+            _old.text = old.ToString();
+            _old.enabled = true;
+            _roll = 0f;
+        }
+
+        private void TickRoll()
+        {
+            if (_roll < 0f || _old == null) return;
+            _roll += Time.unscaledDeltaTime / 0.14f;
+            float u = Mathf.Min(1f, _roll);
+            var r = Project.ColorHunt.StudioCurves.CounterRoll(u);
+            float h = BasketText.rectTransform.rect.height;
+            BasketText.rectTransform.anchoredPosition = _basketHome + new Vector2(0f, r.y * h);
+            _old.rectTransform.anchoredPosition = _basketHome + new Vector2(0f, r.x * h);
+            var oc = _old.color; oc.a = 1f - u; _old.color = oc;
+            if (_roll >= 1f) { _roll = -1f; _old.enabled = false; BasketText.rectTransform.anchoredPosition = _basketHome; }
         }
 
         /// <summary>Builds the whole HUD hierarchy under a new canvas (used by the scene tool).</summary>

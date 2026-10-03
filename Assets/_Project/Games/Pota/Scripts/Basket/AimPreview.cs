@@ -12,6 +12,31 @@ namespace Project.Basket
         private Material _lineMat;
         private static readonly Color White = new Color(1f, 1f, 1f, 0.92f);
         private static readonly Color Red = new Color(1f, 0.35f, 0.3f, 0.95f);
+        private float _power, _widthMin = 0.06f, _widthMax = 0.11f;
+        private bool _over;
+
+        /// <summary>The line's current start width (F10: thickens with the pull).</summary>
+        public float Width => _line != null ? _line.startWidth : 0f;
+
+        /// <summary>F10: pull 0..1 → the line thickens and brightens; at ≥ 0.98 the landing ring pulses.</summary>
+        public void SetPower(float pull)
+        {
+            _power = Mathf.Clamp01(pull);
+            if (_line == null) return;
+            float w = Mathf.Lerp(_widthMin, _widthMax, _power);
+            _line.startWidth = w;
+            _line.endWidth = w * 0.65f;
+            var c = _over ? Red : White;
+            c.a = Mathf.Lerp(0.6f, 1f, _power);
+            _lineMat.color = c;
+        }
+
+        private void Update()
+        {
+            if (_marker == null || !_markerRenderer.enabled) return;
+            float pulse = _power >= 0.98f ? 1f + 0.15f * Mathf.Sin(Time.unscaledTime * 2f * Mathf.PI) : 1f;
+            _marker.localScale = new Vector3(0.5f * pulse, 0.01f, 0.5f * pulse);
+        }
 
         private void Awake()
         {
@@ -45,7 +70,9 @@ namespace Project.Basket
                 float t = (float)i / (Points - 1) * aim.FlightTime * 1.1f;
                 _line.SetPosition(i, TrajectorySolver.PositionAt(s.LaunchStart, v, s.FlightGravity, t));
             }
+            _over = aim.OverPower;
             _lineMat.color = aim.OverPower ? Red : White;
+            SetPower(_power);
             _marker.position = new Vector3(aim.X, aim.Y, 0f);
             _line.enabled = true;
             _markerRenderer.enabled = true;

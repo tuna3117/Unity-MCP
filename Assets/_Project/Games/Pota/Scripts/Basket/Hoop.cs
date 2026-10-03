@@ -1,3 +1,4 @@
+using Project.ColorHunt;
 using System;
 using Project.Basket.Visual;
 using UnityEngine;
@@ -232,6 +233,7 @@ namespace Project.Basket
         /// <summary>Friendly rim: a ball touching the inner rim while dropping rolls inward instead of popping out.</summary>
         public void OnRimContact(Ball ball, Collision collision)
         {
+            ball.MarkRimTouched();
             var v = ball.Body.linearVelocity;
             var d = ball.transform.position - Center;
             float horizontal = new Vector2(d.x, d.z).magnitude;
@@ -253,8 +255,54 @@ namespace Project.Basket
 
         public void Wobble() => _wobbleT = 0f;
 
+        // ---------- F10 / F11 rim glow and blink ----------
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly Color GlowGold = new Color(1.3f, 1.05f, 0.35f);
+        private static readonly Color BlinkRed = new Color(1.2f, 0.25f, 0.2f);
+        private MeshRenderer _rimRenderer;
+        private MaterialPropertyBlock _rimMpb;
+        private float _glowTarget, _glowNow, _blink = -1f, _blinkTime;
+
+        /// <summary>The rim's glow target 0..1 (the aimed hoop is 1); the drawn glow eases toward it over Feel.HoopGlowTime.</summary>
+        public float Glow => _glowNow;
+        public bool Blinking => _blink >= 0f;
+
+        public void SetGlow(float target) => _glowTarget = Mathf.Clamp01(target);
+
+        /// <summary>Flashes the rim red three times over <paramref name="seconds"/> (a miss).</summary>
+        public void Blink(float seconds)
+        {
+            _blink = 0f;
+            _blinkTime = Mathf.Max(0.05f, seconds);
+        }
+
+        private void TickRim(float dt)
+        {
+            float time = _s != null && _s.Feel != null ? Mathf.Max(0.01f, _s.Feel.HoopGlowTime) : 0.2f;
+            _glowNow = Mathf.MoveTowards(_glowNow, _glowTarget, dt / time);
+            if (_blink >= 0f) { _blink += dt; if (_blink >= _blinkTime) _blink = -1f; }
+            if (_glowNow <= 0f && _blink < 0f && _rimRenderer == null) return;
+            if (_rimRenderer == null)
+            {
+                var rim = RimRoot != null ? RimRoot.Find("RimMesh") : null;
+                _rimRenderer = rim != null ? rim.GetComponent<MeshRenderer>() : null;
+                if (_rimRenderer == null) return;
+                _rimMpb = new MaterialPropertyBlock();
+            }
+            var c = Color.Lerp(_s.RimColor, GlowGold, _glowNow);
+            if (_blink >= 0f)
+            {
+                float blinkOn = 0.5f + 0.5f * Mathf.Sin(_blink / _blinkTime * Mathf.PI * 6f - Mathf.PI * 0.5f);
+                c = Color.Lerp(c, BlinkRed, blinkOn);
+            }
+            _rimRenderer.GetPropertyBlock(_rimMpb);
+            if (_glowNow <= 0f && _blink < 0f) _rimMpb.Clear(); else _rimMpb.SetColor(BaseColorId, c);
+            _rimRenderer.SetPropertyBlock(_rimMpb);
+        }
+
         private void Update()
         {
+            TickRim(Time.unscaledDeltaTime);
             if (_wobbleT < 0f || NetRoot == null) return;
             _wobbleT += Time.deltaTime;
             float fade = 1f - _wobbleT / 0.55f;

@@ -94,6 +94,9 @@ namespace Project.Basket
         public AnimationClip BirdFlap;
         [Tooltip("Core Project/Toon template for the clouds and birds (ai_studio_import).")]
         public Material ToonTemplate;
+        [Tooltip("F11 / F12 lettering stills (ai_studio_import): vfx-letter-swish, vfx-letter-miss; drawn on Project/PotaLabel from LetterTemplate.")]
+        public Texture2D LetterSwish, LetterMiss;
+        public Material LetterTemplate;
 
         [Header("Juice")]
         public float SwishSlowMoScale = 0.35f;

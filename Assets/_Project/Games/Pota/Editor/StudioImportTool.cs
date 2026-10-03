@@ -96,6 +96,7 @@ namespace Project.Editor.AITools
             if (basket != null)
             {
                 basket.Clouds = s.Clouds; basket.Birds = s.Birds; basket.BirdFlap = s.BirdFlap; basket.ToonTemplate = s.ToonTemplate;
+                basket.LetterSwish = s.LetterSwish; basket.LetterMiss = s.LetterMiss; basket.LetterTemplate = s.LabelTemplate;
                 EditorUtility.SetDirty(basket);
                 report.Add("basket settings: sky props wired");
             }

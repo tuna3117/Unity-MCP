@@ -21,6 +21,10 @@ namespace Project.Basket
         public float SlowTimer;
         public float LowestY;             // lowest y reached so far (progress tracking)
         public float PrevY;               // y before the last physics step (for rim-plane crossing tests)
+        /// <summary>F12: the ball touched a rim since its launch (a pass without it is a swish).</summary>
+        public bool TouchedRim { get; private set; }
+
+        public void MarkRimTouched() => TouchedRim = true;
 
         public event Action<Ball, Collision> RimContact;
         public event Action<Ball> SlabEntered;
@@ -112,6 +116,7 @@ namespace Project.Basket
             transform.position = position;
             Body.angularVelocity = Vector3.zero;
             Counted = false;
+            TouchedRim = false;
             LastPassTime = -10f;
             LastHoop = null;
             StuckTimer = 0f;

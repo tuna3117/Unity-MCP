@@ -80,7 +80,7 @@ namespace Project.Basket
 
         private void OnMissed()
         {
-            Popups?.Show(Vector3.zero, "Kaçtı", Red, 64, center: true, life: 1.2f);
+            if (S == null || S.Feel == null || !S.Feel.Enabled) Popups?.Show(Vector3.zero, "Kaçtı", Red, 64, center: true, life: 1.2f);   // F11 draws KAÇTI!
             Sfx?.Play("miss");
         }
 

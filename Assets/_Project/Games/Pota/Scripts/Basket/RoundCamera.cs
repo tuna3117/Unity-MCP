@@ -22,6 +22,13 @@ namespace Project.Basket
         /// <summary>The smoothed look-at point (PotaFlow starts its flight from here).</summary>
         public Vector3 LookPoint => _look;
 
+        /// <summary>F10: the slingshot's pull-back (set each frame by SlingshotFeel; zero at rest).</summary>
+        [System.NonSerialized] public Vector3 PullOffset;
+        /// <summary>F10: the slingshot's pitch down in degrees.</summary>
+        [System.NonSerialized] public float PullPitch;
+        /// <summary>F11: the miss sag (set by MissFeel; zero at rest).</summary>
+        [System.NonSerialized] public Vector3 SagOffset;
+
         // Resume from wherever the camera is now (PotaFlow flies it back to the aim pose): no jump to a stale pose.
         private void OnEnable()
         {
@@ -89,8 +96,9 @@ namespace Project.Basket
             float a = 1f - Mathf.Exp(-k * Time.unscaledDeltaTime);
             _pos = Vector3.Lerp(_pos, targetPos, a);
             _look = Vector3.Lerp(_look, targetLook, a);
-            transform.position = _pos + (_shake != null ? _shake.Offset : Vector3.zero);
+            transform.position = _pos + PullOffset + SagOffset + (_shake != null ? _shake.Offset : Vector3.zero);
             transform.LookAt(_look);
+            if (PullPitch != 0f) transform.Rotate(PullPitch, 0f, 0f, Space.Self);
         }
     }
 }

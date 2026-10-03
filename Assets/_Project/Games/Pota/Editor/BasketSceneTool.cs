@@ -109,6 +109,13 @@ namespace Project.Editor.AITools
             input.Preview = preview;
             roundCam.Round = round;
             roundCam.S = settings;
+            // feel layer (spec 2026-10-03 F10–F13); they bind to the round, input and camera in Start
+            var sling = roundGo.AddComponent<SlingshotFeel>();
+            sling.Round = round; sling.Input = input; sling.Preview = preview; sling.Cam = roundCam;
+            var miss = roundGo.AddComponent<MissFeel>();
+            miss.Round = round; miss.Cam = roundCam;
+            roundGo.AddComponent<SwishFeel>().Round = round;
+            roundGo.AddComponent<BasketCountFeel>().Round = round;
 
             var bj = juice.Host.AddComponent<BasketJuice>();
             bj.Round = round;

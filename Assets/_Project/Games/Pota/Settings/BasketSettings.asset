@@ -94,6 +94,9 @@ MonoBehaviour:
   Birds: {fileID: 8771091787928289351, guid: 66b373c90d4cf4ba283a5ac2de209e63, type: 3}
   BirdFlap: {fileID: 1517152000292899334, guid: 66b373c90d4cf4ba283a5ac2de209e63, type: 3}
   ToonTemplate: {fileID: 2100000, guid: 986432fda363b48febb4d4d3b99a4bbb, type: 2}
+  LetterSwish: {fileID: 2800000, guid: a6df8bb315f6343338a6747478cda4bb, type: 3}
+  LetterMiss: {fileID: 2800000, guid: 50d53deb1e22a4950873abf1f124364f, type: 3}
+  LetterTemplate: {fileID: 2100000, guid: aaaaf977caccf476a8d9a820ee0898cc, type: 2}
   SwishSlowMoScale: 0.35
   SwishSlowMoSeconds: 0.4
   SwishShake: 0.04

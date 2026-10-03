@@ -114,6 +114,22 @@ namespace Project.Tests
         }
 
         [Test]
+        public void CountPop_ShrinksAsLandingsComeFaster()
+        {
+            Assert.AreEqual(0.25f, FeelCurves.CountPop(0f), 1e-4f);
+            Assert.AreEqual(0.1f, FeelCurves.CountPop(1f), 1e-4f);
+            Assert.Greater(FeelCurves.CountPop(0.3f), FeelCurves.CountPop(0.7f));
+        }
+
+        [Test]
+        public void PullFraction_IsPowerUpToOne()
+        {
+            Assert.AreEqual(0f, FeelCurves.PullFraction(0f), 1e-4f);
+            Assert.AreEqual(0.8f, FeelCurves.PullFraction(0.8f), 1e-4f);
+            Assert.AreEqual(1f, FeelCurves.PullFraction(1.4f), 1e-4f, "over-power counts as a full pull");
+        }
+
+        [Test]
         public void Settings_HaveFeelBlocksOnByDefault()
         {
             Assert.IsTrue(ScriptableObject.CreateInstance<ColorHuntSettings>().Feel.Enabled);
