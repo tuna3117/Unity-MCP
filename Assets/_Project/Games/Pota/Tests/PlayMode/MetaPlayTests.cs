@@ -190,10 +190,12 @@ namespace Project.Tests
             yield return null;
             yield return null;
             var w = d.Win;
-            Assert.AreEqual(w.Sequence.Score.ToString(), w.ScoreText, "no count-up");
-            Assert.AreEqual(w.Sequence.FinalMedal, w.MedalShown);
+            Assert.AreEqual(w.Sequence.FinalMedal, w.MedalShown, "Pota writes the medal at once");
+            Assert.AreNotEqual(w.Sequence.Score.ToString(), w.ScoreText, "Pota's own counter still counts up (0.8 s)");
             Assert.IsFalse(w.ContinuePulsing);
             Assert.AreEqual(d.S.Save.Coins + w.Sequence.CoinsGained, d.Menu.Coins.Value, "coins credited at once");
+            yield return WaitUntil(() => w.Elapsed > WinSequence.PotaCount + 0.1f, 2f);
+            Assert.AreEqual(w.Sequence.Score.ToString(), w.ScoreText);
             d.S.Feel.Enabled = true;
         }
 
@@ -208,6 +210,7 @@ namespace Project.Tests
             yield return null;
             yield return null;
             var w = d.Win;
+            yield return WaitUntil(() => w.Elapsed > WinSequence.PotaCount + 0.1f, 2f);      // Pota's own counter finishes at 0.8 s
             Assert.AreEqual(w.Sequence.Score.ToString(), w.ScoreText);
             Assert.AreEqual(w.Sequence.FinalMedal, w.MedalShown);
             Assert.IsFalse(d.Coins.Running, "no coins left in the air");
@@ -425,6 +428,8 @@ namespace Project.Tests
             Assert.IsFalse(d.Market.Purchasing);
             Assert.AreEqual(25, d.Menu.Coins.Value);
             Assert.AreEqual("Giyili", d.Market.ChipLabel(2));
+            yield return Wait(0.3f);
+            Assert.Greater(d.Market.HeroHopPeak, 0.5f, "Pota's kutla plays on a buy with the feel layer off too");
             d.S.Feel.Enabled = true;
         }
 
@@ -476,6 +481,124 @@ namespace Project.Tests
             float x0 = d.Menu.CloudX(0);
             yield return Wait(0.5f);
             Assert.Greater(d.Menu.CloudX(0), x0, "clouds move right");
+        }
+
+        // ---------- final review fixes ----------
+
+        [UnityTest]
+        public IEnumerator Win_DevamBeforeTheCoins_StillCreditsTheSave()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Win.Tap();
+            yield return Wait(0.5f);
+            int target = d.S.Save.Coins + d.Win.Sequence.CoinsGained;
+            Assert.AreEqual(target, d.Save.Coins, "the save is credited when the window opens, not at CoinsAt");
+            d.Win.Continue.Tap();
+            yield return WaitUntil(() => d.Win.Window.State == MetaWindow.Phase.Closed && !d.Coins.Running, 3f);
+            Assert.AreEqual(target, d.Menu.Coins.Value, "the strip lands on the true value");
+        }
+
+        [UnityTest]
+        public IEnumerator Market_AfterAWin_ShowsTheNewCoins_AndCanAffordTheBlackJersey()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Win.Tap();
+            yield return WaitUntil(() => d.Win.Elapsed > d.S.Feel.ContinueAt + 1.2f && !d.Coins.Running, 5f);
+            d.Win.Continue.Tap();
+            yield return WaitUntil(() => d.Current == MetaDirector.Screen.Map && !d.Map.Progressing, 5f);
+            d.Tabs.Select(TabBar.Tab.Market);
+            yield return WaitUntil(() => !d.MarketPage.Moving, 1f);
+            int coins = d.Save.Coins;
+            Assert.AreEqual(coins, d.Market.Coins.Value, "the market badge shows the save, not a stale copy");
+            d.Market.TapChip(4);                                 // 160 ≤ 183
+            yield return null;
+            d.Market.Big.Tap();
+            yield return WaitUntil(() => !d.Market.Purchasing && !d.Coins.Running, 3f);
+            Assert.AreEqual(coins - 160, d.Save.Coins);
+            Assert.AreEqual(coins - 160, d.Market.Coins.Value);
+            Assert.AreEqual(coins - 160, d.Menu.Coins.Value);
+            Assert.AreEqual("Giyili", d.Market.ChipLabel(4));
+        }
+
+        [UnityTest]
+        public IEnumerator DevWin_ClosesTheOpenLevelWindow()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Menu.Play.Tap();
+            yield return WaitUntil(() => d.Level.Window.State == MetaWindow.Phase.Open, 1f);
+            d.Dev.Win.Tap();
+            yield return null;
+            Assert.AreNotEqual(MetaWindow.Phase.Open, d.Level.Window.State, "a result closes whatever window was open");
+            Assert.AreNotEqual(MetaWindow.Phase.Opening, d.Level.Window.State);
+            yield return WaitUntil(() => d.Level.Window.State == MetaWindow.Phase.Closed, 1f);
+            Assert.AreEqual(MetaDirector.Screen.Win, d.Current);
+        }
+
+        [UnityTest]
+        public IEnumerator Map_FromTheLastLevel_PassesItWithoutANextNode()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            int level = d.S.Save.Level;
+            d.S.Save.Level = d.S.MapLevels;
+            try
+            {
+                d.ResetSave();
+                yield return null;
+                d.Dev.Win.Tap();
+                yield return WaitUntil(() => d.Win.Elapsed > d.S.Feel.ContinueAt + 0.3f, 5f);
+                d.Win.Continue.Tap();
+                yield return WaitUntil(() => d.Current == MetaDirector.Screen.Map, 3f);
+                yield return WaitUntil(() => !d.Map.Progressing, 5f);
+                Assert.AreEqual(MapScreen.NodeState.Passed, d.Map.StateOf(d.S.MapLevels), "the last node turns green");
+                Assert.AreEqual(d.LastWin.MedalIndex, d.Map.MedalOf(d.S.MapLevels));
+                Assert.AreEqual(0f, d.Map.Content.anchoredPosition.y, 1f, "the scroll rests at the top (the last node cannot be centred)");
+            }
+            finally { d.S.Save.Level = level; d.ResetSave(); }
+        }
+
+        [UnityTest]
+        public IEnumerator Coins_BadgeSquashesOnEveryArrival_GlintsOnTheLast()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Win.Tap();
+            yield return WaitUntil(() => d.Coins.Running, 4f);
+            float peak = 1f; bool glinted = false;
+            while (d.Coins.Running || d.Menu.CoinsGlint > 0f)
+            {
+                peak = Mathf.Max(peak, d.Menu.CoinsBadgeScale);
+                glinted |= d.Menu.CoinsGlint > 0f;
+                yield return null;
+            }
+            Assert.Greater(peak, 1.1f, "the badge squashes on arrivals (M3)");
+            Assert.IsTrue(glinted, "the last coin glints");
+        }
+
+        [UnityTest]
+        public IEnumerator Market_FeelOff_KeepsPotasOwnHopShakeAndCelebrate()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.S.Feel.Enabled = false;
+            try
+            {
+                d.Tabs.Select(TabBar.Tab.Market);
+                yield return null;
+                d.Market.TapChip(1);
+                yield return Wait(0.35f);
+                Assert.Greater(d.Market.HeroHopPeak, 0.5f, "Pota hops the hero on a try-on (zipla)");
+                d.Market.TapChip(4);
+                yield return null;
+                d.Market.Big.Tap();
+                yield return Wait(0.4f);
+                Assert.Greater(d.Market.ShakePeak, 1f, "Pota shakes the button when the coins are short");
+                Assert.AreEqual(d.S.Save.Coins, d.Save.Coins);
+            }
+            finally { d.S.Feel.Enabled = true; }
         }
     }
 }

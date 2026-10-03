@@ -18,7 +18,8 @@ kalan top parası (`min(20, floor(kalan × 0,1))`), madalya ve lig eşikleri, bo
 | Unity'de canlı | `Scenes/Meta.unity`, Play'e bas; üstteki geliştirici şeridi: Kazan / Kaybet / Terfi / Bonus / Öğretici / His aç-kapa. Anahtar `MetaSettings.Feel.Enabled` (`Settings/MetaSettings.asset`) |
 
 Pota sütunu `~/projects/Pota/onizleme/` ekran görüntülerinden (hareketsiz; bazıları İngilizce dilde çekilmiş, düzen aynı; öğretici için Pota'nın oyun içi öğretici karesi — Pota'da menüde öğretici yok). "Önce" = his
-katmanı kapalı (Pota'nın bugünkü davranışının Unity'deki kopyası), "Sonra" = açık.
+katmanı kapalı: Pota'nın bugünkü davranışının Unity'deki kopyası — Pota'nın **kendi** hareketleri (skor sayacının 0,8 sn sayması ve sondaki pop, market
+deneme zıplaması / "yetmez" sallanması / satın alma kutlaması, bonus şeritlerinin dönüşü) kapalı hâlde de oynar; "Sonra" = açık.
 
 ## 2. Anlar ve sayılar
 

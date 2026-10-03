@@ -115,7 +115,13 @@ namespace Project.Editor.AITools
                     Do("devam", d => { Mark("devam"); d.Win.Continue.Tap(); }),
                     Until("closed", d => d.Win.Window.State == MetaWindow.Phase.Closed),
                     Do("map", d => { if (!feel) d.Tabs.Select(TabBar.Tab.Map); Mark("map"); }),
-                    Until("unlock", d => { if (d.Map.StateOf(d.Save.Level) == MapScreen.NodeState.Current) { Mark("unlock"); return true; } return false; }),
+                    Until("unlock", d =>
+                    {
+                        int n = Mathf.Min(d.Save.Level, d.S.MapLevels);
+                        var st = d.Map.StateOf(n);
+                        if (st == MapScreen.NodeState.Current || (d.Save.Level > d.S.MapLevels && st == MapScreen.NodeState.Passed)) { Mark("unlock"); return true; }
+                        return false;
+                    }),
                     Until("settled", d => !d.Map.Progressing), Wait(1.2f),
                 };
                 case "lose": return new List<Step>
@@ -191,13 +197,18 @@ namespace Project.Editor.AITools
             string feelArg = AIToolsCommon.GetString(p, "feel", null);
             if (!string.IsNullOrWhiteSpace(feelArg) && !TryFeel(feelArg, out _)) return new ErrorResponse($"feel must be on or off, got '{feelArg}'");
             _feel = director.S.Feel.Enabled;
-            if (TryFeel(feelArg, out bool feelOn)) { _previousFeel = director.S.Feel.Enabled; _restoreFeel = true; director.S.Feel.Enabled = feelOn; _feel = feelOn; }
-            _steps = Script(_scenario, _feel);
+            TryFeel(feelArg, out bool feelOn);
+            bool overrideFeel = !string.IsNullOrWhiteSpace(feelArg);
+            if (overrideFeel) _feel = feelOn;
             _width = Mathf.Clamp(AIToolsCommon.GetInt(p, "width", 540), 120, 2160);
             _tail = Mathf.Max(0f, AIToolsCommon.GetFloat(p, "tail", 0.6f));
-            _dir = "Temp/record/" + (AIToolsCommon.GetString(p, "name", null) ?? $"meta-{_scenario}-{(_feel ? "on" : "off")}");
+            string name = AIToolsCommon.GetString(p, "name", null) ?? $"meta-{_scenario}-{(_feel ? "on" : "off")}";
+            if (name.Contains("..") || name.Contains("/") || name.Contains("\\")) return new ErrorResponse("name must be a plain folder name under Temp/record");
+            _dir = "Temp/record/" + name;
             if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
             Directory.CreateDirectory(_dir);
+            if (overrideFeel) { _previousFeel = director.S.Feel.Enabled; _restoreFeel = true; director.S.Feel.Enabled = feelOn; }   // after the file work: a throw above must not leave the asset overridden
+            _steps = Script(_scenario, _feel);
             _events.Clear();
             _index = 0; _captured = 0; _lastFrame = -1; _waits = 0; _warm = 0; _stepStart = -1f; _tailStart = -1f; _result = ""; _started = false;
             _previousFixed = Time.timeScale > 1e-3f ? Time.fixedDeltaTime / Time.timeScale : Time.fixedDeltaTime;
@@ -217,6 +228,12 @@ namespace Project.Editor.AITools
         private static void Tick()
         {
             if (!_running) { EditorApplication.update -= Tick; return; }
+            try { TickOnce(); }
+            catch (Exception e) { Stop("error: " + e.Message); }        // a throwing step must not leave the editor paused and stepping forever
+        }
+
+        private static void TickOnce()
+        {
             if (!EditorApplication.isPlaying) { Stop("play mode ended"); return; }
             var d = Object.FindAnyObjectByType<MetaDirector>();
             if (d == null) { Stop("no MetaDirector"); return; }

@@ -51,7 +51,7 @@ namespace Project.Meta
                 crt.anchorMin = crt.anchorMax = new Vector2(0.5f, 0.5f); crt.pivot = new Vector2(0.5f, 0.5f);
                 crt.anchoredPosition = new Vector2((i == 0 ? -34f : 34f) * css, 0f); crt.sizeDelta = Vector2.one * (52f * css);
                 var cimg = chip.GetComponent<Image>();
-                cimg.sprite = ColorHunt.ColorHuntHud.PanelSprite(128, MetaStyle.R(14), Color.white, Color.white, MetaStyle.Lock, MetaStyle.R(2), 0f, 0);
+                cimg.sprite = MetaStyle.Panel(128, MetaStyle.R(14), Color.white, Color.white, MetaStyle.Lock, MetaStyle.R(2), 0f, 0);
                 cimg.type = Image.Type.Sliced; cimg.raycastTarget = false;
                 MetaUiKit.Picture(crt, "Icon", s.Boosters.Length > i ? s.Boosters[i] : null, 36f, new Vector2(0.5f, 0.5f), Vector2.zero);
             }
@@ -62,7 +62,7 @@ namespace Project.Meta
             heart.transform.SetParent(lw.Basket.Face, false);
             var hrt = (RectTransform)heart.transform; hrt.anchorMin = hrt.anchorMax = new Vector2(1f, 0.5f); hrt.pivot = new Vector2(1f, 0.5f);
             hrt.anchoredPosition = new Vector2(-12f * css, 0f); hrt.sizeDelta = new Vector2(44f, 24f) * css;
-            var himg = heart.GetComponent<Image>(); himg.sprite = ColorHunt.ColorHuntHud.PanelSprite(64, MetaStyle.R(12), MetaStyle.Red, MetaStyle.RedDark, MetaStyle.Red, 0, 0f, 0);
+            var himg = heart.GetComponent<Image>(); himg.sprite = MetaStyle.Panel(64, MetaStyle.R(12), MetaStyle.Red, MetaStyle.RedDark, MetaStyle.Red, 0, 0f, 0);
             himg.type = Image.Type.Sliced; himg.raycastTarget = false;
             MetaUiKit.Picture(hrt, "Icon", s.Heart, 16f, new Vector2(0f, 0.5f), new Vector2(5f, 0f));
             var ht = MetaUiKit.Label(hrt, "Text", bold, "1", 13f, Color.white, TextAnchor.MiddleRight); ht.rectTransform.offsetMax = new Vector2(-7f * css, 0f);

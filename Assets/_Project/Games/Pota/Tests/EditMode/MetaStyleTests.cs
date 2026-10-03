@@ -1,6 +1,8 @@
 using NUnit.Framework;
 using Project.Meta;
 using UnityEngine;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace Project.Tests
 {
@@ -77,6 +79,32 @@ namespace Project.Tests
             Assert.AreEqual(new Color32(255, 122, 26, 255), (Color32)MetaStyle.Orange);
             Assert.AreEqual(new Color32(47, 179, 107, 255), (Color32)MetaStyle.Green);
             Assert.AreEqual(1080f / 390f, MetaStyle.Css, 1e-4f);
+        }
+
+        [Test]
+        public void Sprites_AreCachedByTheirParameters()
+        {
+            Assert.AreSame(MetaStyle.Box(), MetaStyle.Box());
+            Assert.AreSame(MetaStyle.Circle(46, Color.red, Color.blue, Color.white, 3), MetaStyle.Circle(46, Color.red, Color.blue, Color.white, 3));
+            Assert.AreNotSame(MetaStyle.Circle(46, Color.red, Color.blue, Color.white, 3), MetaStyle.Circle(46, Color.red, Color.blue, Color.white, 4));
+            Assert.AreSame(MetaStyle.Panel(128, 14, Color.white, Color.white, MetaStyle.Gold, 2, 0f, 0), MetaStyle.Panel(128, 14, Color.white, Color.white, MetaStyle.Gold, 2, 0f, 0));
+            Assert.AreSame(MetaStyle.Ring(46, Color.white, 4), MetaStyle.Ring(46, Color.white, 4));
+        }
+
+        [Test]
+        public void Button_SetTone_KeepsItsKind()
+        {
+            var go = new GameObject("host", typeof(RectTransform));
+            try
+            {
+                var b = MetaButton.Create(go.transform, "b", MetaButton.Kind.Small, MetaButton.Tone.Green, "x", new Vector2(62f, 62f), null, 20f, new MetaFeelTuning());
+                var before = b.Face.GetComponent<Image>().sprite;
+                b.SetTone(MetaButton.Tone.Grey);
+                var after = b.Face.GetComponent<Image>().sprite;
+                Assert.AreEqual(before.rect.width, after.rect.width, "a small button stays a small button (not a big-button sprite)");
+                Assert.AreSame(MetaStyle.SmallButton(MetaButton.Colors(MetaButton.Tone.Grey).light, MetaButton.Colors(MetaButton.Tone.Grey).dark), after);
+            }
+            finally { Object.DestroyImmediate(go); }
         }
     }
 }

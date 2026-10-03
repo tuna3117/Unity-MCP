@@ -54,7 +54,7 @@ namespace Project.Meta
                 r.Rt.anchorMin = new Vector2(0f, 1f); r.Rt.anchorMax = new Vector2(1f, 1f); r.Rt.pivot = new Vector2(0.5f, 1f);
                 r.Rt.anchoredPosition = new Vector2(0f, -i * (RowCss + RowGapCss) * css); r.Rt.sizeDelta = new Vector2(0f, RowCss * css);
                 r.Card = go.GetComponent<Image>();
-                r.Card.sprite = ColorHuntHud.PanelSprite(128, MetaStyle.R(14), Color.white, Color.white, MetaStyle.Gold, MetaStyle.R(2), 0f, 0);
+                r.Card.sprite = MetaStyle.Panel(128, MetaStyle.R(14), Color.white, Color.white, MetaStyle.Gold, MetaStyle.R(2), 0f, 0);
                 r.Card.type = Image.Type.Sliced; r.Card.raycastTarget = false;
                 MetaUiKit.Picture(r.Rt, "Icon", s.LeagueBadges[Mathf.Min(league, s.LeagueBadges.Length - 1)], 40f, new Vector2(0f, 0.5f), new Vector2(8f, 0f));
                 r.Name = MetaUiKit.Label(r.Rt, "Name", bold, s.LeagueNames[league], 15f, MetaStyle.Navy, TextAnchor.MiddleLeft);
@@ -69,7 +69,7 @@ namespace Project.Meta
             lw._sen = (RectTransform)sen.transform;
             lw._sen.anchorMin = lw._sen.anchorMax = new Vector2(1f, 1f); lw._sen.pivot = new Vector2(1f, 0.5f);
             lw._sen.sizeDelta = new Vector2(48f, 24f) * css;
-            var simg = sen.GetComponent<Image>(); simg.sprite = ColorHuntHud.PanelSprite(64, MetaStyle.R(12), MetaStyle.OrangeLight, MetaStyle.Orange2, MetaStyle.Orange, 0, 0f, 0);
+            var simg = sen.GetComponent<Image>(); simg.sprite = MetaStyle.Panel(64, MetaStyle.R(12), MetaStyle.OrangeLight, MetaStyle.Orange2, MetaStyle.Orange, 0, 0f, 0);
             simg.type = Image.Type.Sliced; simg.raycastTarget = false;
             MetaUiKit.Label(lw._sen, "Text", s.Lilita, "SEN", 12f, Color.white);
             w.Fit();

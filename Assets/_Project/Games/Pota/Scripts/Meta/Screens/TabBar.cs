@@ -33,7 +33,7 @@ namespace Project.Meta
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = new Vector2(0f, (HeightCss + 14f) * css);
             var bg = go.GetComponent<Image>();
-            bg.sprite = ColorHunt.ColorHuntHud.PanelSprite(128, 1, MetaStyle.PanelTop, MetaStyle.Navy, MetaStyle.PanelTop, 0, 0f, 0);
+            bg.sprite = MetaStyle.Panel(128, 1, MetaStyle.PanelTop, MetaStyle.Navy, MetaStyle.PanelTop, 0, 0f, 0);
             bg.type = Image.Type.Sliced;
             var edge = new GameObject("Edge", typeof(RectTransform), typeof(Image));
             edge.transform.SetParent(rt, false);
@@ -58,7 +58,7 @@ namespace Project.Meta
                 e.Card.anchorMin = new Vector2(0.1f, 0f); e.Card.anchorMax = new Vector2(0.9f, 1f);
                 e.Card.offsetMin = new Vector2(0f, 12f * css); e.Card.offsetMax = new Vector2(0f, 16f * css);
                 var cimg = card.GetComponent<Image>();
-                cimg.sprite = ColorHunt.ColorHuntHud.PanelSprite(128, MetaStyle.R(14), MetaStyle.GoldLight, MetaStyle.GoldDark, Color.white, MetaStyle.R(3), 0f, 0);
+                cimg.sprite = MetaStyle.Panel(128, MetaStyle.R(14), MetaStyle.GoldLight, MetaStyle.GoldDark, Color.white, MetaStyle.R(3), 0f, 0);
                 cimg.type = Image.Type.Sliced; cimg.raycastTarget = false;
                 e.Button = MetaButton.Create(e.Root, "Hit", MetaButton.Kind.Small, MetaButton.Tone.Navy, "", new Vector2(100f, 80f), s.Lilita, 13f, s.Feel);
                 foreach (var img in e.Button.GetComponentsInChildren<Image>()) { img.color = new Color(1f, 1f, 1f, 0f); }

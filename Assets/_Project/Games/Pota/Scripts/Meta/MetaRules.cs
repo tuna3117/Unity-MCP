@@ -43,6 +43,7 @@ namespace Project.Meta
             save.Trophies += gain;
             save.BestScore = Mathf.Max(before.BestScore, score);
             save.Level += 1;
+            save.BestScore = 0;                                            // Pota keeps a best per level (bolumSkor): the next one starts fresh
             save.FirstTry = true;
             int lb = settings.LeagueOf(before.Trophies), la = settings.LeagueOf(save.Trophies);
             return new WinResult

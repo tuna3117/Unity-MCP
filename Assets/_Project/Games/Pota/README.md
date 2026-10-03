@@ -265,9 +265,10 @@ Pota'nın menü katmanı Unity'de birebir (`Scenes/Meta.unity`, Pota görselleri
   işaretleri `open/score/medal/coins/continue/devam/map/unlock/league/spin/stop/tap/buy/fail`); kayıt sırasında UI kamerasının `cullingMask`'ı açılır (sahnede 0).
   Toplu: `Tools/meta_record.sh [record|videos|all] [an …]` → `docs/screenshots/2026-10-03-meta-<an>-{side.mp4,sheet.jpg}` (Pota sütunu `onizleme/` stilinden) ve `…-meta-all.mp4`.
 - **Testler:** EditMode `MetaStyleTests`, `MetaAssetsTests`, `MetaDirectorTests`, `WinSequenceTests`, `MapLayoutTests`, `MapProgressTests`, `ReelSpinTests`,
-  `BonusRulesTests`, `MetaRecordToolTests`; PlayMode `MetaPlayTests` (23 senaryo). Blender `tests/test_vfx.py MetaStillTests`. 2026-10-03 gece: EditMode 471/471, PlayMode 180/180.
+  `BonusRulesTests`, `MetaRecordToolTests`; PlayMode `MetaPlayTests` (23 senaryo). Blender `tests/test_vfx.py MetaStillTests`. 2026-10-03 gece (inceleme düzeltmeleri sonrası): EditMode 474/474, PlayMode 186/186.
 - **Dersler:** 400 üst üste binen, hepsi ayrı dokulu UI elemanı (harita yılanı) kök canvas'ın derinlik sıralamasını bozdu (başlık düğümlerin altına düştü):
   parçalar sprite paylaşır, içerik iç içe `Canvas`ta. `ColorHuntHud.CircleSprite` saydam dolguyu siyah boyar (halka için `MetaStyle.Ring`); küçük (64 px)
   gradyan `PanelSprite` `Sliced` tipte hiç çizilmedi (`Simple`). `ScreenSlide.Show` sayfayı en üste alır: sekme çubuğu/şerit her sekme değişiminde yeniden
   yükseltilir. `kahraman-maske.png` parlaklık maskesi (parça başına gri seviye), alfa değil.
+- **İnceleme düzeltmeleri (2026-10-03 gece):** ödül parası `ShowWin`'de kayda yazılır, uçuş sayacı oynatır (`ShowCoins`); market para sayısını yönetmenin kaydından okur (`Bind(coins)`, sekmede `Sync`); her şerit eylemi önce açık pencereleri kapatır (`CloseWindows`); en iyi skor bölüm başına (`MetaRules.Win` yeni bölümde 0); son bölümde harita yalnız yeşil + madalya; `MetaStyle` sprite önbelleği; kapalı hâlde Pota'nın kendi hareketleri (`WinSequence.Pota`, market zıplama/sallanma/kutlama); M3 rozet ezilmesi/parıltı/dönüş (`CoinBadgeFx`); kayıt aracı hata yakalar. Ertelenen küçükler U84–U95.
 - **Dürüst notlar:** teslim belgesinin §6'sı (vitrin sınırları: gerçek bölüm yok, market kısmi, saat hücresi kalp, Pota sütunu hareketsiz).

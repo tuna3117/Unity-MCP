@@ -19,6 +19,7 @@ namespace Project.Meta
         private Image _lip;
         private float _press, _release = -1f, _lipHome;
         private bool _down, _pulse;
+        private Kind _kind;
         private float _pulseT;
 
         public RectTransform Rect => (RectTransform)transform;
@@ -56,6 +57,7 @@ namespace Project.Meta
             rt.sizeDelta = sizeCss * MetaStyle.Css;
             var b = go.AddComponent<MetaButton>();
             b._feel = feel;
+            b._kind = kind;
             b.Button = go.GetComponent<Button>();
             b.Button.transition = Selectable.Transition.None;
             int lipCss = kind == Kind.Big ? 6 : 3, radiusCss = kind == Kind.Big ? 22 : kind == Kind.Round ? 999 : 12;
@@ -122,8 +124,9 @@ namespace Project.Meta
         {
             var (light, mid, dark, lipColor) = Colors(tone);
             var face = _face.GetComponent<Image>();
-            face.sprite = face.sprite != null && face.sprite.rect.width == MetaStyle.R(46) ? MetaStyle.Circle(46, light, dark, Color.white, 3) : MetaStyle.BigButton(light, mid, dark);
-            _lip.sprite = MetaStyle.Lip(22, lipColor);
+            int sizeCss = Mathf.RoundToInt(Rect.sizeDelta.x / MetaStyle.Css);
+            face.sprite = _kind == Kind.Big ? MetaStyle.BigButton(light, mid, dark) : _kind == Kind.Round ? MetaStyle.Circle(sizeCss, light, dark, Color.white, 3) : MetaStyle.SmallButton(light, dark);
+            _lip.sprite = _kind == Kind.Round ? MetaStyle.Circle(sizeCss, lipColor, lipColor, lipColor, 0) : MetaStyle.Lip(_kind == Kind.Big ? 22 : 12, lipColor);
         }
 
         private static Image Layer(RectTransform parent, string name, Sprite sprite, Color color, Vector2 offset, float grow)

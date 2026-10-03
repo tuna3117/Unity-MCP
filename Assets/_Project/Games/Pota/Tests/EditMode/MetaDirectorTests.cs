@@ -23,7 +23,7 @@ namespace Project.Tests
             Assert.AreEqual(145 + 38, r.Save.Coins);
             Assert.AreEqual(11800 + 116, r.Save.Trophies, "trophies grow by the level's best score gain");
             Assert.AreEqual(21, r.Save.Level);
-            Assert.AreEqual(116, r.Save.BestScore);
+            Assert.AreEqual(0, r.Save.BestScore, "the next level starts without a best (Pota keeps one per level)");
             Assert.AreEqual(0, r.LeagueBefore);
             Assert.AreEqual(0, r.LeagueAfter);
         }
@@ -73,6 +73,17 @@ namespace Project.Tests
             Assert.AreEqual(1f, MetaCurves.Shine(0.35f, 2.2f, 0.35f), 1e-4f);
             Assert.AreEqual(-1f, MetaCurves.Shine(1.5f, 2.2f, 0.35f), 1e-4f, "resting until the next period");
             Assert.AreEqual(0f, MetaCurves.Shine(2.375f, 2.2f, 0.35f), 1e-3f, "sweeps again a period later");
+        }
+
+        [Test]
+        public void Win_OnTheNextLevel_GainsTrophiesAgain_BestScoreIsPerLevel()
+        {
+            var s = ScriptableObject.CreateInstance<MetaSettings>();
+            var first = MetaRules.Win(s, s.Save, 359, 137);
+            Assert.AreEqual(359, first.TrophyGain);
+            var second = MetaRules.Win(s, first.Save, 359, 137);
+            Assert.AreEqual(359, second.TrophyGain, "Pota keeps the best score per level: a new level starts from 0");
+            Assert.AreEqual(0, first.Save.BestScore, "the next level has no best yet");
         }
     }
 }

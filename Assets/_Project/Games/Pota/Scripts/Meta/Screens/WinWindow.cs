@@ -88,7 +88,7 @@ namespace Project.Meta
             ww._barFill = fill.GetComponent<Image>();
             ww._barFill.rectTransform.anchorMin = Vector2.zero; ww._barFill.rectTransform.anchorMax = new Vector2(0f, 1f);
             ww._barFill.rectTransform.offsetMin = ww._barFill.rectTransform.offsetMax = Vector2.zero;
-            ww._barFill.sprite = ColorHuntHud.PanelSprite(64, MetaStyle.R(5), MetaStyle.Gold, MetaStyle.Orange, MetaStyle.Gold, 0, 0f, 0);
+            ww._barFill.sprite = MetaStyle.Panel(64, MetaStyle.R(5), MetaStyle.Gold, MetaStyle.Orange, MetaStyle.Gold, 0, 0f, 0);
             ww._barFill.type = Image.Type.Sliced; ww._barFill.raycastTarget = false;
             ww._next = MetaUiKit.Label(lc, "Next", bold, "", 11f, navy70, TextAnchor.LowerLeft);
             ww._next.rectTransform.offsetMin = new Vector2(66f * css, 8f * css); ww._next.rectTransform.offsetMax = new Vector2(-12f * css, 0f);
@@ -166,7 +166,9 @@ namespace Project.Meta
                     _medalName.text = MedalNames[f.Medal] + " madalya";
                 }
             }
-            _trophy.text = "Kupa +" + f.TrophyGainShown;
+            int gain = Sequence.TrophiesAfter - Sequence.TrophiesBefore;
+            _trophy.text = gain > 0 ? "Kupa +" + f.TrophyGainShown : "En iyi: " + Sequence.Score;      // Pota: no gain without a new best
+            if (_flipT < 0f) _medal.rectTransform.localScale = Vector3.one * f.MedalPop;
             _barFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(f.Bar), 1f);
             _barFill.color = f.BarOverflow ? Color.Lerp(Color.white, MetaStyle.Gold, 0.5f + 0.5f * Mathf.Sin(Elapsed * 8f)) : Color.white;
             int toNext = MetaRules.ToNextLeague(_s, f.TrophiesShown);

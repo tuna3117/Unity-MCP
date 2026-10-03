@@ -48,7 +48,7 @@ namespace Project.Meta
                 rrt.anchorMin = rrt.anchorMax = new Vector2(0.5f, 0.5f); rrt.pivot = new Vector2(0.5f, 0f);
                 rrt.sizeDelta = new Vector2(10f, 110f) * css; rrt.localRotation = Quaternion.Euler(0f, 0f, i * 30f);
                 var rimg = ray.GetComponent<Image>(); rimg.color = new Color(1f, 0.85f, 0.35f, 0.6f); rimg.raycastTarget = false;
-                rimg.sprite = ColorHuntHud.PanelSprite(16, 1, new Color(1f, 1f, 1f, 1f), new Color(1f, 1f, 1f, 0f), Color.clear, 0, 0f, 0); rimg.type = Image.Type.Simple;
+                rimg.sprite = MetaStyle.Panel(16, 1, new Color(1f, 1f, 1f, 1f), new Color(1f, 1f, 1f, 0f), Color.clear, 0, 0f, 0); rimg.type = Image.Type.Simple;
             }
             pw._old = MetaUiKit.Picture(stage, "OldBadge", s.LeagueBadges[0], 140f, new Vector2(0.5f, 0.5f), Vector2.zero);
             pw._new = MetaUiKit.Picture(stage, "NewBadge", s.LeagueBadges[1], 140f, new Vector2(0.5f, 0.5f), Vector2.zero);

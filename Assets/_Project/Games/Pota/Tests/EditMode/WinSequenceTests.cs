@@ -83,16 +83,24 @@ namespace Project.Tests
         }
 
         [Test]
-        public void FeelOff_EverythingIsAtItsEndStateAtOnce()
+        public void FeelOff_IsPotasWindow_ScoreCountsUp0_8s_RestAtOnce_NoPulse()
         {
             var w = Make(false);
-            var st = w.Stage(0f);
-            Assert.AreEqual(116, st.Score);
-            Assert.AreEqual(2, st.Medal);
-            Assert.AreEqual(1f, st.Stamp, 1e-4f);
-            Assert.IsTrue(st.CoinsFlying);
-            Assert.IsFalse(st.ContinuePulse, "Pota's Devam does not pulse");
-            Assert.AreEqual(w.BarAfter, st.Bar, 1e-4f);
+            var a = w.Stage(0f);
+            Assert.AreEqual(0, a.Score, "Pota's counter starts at 0");
+            Assert.AreEqual(2, a.Medal, "Pota writes the final medal at once");
+            Assert.AreEqual(1f, a.Stamp, 1e-4f);
+            Assert.IsTrue(a.CoinsFlying);
+            Assert.IsFalse(a.ContinuePulse, "Pota's Devam does not pulse");
+            Assert.AreEqual(w.BarAfter, a.Bar, 1e-4f);
+            Assert.AreEqual(1f, a.LinesAlpha, 1e-4f);
+            int mid = w.Stage(WinSequence.PotaCount * 0.5f).Score;
+            Assert.Greater(mid, 0); Assert.Less(mid, 116);
+            Assert.AreEqual(116, w.Stage(WinSequence.PotaCount).Score, "0.8 s later the total (Pota sayac)");
+            Assert.Greater(w.Stage(WinSequence.PotaCount + 0.05f).ScoreScale, 1f, "Pota pops the counter at the end");
+            Assert.Greater(w.Stage(WinSequence.PotaCount + 0.05f).MedalPop, 1f, "and the medal");
+            Assert.AreEqual(1f, w.Stage(5f).ScoreScale, 1e-4f);
         }
+
     }
 }

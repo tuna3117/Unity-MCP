@@ -35,11 +35,12 @@ namespace Project.Meta
         private int _burstChip = -1;
         private Action<int, Vector2, Action> _spend;
         private Action<string> _toast;
-        private int _coins;
+        private Func<int> _coinsOf = () => 0;                      // the director's save is the only source of the coin count
 
         public MetaButton Big { get; private set; }
         public MetaButton CoinsBadge { get; private set; }
         public RollingNumber Coins { get; private set; }
+        public CoinBadgeFx CoinsFx { get; private set; }
         public int Tried => _tried;
         public bool Purchasing { get; private set; }
         public float HeroHopPeak { get; private set; }
@@ -60,7 +61,7 @@ namespace Project.Meta
             m._s = s; m._root = root;
             Font bold = s.FredokaBold != null ? s.FredokaBold : s.Lilita;
             var ground = MetaUiKit.Card(rt, "Ground", MetaStyle.Navy, 1);
-            ground.sprite = ColorHuntHud.PanelSprite(128, 1, MetaStyle.PanelTop, MetaStyle.Navy, MetaStyle.Navy, 0, 0f, 0);
+            ground.sprite = MetaStyle.Panel(128, 1, MetaStyle.PanelTop, MetaStyle.Navy, MetaStyle.Navy, 0, 0f, 0);
             // ribbon + coin badge
             var ribbon = new GameObject("Ribbon", typeof(RectTransform), typeof(Image));
             ribbon.transform.SetParent(rt, false);
@@ -75,6 +76,7 @@ namespace Project.Meta
             m.CoinsBadge.Label.rectTransform.offsetMin = new Vector2(28f * css, 0f);
             m._coinBadgeFace = m.CoinsBadge.Face.GetComponent<Image>();
             m.Coins = RollingNumber.Attach(m.CoinsBadge.Label, s.Feel, 6f);
+            m.CoinsFx = CoinBadgeFx.Attach(m.CoinsBadge);
             // category pills
             string[] names = { "Giysiler", "Toplar", "Güçlendirme", "Paketler" };
             m._tabs = new MetaButton[4];
@@ -107,7 +109,7 @@ namespace Project.Meta
             // slot column
             for (int i = 0; i < 4; i++)
             {
-                var slot = MetaUiKit.Picture(rt, "Slot" + i, ColorHuntHud.PanelSprite(64, MetaStyle.R(12), Color.white, Color.white, MetaStyle.Gold, MetaStyle.R(2), 0f, 0), 44f, new Vector2(0f, 1f), new Vector2(14f, -(182f + i * 52f)));
+                var slot = MetaUiKit.Picture(rt, "Slot" + i, MetaStyle.Panel(64, MetaStyle.R(12), Color.white, Color.white, MetaStyle.Gold, MetaStyle.R(2), 0f, 0), 44f, new Vector2(0f, 1f), new Vector2(14f, -(182f + i * 52f)));
                 slot.type = Image.Type.Sliced; slot.preserveAspect = false;
                 var icon = MetaUiKit.Picture(slot.rectTransform, "Icon", s.Clothes.Length > i ? s.Clothes[i] : null, 32f, new Vector2(0.5f, 0.5f), Vector2.zero);
                 icon.color = i == 0 ? MarketCatalog.Jerseys[0].Colour : new Color(0.5f, 0.55f, 0.65f);
@@ -118,7 +120,7 @@ namespace Project.Meta
             m._panel = (RectTransform)panel.transform;
             m._panel.anchorMin = new Vector2(0f, 0f); m._panel.anchorMax = new Vector2(1f, 0f); m._panel.pivot = new Vector2(0.5f, 0f);
             m._panel.anchoredPosition = new Vector2(0f, (TabBar.HeightCss + 14f) * css); m._panel.sizeDelta = new Vector2(0f, 200f * css);
-            var pimg = panel.GetComponent<Image>(); pimg.sprite = ColorHuntHud.PanelSprite(128, MetaStyle.R(28), MetaStyle.CreamTop, MetaStyle.Cream, MetaStyle.Gold, MetaStyle.R(4), 0f, 0);
+            var pimg = panel.GetComponent<Image>(); pimg.sprite = MetaStyle.Panel(128, MetaStyle.R(28), MetaStyle.CreamTop, MetaStyle.Cream, MetaStyle.Gold, MetaStyle.R(4), 0f, 0);
             pimg.type = Image.Type.Sliced; pimg.raycastTarget = true;
             var hint = MetaUiKit.Label(m._panel, "Hint", bold, "Dokun: üstünde görürsün", 12f, new Color(MetaStyle.Navy.r, MetaStyle.Navy.g, MetaStyle.Navy.b, 0.7f), TextAnchor.UpperCenter);
             hint.rectTransform.offsetMax = new Vector2(0f, -12f * css);
@@ -191,7 +193,7 @@ namespace Project.Meta
             chip.Rt.anchorMin = chip.Rt.anchorMax = new Vector2(0.5f, 1f); chip.Rt.pivot = new Vector2(0.5f, 0.5f);
             chip.Rt.anchoredPosition = new Vector2((-134f + i * 67f) * css, -42f * css); chip.Rt.sizeDelta = new Vector2(62f, 84f) * css;
             chip.Card = go.GetComponent<Image>();
-            chip.Card.sprite = ColorHuntHud.PanelSprite(128, MetaStyle.R(14), Color.white, Color.white, MetaStyle.Gold, MetaStyle.R(3), 0f, 0);
+            chip.Card.sprite = MetaStyle.Panel(128, MetaStyle.R(14), Color.white, Color.white, MetaStyle.Gold, MetaStyle.R(3), 0f, 0);
             chip.Card.type = Image.Type.Sliced;
             chip.Icon = MetaUiKit.Picture(chip.Rt, "Icon", null, 50f, new Vector2(0.5f, 1f), new Vector2(0f, -4f));
             chip.Label = MetaUiKit.Label(chip.Rt, "Label", s.Lilita, "", 12f, MetaStyle.Navy, TextAnchor.LowerCenter);
@@ -205,14 +207,20 @@ namespace Project.Meta
         }
 
         /// <summary>The director wires spending (coins fly from the badge to a canvas point, counters roll down) and toasts.</summary>
-        public void Bind(Action<int, Vector2, Action> spend, Action<string> toast) { _spend = spend; _toast = toast; }
+        public void Bind(Action<int, Vector2, Action> spend, Action<string> toast, Func<int> coins) { _spend = spend; _toast = toast; _coinsOf = coins ?? _coinsOf; }
 
         public void Refresh(SampleSave save)
         {
-            _coins = save.Coins;
             Coins.Set(save.Coins, false);
             Purchasing = false; HeroHopPeak = 0f; ShakePeak = 0f;
             Select(_category);
+        }
+
+        /// <summary>The badge and the chips read the save again (after a win elsewhere, on showing the page).</summary>
+        public void Sync(int coins)
+        {
+            if (!Coins.Rolling) Coins.Set(coins, false);
+            RefreshChips();
         }
 
         public void Select(MarketCatalog.Category category)
@@ -255,7 +263,7 @@ namespace Project.Meta
                 var c = _chips[i];
                 c.Label.text = Worn(c.Item) ? "Giyili" : _owned.Contains(c.Item.Id) ? "Senin" : c.Item.Price.ToString();
                 c.Card.color = i == _tried ? PotaLook.Hex(0xfff6dc) : Color.white;
-                c.Card.sprite = ColorHuntHud.PanelSprite(128, MetaStyle.R(14), Color.white, Color.white, i == _tried ? MetaStyle.Gold : Color.white, MetaStyle.R(3), 0f, 0);
+                c.Card.sprite = MetaStyle.Panel(128, MetaStyle.R(14), Color.white, Color.white, i == _tried ? MetaStyle.Gold : Color.white, MetaStyle.R(3), 0f, 0);
             }
             if (_tried >= 0)
             {
@@ -275,7 +283,8 @@ namespace Project.Meta
             if (Purchasing || i < 0 || i >= _chips.Length) return;
             _tried = i;
             RefreshChips();
-            if (_s.Feel.Enabled) { _hopT = 0f; _hopTime = Hop; _flashT = 0f; }
+            _hopT = 0f; _hopTime = Hop;                              // Pota's zipla on a try-on
+            if (_s.Feel.Enabled) _flashT = 0f;
         }
 
         /// <summary>The big button: wear what you own, buy what you can, shake when you cannot.</summary>
@@ -284,26 +293,27 @@ namespace Project.Meta
             if (Purchasing || _tried < 0) return;
             var it = _chips[_tried].Item;
             if (Worn(it)) return;
-            if (_owned.Contains(it.Id)) { Wear(it); RefreshChips(); if (_s.Feel.Enabled) { _hopT = 0f; _hopTime = Hop; } return; }
-            if (_coins < it.Price)
+            if (_owned.Contains(it.Id)) { Wear(it); RefreshChips(); _hopT = 0f; _hopTime = Celebrate; return; }      // Pota's kutla on a wear
+            if (_coinsOf() < it.Price)
             {
-                if (_s.Feel.Enabled) { _shakeT = 0f; _blinkT = 0f; ShakePeak = 0f; }
+                _shakeT = 0f; ShakePeak = 0f;                     // Pota shakes the button (yetmez)
+                if (_s.Feel.Enabled) _blinkT = 0f;
                 _toast?.Invoke("Para yetmiyor");
                 return;
             }
             Purchasing = true;
             int chip = _tried;
-            _coins -= it.Price;
             Action done = () =>
             {
                 _owned.Add(it.Id);
                 Wear(it);
                 RefreshChips();
                 Purchasing = false;
-                if (_s.Feel.Enabled) { _burstT = 0f; _burstChip = chip; _hopT = 0f; _hopTime = Celebrate; _ring.anchoredPosition = MetaUiKit.CanvasPoint(_root, _chips[chip].Rt) - MetaUiKit.CanvasPoint(_root, (RectTransform)transform) ; }
+                _hopT = 0f; _hopTime = Celebrate;                 // Pota's kutla
+                if (_s.Feel.Enabled) { _burstT = 0f; _burstChip = chip; _ring.anchoredPosition = MetaUiKit.CanvasPoint(_root, _chips[chip].Rt) - MetaUiKit.CanvasPoint(_root, (RectTransform)transform); }
             };
             if (_spend != null) _spend(it.Price, MetaUiKit.CanvasPoint(_root, _chips[chip].Rt), done);
-            else { Coins.Set(_coins, true); done(); }
+            else done();
         }
 
         private void Wear(MarketCatalog.Item it) { if (it.Category == MarketCatalog.Category.Clothes) _wornJersey = it.Id; else _wornBall = it.Id; }
@@ -335,7 +345,7 @@ namespace Project.Meta
             if (_shakeT >= 0f)
             {
                 _shakeT += dt;
-                float off = feel ? LoseWindow.Shake(_shakeT / ShakeTime) : 0f;
+                float off = LoseWindow.Shake(_shakeT / ShakeTime);
                 ShakePeak = Mathf.Max(ShakePeak, Mathf.Abs(off));
                 Big.Rect.anchoredPosition = new Vector2(off * css, 12f * css);
                 if (_shakeT >= ShakeTime) { _shakeT = -1f; Big.Rect.anchoredPosition = new Vector2(0f, 12f * css); }

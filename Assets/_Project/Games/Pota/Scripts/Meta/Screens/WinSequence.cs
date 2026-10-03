@@ -16,6 +16,7 @@ namespace Project.Meta
             public float Stamp;            // "Harika!" scale: 0 hidden → 1.3 → 1
             public int Score;              // the counter
             public float ScoreScale;       // 1.06 hops during the count-up
+            public float MedalPop;         // Pota's end-of-count pop (feel off); 1 with the feel layer (flips are the window's)
             public int Medal;              // -1 hidden, 0 bronze, 1 silver, 2 gold
             public float LinesAlpha;       // the score lines row
             public int TrophyGainShown;    // "Kupa +N" rolling 0 → gain
@@ -33,6 +34,7 @@ namespace Project.Meta
         public readonly bool Promoted;
 
         public const float StampTime = 0.3f, LinesAfterScore = 0.45f, RewardAfterCoins = 0.2f, LinesFade = 0.25f;
+        public const float PotaCount = 0.8f, PotaPop = 0.2f;     // Pota's own counter (akis.ts sayac 800 ms) and its pop
 
         public WinSequence(MetaSettings s, int score, int silver, int gold, int trophiesBefore, int trophiesAfter, int coins)
         {
@@ -63,17 +65,24 @@ namespace Project.Meta
             return Feel.ScoreAt + u * Mathf.Max(0.01f, Feel.ScoreTime);
         }
 
-        public Frame Stage(float t) => Feel.Enabled ? Timed(t) : End();
+        public Frame Stage(float t) => Feel.Enabled ? Timed(t) : Pota(t);
 
-        private Frame End() => new Frame
+        /// <summary>Pota's window: everything written at once, only the score counting up over 0.8 s with a pop of the counter and the medal at the end.</summary>
+        private Frame Pota(float t)
         {
-            Stamp = 1f, Score = Score, ScoreScale = 1f, Medal = FinalMedal, LinesAlpha = 1f, TrophyGainShown = TrophiesAfter - TrophiesBefore,
-            Bar = BarAfter, TrophiesShown = TrophiesAfter, BarOverflow = false, CoinsFlying = true, RewardAlpha = 1f, ContinuePulse = false,
-        };
+            float u = StudioCurves.EaseOutCubic(Mathf.Clamp01(t / PotaCount));
+            float pop = t >= PotaCount && t < PotaCount + PotaPop ? 1f + 0.06f * Mathf.Sin((t - PotaCount) / PotaPop * Mathf.PI) : 1f;
+            return new Frame
+            {
+                Stamp = 1f, Score = Mathf.RoundToInt(Score * u), ScoreScale = pop, MedalPop = pop, Medal = FinalMedal, LinesAlpha = 1f,
+                TrophyGainShown = TrophiesAfter - TrophiesBefore, Bar = BarAfter, TrophiesShown = TrophiesAfter, BarOverflow = false,
+                CoinsFlying = true, RewardAlpha = 1f, ContinuePulse = false,
+            };
+        }
 
         private Frame Timed(float t)
         {
-            var st = new Frame();
+            var st = new Frame { MedalPop = 1f };
             // stamp
             float us = Mathf.Clamp01((t - Feel.StampAt) / StampTime);
             st.Stamp = t < Feel.StampAt ? 0f : us < 0.4f ? Mathf.Lerp(0f, 1.3f, StudioCurves.EaseOutCubic(us / 0.4f)) : Mathf.Lerp(1.3f, 1f, PotaLook.Smoothstep((us - 0.4f) / 0.6f));

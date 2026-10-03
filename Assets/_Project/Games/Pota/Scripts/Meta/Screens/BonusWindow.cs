@@ -78,7 +78,7 @@ namespace Project.Meta
                     crt.anchoredPosition = new Vector2(0f, -(i * (bw._cellCss + CellGapCss) + bw._cellCss / 2f) * css);
                     crt.sizeDelta = new Vector2(0f, bw._cellCss * css);
                     var img = cell.GetComponent<Image>();
-                    img.sprite = ColorHuntHud.PanelSprite(128, MetaStyle.R(12), Color.white, Color.white, MetaStyle.Gold, MetaStyle.R(2), 0f, 0);
+                    img.sprite = MetaStyle.Panel(128, MetaStyle.R(12), Color.white, Color.white, MetaStyle.Gold, MetaStyle.R(2), 0f, 0);
                     img.type = Image.Type.Sliced; img.raycastTarget = false;
                     MetaUiKit.Picture(crt, "Icon", null, bw._cellCss * 0.7f, new Vector2(0.5f, 0.5f), Vector2.zero);
                     var t = MetaUiKit.Label(crt, "Text", s.Lilita, "", bw._cellCss * 0.4f, MetaStyle.Orange2);

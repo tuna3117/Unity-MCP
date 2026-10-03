@@ -32,7 +32,7 @@ namespace Project.Meta
             t._group = go.GetComponent<CanvasGroup>();
             t._group.blocksRaycasts = false;
             var img = go.GetComponent<Image>();
-            img.sprite = ColorHunt.ColorHuntHud.PanelSprite(128, MetaStyle.R(20), MetaStyle.Cream, MetaStyle.Cream, MetaStyle.Cream, 0, 0f, 0);
+            img.sprite = MetaStyle.Panel(128, MetaStyle.R(20), MetaStyle.Cream, MetaStyle.Cream, MetaStyle.Cream, 0, 0f, 0);
             img.type = Image.Type.Sliced; img.raycastTarget = false;
             var tgo = new GameObject("Text", typeof(RectTransform), typeof(Text));
             tgo.transform.SetParent(t._rt, false);

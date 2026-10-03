@@ -24,6 +24,9 @@ namespace Project.Meta
         public MetaButton Gear { get; private set; }
         public MetaButton CoinsBadge { get; private set; }
         public RollingNumber Coins { get; private set; }
+        public CoinBadgeFx CoinsFx { get; private set; }
+        public float CoinsBadgeScale => CoinsFx != null ? CoinsFx.Scale : 1f;
+        public float CoinsGlint => CoinsFx != null ? CoinsFx.Glint : 0f;
         public RollingNumber Trophies { get; private set; }
         public RollingNumber Lives { get; private set; }
         public Text LevelPill { get; private set; }
@@ -123,6 +126,7 @@ namespace Project.Meta
             m._trophiesRect = league.Rect;
             m.Trophies = RollingNumber.Attach(league.Label, s.Feel, 6f);
             m.Coins = RollingNumber.Attach(coins.Label, s.Feel, 6f);
+            m.CoinsFx = CoinBadgeFx.Attach(m.CoinsBadge);
             m.Lives = RollingNumber.Attach(lives.Label, s.Feel, 6f);
             // Play
             m.Play = MetaButton.Create(rt, "Play", MetaButton.Kind.Big, MetaButton.Tone.Green, "Bölüm " + s.Save.Level, new Vector2(226f, 72f), s.Lilita, 34f, s.Feel);
@@ -143,7 +147,7 @@ namespace Project.Meta
             var rt = (RectTransform)go.transform; rt.anchorMin = min; rt.anchorMax = max; rt.offsetMin = rt.offsetMax = Vector2.zero;
             var img = go.GetComponent<Image>();
             var clear = color; clear.a = 0f;
-            img.sprite = ColorHunt.ColorHuntHud.PanelSprite(16, 1, fadeDown ? color : clear, fadeDown ? clear : color, clear, 0, 0f, 0);
+            img.sprite = MetaStyle.Panel(16, 1, fadeDown ? color : clear, fadeDown ? clear : color, clear, 0, 0f, 0);
             img.type = Image.Type.Sliced; img.raycastTarget = false;
             return img;
         }
@@ -171,7 +175,7 @@ namespace Project.Meta
             var rt = (RectTransform)go.transform; rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f); rt.pivot = new Vector2(0f, 0.5f);
             rt.anchoredPosition = pos; rt.sizeDelta = new Vector2(30f, 18f) * css;
             var img = go.GetComponent<Image>();
-            img.sprite = ColorHunt.ColorHuntHud.PanelSprite(64, MetaStyle.R(9), color, color, MetaStyle.Gold, MetaStyle.R(2), 0f, 0);
+            img.sprite = MetaStyle.Panel(64, MetaStyle.R(9), color, color, MetaStyle.Gold, MetaStyle.R(2), 0f, 0);
             img.type = Image.Type.Sliced; img.raycastTarget = false;
             var tgo = new GameObject("Text", typeof(RectTransform), typeof(Text));
             tgo.transform.SetParent(rt, false);
@@ -195,7 +199,7 @@ namespace Project.Meta
             var rt = (RectTransform)go.transform; rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = new Vector2(40f * css, 140f * css); rt.localRotation = Quaternion.Euler(0f, 0f, 20f);
             var img = go.GetComponent<Image>(); img.color = new Color(1f, 1f, 1f, 0.35f); img.raycastTarget = false;
-            img.sprite = ColorHunt.ColorHuntHud.PanelSprite(32, 1, Color.white, Color.white, Color.white, 0, 0f, 0); img.type = Image.Type.Sliced;
+            img.sprite = MetaStyle.Panel(32, 1, Color.white, Color.white, Color.white, 0, 0f, 0); img.type = Image.Type.Sliced;
             go.SetActive(false);
             mask.transform.SetSiblingIndex(0);
             return rt;

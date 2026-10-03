@@ -57,7 +57,7 @@ namespace Project.Meta
         {
             var row = Row(parent, name, heightCss);
             var img = row.gameObject.AddComponent<Image>();
-            img.sprite = ColorHunt.ColorHuntHud.PanelSprite(128, MetaStyle.R(14), Color.white, Color.white, Color.white, 0, 0f, 0);
+            img.sprite = MetaStyle.Panel(128, MetaStyle.R(14), Color.white, Color.white, Color.white, 0, 0f, 0);
             img.type = Image.Type.Sliced; img.raycastTarget = false;
             return Label(row, "Text", font, text, fontCss, MetaStyle.Navy);
         }
@@ -70,7 +70,7 @@ namespace Project.Meta
             var rt = (RectTransform)go.transform;
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
             var img = go.GetComponent<Image>();
-            img.sprite = ColorHunt.ColorHuntHud.PanelSprite(128, MetaStyle.R(radiusCss), color, color, color, 0, 0f, 0);
+            img.sprite = MetaStyle.Panel(128, MetaStyle.R(radiusCss), color, color, color, 0, 0f, 0);
             img.type = Image.Type.Sliced; img.raycastTarget = false;
             return img;
         }

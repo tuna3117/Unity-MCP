@@ -96,7 +96,7 @@ namespace Project.Meta
             fade.transform.SetParent(rt, false);
             var frt = (RectTransform)fade.transform; frt.anchorMin = new Vector2(0f, 1f); frt.anchorMax = new Vector2(1f, 1f); frt.pivot = new Vector2(0.5f, 1f);
             frt.sizeDelta = new Vector2(0f, HeaderCss * 1.6f * css);
-            var fimg = fade.GetComponent<Image>(); fimg.sprite = ColorHuntHud.PanelSprite(64, 1, new Color(0f, 0f, 0f, 0.8f), new Color(0f, 0f, 0f, 0f), Color.clear, 0, 0f, 0);
+            var fimg = fade.GetComponent<Image>(); fimg.sprite = MetaStyle.Panel(64, 1, new Color(0f, 0f, 0f, 0.8f), new Color(0f, 0f, 0f, 0f), Color.clear, 0, 0f, 0);
             fimg.type = Image.Type.Simple; fimg.raycastTarget = false;        // sliced, the stretched centre of this 64 px gradient drew nothing
             var ribbon = new GameObject("Ribbon", typeof(RectTransform), typeof(Image));
             ribbon.transform.SetParent(rt, false);
@@ -219,8 +219,8 @@ namespace Project.Meta
             for (int n = 1; n <= _last; n++)
             {
                 var node = _nodes[n];
-                node.State = n < _level ? NodeState.Passed : n == _level ? NodeState.Current : NodeState.Locked;
-                node.MedalIndex = n < _level ? SampleMedal(n) : -1;
+                node.State = n < save.Level ? NodeState.Passed : n == save.Level ? NodeState.Current : NodeState.Locked;   // past the last level: all passed
+                node.MedalIndex = n < save.Level ? SampleMedal(n) : -1;
                 ApplyNode(node, 1f);
                 node.Rt.localScale = Vector3.one;
                 if (n < _last) foreach (var d in _dots[n]) { d.color = Color.white; d.rectTransform.localScale = Vector3.one; }
@@ -299,8 +299,12 @@ namespace Project.Meta
             from = Mathf.Clamp(from, 1, _last); to = Mathf.Clamp(to, 1, _last);
             _from = from; _to = to; _medal = medal;
             _nodes[from].State = NodeState.Current; _nodes[from].MedalIndex = -1; ApplyNode(_nodes[from], 1f);
-            _nodes[to].State = NodeState.Locked; _nodes[to].MedalIndex = -1; ApplyNode(_nodes[to], 1f);
-            _nodes[from].FaceTo.sprite = _faceGreen; _nodes[to].FaceTo.sprite = _faceOrange;
+            _nodes[from].FaceTo.sprite = _faceGreen;
+            if (to != from)                                               // the last level has no next node: only the green and the medal play
+            {
+                _nodes[to].State = NodeState.Locked; _nodes[to].MedalIndex = -1; ApplyNode(_nodes[to], 1f);
+                _nodes[to].FaceTo.sprite = _faceOrange;
+            }
             _pinFrom = SenYeri(from); _pinTo = SenYeri(to);
             int dots = from < _last && to == from + 1 ? _dots[from].Length : 0;
             _progress = new MapProgress(_s.Feel, dots);
@@ -336,6 +340,7 @@ namespace Project.Meta
             // the pin
             PlacePin(Vector2.Lerp(_pinFrom, _pinTo, f.Pin), f.PinHeight, f.PinSquash);
             // the new node
+            if (b == a) { if (f.Unlocked && a.State != NodeState.Passed) { a.State = NodeState.Passed; a.MedalIndex = _medal; ApplyNode(a, 1f); } Finish(f, a, b); return; }
             b.Lock.localScale = Vector3.one * f.Lock;
             b.Lock.gameObject.SetActive(f.Lock > 0f);
             b.FaceTo.color = new Color(1f, 1f, 1f, f.Unlocked ? 1f : 0f);
@@ -355,15 +360,18 @@ namespace Project.Meta
                     _stars[i].color = new Color(1f, 1f, 1f, 1f - f.Stars);
                 }
             }
-            if (_progT >= _progress.Done)
-            {
-                _progress = null;
-                a.Rt.localScale = Vector3.one; a.FaceTo.color = new Color(1f, 1f, 1f, 0f);
-                b.FaceTo.color = new Color(1f, 1f, 1f, 0f);
-                ApplyNode(a, 1f); ApplyNode(b, 1f);
-                _level = _to; _centre = _to; _centreDirty = false;
-                _scroll.enabled = true;
-            }
+            Finish(f, a, b);
+        }
+
+        private void Finish(MapProgress.Frame f, Node a, Node b)
+        {
+            if (_progT < _progress.Done) return;
+            _progress = null;
+            a.Rt.localScale = Vector3.one; a.FaceTo.color = new Color(1f, 1f, 1f, 0f);
+            b.FaceTo.color = new Color(1f, 1f, 1f, 0f);
+            ApplyNode(a, 1f); if (b != a) ApplyNode(b, 1f);
+            _level = _to; _centre = _to; _centreDirty = false;
+            _scroll.enabled = true;
         }
 
         private void Update()

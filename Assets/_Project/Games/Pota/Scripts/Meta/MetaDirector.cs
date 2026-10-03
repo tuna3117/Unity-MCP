@@ -140,7 +140,7 @@ namespace Project.Meta
             _promotion.Done -= OnPromotionDone; _promotion.Done += OnPromotionDone;
             _bonus.FlyCoins = (amount, from, to, done) => _coins.Fly(from, to, amount, null, done);
             _bonus.Window.Closed -= OnBonusClosed; _bonus.Window.Closed += OnBonusClosed;
-            _market.Bind(SpendCoins, msg => _toast.Show(msg));
+            _market.Bind(SpendCoins, msg => _toast.Show(msg), () => _save.Coins);
             _leagueSeen = S.LeagueOf(_save.Trophies);
             _menu.Refresh(_save, false);
             _map.Refresh(_save);
@@ -160,6 +160,8 @@ namespace Project.Meta
         /// <summary>The dev strip's "Öğretici" (M11): the hand points at Oyna (three taps), arcs to the Harita tab (two taps), leaves. Tapping Oyna ends it.</summary>
         public void ShowTutorial()
         {
+            if (Current == Screen.Game) return;
+            CloseWindows();
             _tabs.Select(TabBar.Tab.Home);
             _hand.PointAt(_menu.Play.Rect, "Oynamak için dokun", 3, () =>
                 _hand.ArcMove(_tabs.RectOf(TabBar.Tab.Map), "Harita burada", 2, () => _hand.Hide()));
@@ -181,6 +183,8 @@ namespace Project.Meta
         /// <summary>The dev strip's "Terfi": the trophies jump to the next league's floor and the promotion window plays.</summary>
         public void ShowPromotion()
         {
+            if (Current == Screen.Game || Current == Screen.Promotion) return;
+            CloseWindows();
             int l = S.LeagueOf(_save.Trophies);
             if (l >= S.LeagueThresholds.Length - 1) { _toast.Show("En üst lig"); return; }
             _save.Trophies = S.LeagueThresholds[l + 1];
@@ -202,6 +206,8 @@ namespace Project.Meta
 
         public void ShowBonus()
         {
+            if (Current == Screen.Game) return;
+            CloseWindows();
             _bonus.Open(BonusRules.Start(S.BonusColumns, S.BonusSeed >= 0 ? S.BonusSeed : BonusRules.ShowcaseSeed));
             Set(Screen.Bonus);
         }
@@ -215,8 +221,9 @@ namespace Project.Meta
             _save.Coins = target;
             if (count == 0 || !S.Feel.Enabled) { _menu.Coins.Set(target, false); _market.Coins.Set(target, false); done?.Invoke(); return; }
             int step = Mathf.Max(1, amount / count), arrived = 0;
+            _market.CoinsFx.Spin(S.Feel.CoinBurst + count * S.Feel.CoinStagger + S.Feel.CoinFlight);   // M3: the badge spins while it drops
             _coins.Fly(_market.CoinsPoint, to, amount,
-                () => { arrived++; shown = arrived >= count ? target : Mathf.Max(target, shown - step); _market.Coins.Set(shown, true); _menu.Coins.Set(shown, true); },
+                () => { arrived++; shown = arrived >= count ? target : Mathf.Max(target, shown - step); _market.Coins.Set(shown, true); _menu.Coins.Set(shown, true); _market.CoinsFx.Punch(); },
                 () => { _market.Coins.Set(target, true); _menu.Coins.Set(target, true); done?.Invoke(); });
         }
 
@@ -261,14 +268,15 @@ namespace Project.Meta
         /// <summary>The dev strip's "Kazan": Pota's win over the current save, shown by the win window's sequence.</summary>
         public void ShowWin()
         {
+            if (Current == Screen.Game) return;
+            CloseWindows();
             var before = _save;
             int score = MetaRules.Score(before);
             var r = MetaRules.Win(S, before, score, before.LeftoverBalls);
             var seq = new WinSequence(S, score, before.MedalSilver, before.MedalGold, before.Trophies, r.Save.Trophies, r.CoinsGained);
             _lastWin = r;
-            _save = r.Save;
-            _save.Coins = before.Coins;                     // the flight adds the coins (GainCoins)
-            _win.Open(seq, r, before, (amount, from) => GainCoins(amount, from));
+            _save = r.Save;                                 // credited now: Devam before the coins' moment must not lose them
+            _win.Open(seq, r, before, (amount, from) => ShowCoins(before.Coins, amount, from));
             Set(Screen.Win);
         }
 
@@ -294,7 +302,7 @@ namespace Project.Meta
             {
                 _map.Refresh(_save);
                 _tabs.Select(TabBar.Tab.Map);
-                _map.Play(_lastWin.Save.Level - 1, _lastWin.Save.Level, _lastWin.MedalIndex);
+                _map.Play(_lastWin.Save.Level - 1, Mathf.Min(_lastWin.Save.Level, S.MapLevels), _lastWin.MedalIndex);   // past the last node: green + medal only
             }
             else
             {
@@ -307,6 +315,8 @@ namespace Project.Meta
         /// <summary>The dev strip's "Kaybet": a life goes, the lose window shows what remained.</summary>
         public void ShowLose()
         {
+            if (Current == Screen.Game) return;
+            CloseWindows();
             _save = MetaRules.Lose(_save);
             _lose.Open(_save.RemainingOnLoss);
             Set(Screen.Lose);
@@ -336,7 +346,7 @@ namespace Project.Meta
             switch (tab)
             {
                 case TabBar.Tab.Map: _marketSlide.Hide(); _mapSlide.Show(); Set(Screen.Map); break;
-                case TabBar.Tab.Market: _mapSlide.Hide(); _marketSlide.Show(); Set(Screen.Market); break;
+                case TabBar.Tab.Market: _mapSlide.Hide(); _market.Sync(_save.Coins); _marketSlide.Show(); Set(Screen.Market); break;
                 default: _mapSlide.Hide(); _marketSlide.Hide(); Set(Screen.Menu); break;
             }
             _tabs.transform.SetAsLastSibling();             // a shown page moves to the top; the bar stays over the pages
@@ -357,18 +367,28 @@ namespace Project.Meta
             _settings.Closed -= OnSettingsClosed; _settings.Closed += OnSettingsClosed;
         }
 
-        private void OnSettingsClosed() => Set(_tabs.Current == TabBar.Tab.Home ? Screen.Menu : _tabs.Current == TabBar.Tab.Map ? Screen.Map : Screen.Market);
+        private Screen TabScreen => _tabs.Current == TabBar.Tab.Home ? Screen.Menu : _tabs.Current == TabBar.Tab.Map ? Screen.Map : Screen.Market;
 
-        /// <summary>Coins gained: fly from a canvas point to the strip's coin badge, the counter stepping on every arrival.</summary>
-        public void GainCoins(int amount, Vector2 fromCanvas, Action done = null)
+        /// <summary>A settings/league/bonus window closed: back to the tab's screen, unless something else took over meanwhile (a dev result).</summary>
+        private void OnSettingsClosed() { if (Current == Screen.Settings || Current == Screen.League || Current == Screen.Bonus) Set(TabScreen); }
+
+        /// <summary>Every open window goes before a result or a dev action opens over it (the level window stayed under the win window).</summary>
+        private void CloseWindows()
         {
-            int target = _save.Coins + amount, shown = _save.Coins, count = CoinPlan.Count(amount);
-            _save.Coins = target;
-            if (count == 0) { _menu.Coins.Set(target, true); done?.Invoke(); return; }
+            foreach (var w in new[] { _level?.Window, _settings, _league?.Window, _lose?.Window, _win?.Window, _bonus?.Window, _promotion?.Window })
+                if (w != null && w.IsOpen) w.Hide();
+            if (_hand != null && _hand.Visible) _hand.Hide();
+        }
+
+        /// <summary>The win's coins (already in the save) fly from a canvas point to the strip's badge; the counters roll up from <paramref name="shownFrom"/>, the badge squashes on every arrival and glints on the last (M3).</summary>
+        public void ShowCoins(int shownFrom, int amount, Vector2 fromCanvas)
+        {
+            int target = _save.Coins, shown = shownFrom, count = CoinPlan.Count(amount);
+            if (count == 0 || !S.Feel.Enabled) { _menu.Coins.Set(target, false); _market.Coins.Set(target, false); return; }
             int step = Mathf.Max(1, amount / count), arrived = 0;
             _coins.Fly(fromCanvas, _menu.CoinsPoint, amount,
-                () => { arrived++; shown = arrived >= count ? target : Mathf.Min(target, shown + step); _menu.Coins.Set(shown, true); },
-                () => { _menu.Coins.Set(target, true); done?.Invoke(); });
+                () => { arrived++; shown = arrived >= count ? target : Mathf.Min(target, shown + step); _menu.Coins.Set(shown, true); _market.Coins.Set(shown, true); _menu.CoinsFx.Punch(); },
+                () => { _menu.Coins.Set(_save.Coins, true); _market.Coins.Set(_save.Coins, true); _menu.CoinsFx.GlintNow(); });
         }
     }
 }

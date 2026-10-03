@@ -43,7 +43,7 @@ namespace Project.Meta
             var navy70 = new Color(MetaStyle.Navy.r, MetaStyle.Navy.g, MetaStyle.Navy.b, 0.7f);
             var panel = MetaUiKit.Row(w.Content, "Remaining", 100f);
             var card = panel.gameObject.AddComponent<Image>();
-            card.sprite = ColorHunt.ColorHuntHud.PanelSprite(128, MetaStyle.R(14), Color.white, Color.white, Color.white, 0, 0f, 0);
+            card.sprite = MetaStyle.Panel(128, MetaStyle.R(14), Color.white, Color.white, Color.white, 0, 0f, 0);
             card.type = Image.Type.Sliced; card.raycastTarget = false;
             lw._remaining = MetaUiKit.Label(panel, "Count", s.Lilita, "0", 52f, MetaStyle.Orange2, TextAnchor.MiddleCenter, false);
             lw._remaining.rectTransform.anchorMin = lw._remaining.rectTransform.anchorMax = new Vector2(0.5f, 1f); lw._remaining.rectTransform.pivot = new Vector2(0.5f, 0.5f);
@@ -74,7 +74,7 @@ namespace Project.Meta
             heart.transform.SetParent(b.Face, false);
             var hrt = (RectTransform)heart.transform; hrt.anchorMin = hrt.anchorMax = new Vector2(1f, 0.5f); hrt.pivot = new Vector2(1f, 0.5f);
             hrt.anchoredPosition = new Vector2(-12f * css, 0f); hrt.sizeDelta = new Vector2(44f, 24f) * css;
-            var himg = heart.GetComponent<Image>(); himg.sprite = ColorHunt.ColorHuntHud.PanelSprite(64, MetaStyle.R(12), MetaStyle.Red, MetaStyle.RedDark, MetaStyle.Red, 0, 0f, 0);
+            var himg = heart.GetComponent<Image>(); himg.sprite = MetaStyle.Panel(64, MetaStyle.R(12), MetaStyle.Red, MetaStyle.RedDark, MetaStyle.Red, 0, 0f, 0);
             himg.type = Image.Type.Sliced; himg.raycastTarget = false;
             MetaUiKit.Picture(hrt, "Icon", s.Heart, 16f, new Vector2(0f, 0.5f), new Vector2(5f, 0f));
             var ht = MetaUiKit.Label(hrt, "Text", bold, "1", 13f, Color.white, TextAnchor.MiddleRight); ht.rectTransform.offsetMax = new Vector2(-7f * css, 0f);

@@ -66,7 +66,7 @@ namespace Project.Meta
             h._bubbleRt = (RectTransform)bubble.transform;
             h._bubbleRt.anchorMin = h._bubbleRt.anchorMax = new Vector2(0.5f, 0.5f); h._bubbleRt.pivot = new Vector2(0.5f, 0f);
             h._bubbleRt.anchoredPosition = new Vector2(0f, 40f * css); h._bubbleRt.sizeDelta = new Vector2(200f, 34f) * css;
-            var bimg = bubble.GetComponent<Image>(); bimg.sprite = ColorHuntHud.PanelSprite(128, MetaStyle.R(12), MetaStyle.CreamTop, MetaStyle.Cream, MetaStyle.Gold, MetaStyle.R(2), 0f, 0);
+            var bimg = bubble.GetComponent<Image>(); bimg.sprite = MetaStyle.Panel(128, MetaStyle.R(12), MetaStyle.CreamTop, MetaStyle.Cream, MetaStyle.Gold, MetaStyle.R(2), 0f, 0);
             bimg.type = Image.Type.Sliced; bimg.raycastTarget = false;
             h.Bubble = MetaUiKit.Label(h._bubbleRt, "Text", s.FredokaBold != null ? s.FredokaBold : s.Lilita, "", 13f, MetaStyle.HintText);
             go.SetActive(false);

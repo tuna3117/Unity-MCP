@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Project.ColorHunt;
 using UnityEngine;
 
@@ -66,19 +68,31 @@ namespace Project.Meta
         }
 
         // ---------- sprites (ColorHuntHud's generators, Pota's numbers) ----------
-        public static Sprite Box() => ColorHuntHud.PanelSprite(128, R(30), CreamTop, Cream, Gold, R(4), 0f, 0);
-        public static Sprite BoxInner() => ColorHuntHud.PanelSprite(128, R(27), Color.clear, Color.clear, Color.white, R(3), 0f, 0);
-        public static Sprite Ribbon() => ColorHuntHud.PanelSprite(128, R(22), PotaLook.Hex(0xffb35c), Orange2, Color.white, R(3), 0.35f, R(3));
-        public static Sprite Card(int radiusCss = 18) => ColorHuntHud.PanelSprite(128, R(radiusCss), Color.white, Color.white, Color.white, 0, 0f, 0);
-        public static Sprite Shadow(int radiusCss = 30, int blurCss = 22) => ColorHuntHud.ShadowSprite(128, R(radiusCss), R(blurCss));
-        public static Sprite Lip(int radiusCss, Color color) => ColorHuntHud.PanelSprite(128, R(radiusCss), color, color, color, 0, 0f, 0);
-        public static Sprite BigButton(Color light, Color mid, Color dark) => ColorHuntHud.PanelSprite(128, R(22), light, dark, new Color(1f, 1f, 1f, 0.55f), R(3), 0.35f, R(3));
-        public static Sprite SmallButton(Color light, Color dark) => ColorHuntHud.PanelSprite(128, R(12), light, dark, light, 0, 0f, 0);
-        public static Sprite Pill() => ColorHuntHud.PanelSprite(128, R(18), PanelTop, Navy, Gold, R(3), 0.18f, R(2));
-        public static Sprite Circle(int sizeCss, Color top, Color bottom, Color border, int borderCss) => ColorHuntHud.CircleSprite(R(sizeCss), top, bottom, border, R(borderCss));
+        // Every generated sprite is cached by its parameters: a window makes hundreds of parts and a texture per part leaked memory (review 2026-10-03).
+        private static readonly Dictionary<string, Sprite> _cache = new Dictionary<string, Sprite>();
+        private static Sprite Cached(string key, Func<Sprite> make)
+        {
+            if (!_cache.TryGetValue(key, out var s) || s == null) { s = make(); _cache[key] = s; }
+            return s;
+        }
+
+        /// <summary>ColorHuntHud.PanelSprite, cached (radius and widths in px).</summary>
+        public static Sprite Panel(int size, int radius, Color top, Color bottom, Color border, int borderWidth, float highlight, int highlightWidth) =>
+            Cached($"panel|{size}|{radius}|{top}|{bottom}|{border}|{borderWidth}|{highlight}|{highlightWidth}", () => ColorHuntHud.PanelSprite(size, radius, top, bottom, border, borderWidth, highlight, highlightWidth));
+        public static Sprite Box() => Panel(128, R(30), CreamTop, Cream, Gold, R(4), 0f, 0);
+        public static Sprite BoxInner() => Panel(128, R(27), Color.clear, Color.clear, Color.white, R(3), 0f, 0);
+        public static Sprite Ribbon() => Panel(128, R(22), PotaLook.Hex(0xffb35c), Orange2, Color.white, R(3), 0.35f, R(3));
+        public static Sprite Card(int radiusCss = 18) => Panel(128, R(radiusCss), Color.white, Color.white, Color.white, 0, 0f, 0);
+        public static Sprite Shadow(int radiusCss = 30, int blurCss = 22) => Cached($"shadow|{radiusCss}|{blurCss}", () => ColorHuntHud.ShadowSprite(128, R(radiusCss), R(blurCss)));
+        public static Sprite Lip(int radiusCss, Color color) => Panel(128, R(radiusCss), color, color, color, 0, 0f, 0);
+        public static Sprite BigButton(Color light, Color mid, Color dark) => Panel(128, R(22), light, dark, new Color(1f, 1f, 1f, 0.55f), R(3), 0.35f, R(3));
+        public static Sprite SmallButton(Color light, Color dark) => Panel(128, R(12), light, dark, light, 0, 0f, 0);
+        public static Sprite Pill() => Panel(128, R(18), PanelTop, Navy, Gold, R(3), 0.18f, R(2));
+        public static Sprite Circle(int sizeCss, Color top, Color bottom, Color border, int borderCss) =>
+            Cached($"circle|{sizeCss}|{top}|{bottom}|{border}|{borderCss}", () => ColorHuntHud.CircleSprite(R(sizeCss), top, bottom, border, R(borderCss)));
         /// <summary>A hollow ring (CircleSprite paints a clear fill black; PanelSprite keeps it clear).</summary>
-        public static Sprite Ring(int sizeCss, Color color, int borderCss) => ColorHuntHud.PanelSprite(R(sizeCss) + 8, R(sizeCss) / 2, Color.clear, Color.clear, color, R(borderCss), 0f, 0);
-        public static Sprite CloseButton() => ColorHuntHud.CircleSprite(R(46), Red, RedDark, Color.white, R(3));
+        public static Sprite Ring(int sizeCss, Color color, int borderCss) => Panel(R(sizeCss) + 8, R(sizeCss) / 2, Color.clear, Color.clear, color, R(borderCss), 0f, 0);
+        public static Sprite CloseButton() => Circle(46, Red, RedDark, Color.white, 3);
 
         public static int R(float css) => Mathf.Max(1, Mathf.RoundToInt(css * Css));
     }
