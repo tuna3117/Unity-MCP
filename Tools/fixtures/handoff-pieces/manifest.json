@@ -1,0 +1,58 @@
+{
+  "id": "handoff-pieces",
+  "game": "_fixtures",
+  "kind": "vfx-mesh",
+  "version": 1,
+  "files": {
+    "glb": "handoff-pieces.glb",
+    "fbx": null,
+    "previews": []
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 24,
+    "materials": 2,
+    "textures": [],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0.55,
+      0.25,
+      0.25
+    ]
+  },
+  "pieces": [
+    {
+      "name": "piece_00",
+      "center": [
+        -0.15,
+        0.0,
+        0.125
+      ]
+    },
+    {
+      "name": "piece_01",
+      "center": [
+        0.15,
+        0.0,
+        0.125
+      ]
+    }
+  ],
+  "source": {
+    "recipe": "two 0.25 m cubes (fixture for ai_vfx_from_delivery)",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-10-04T00:00:00Z"
+}
