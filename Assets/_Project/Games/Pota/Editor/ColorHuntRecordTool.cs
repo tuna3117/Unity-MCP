@@ -25,7 +25,9 @@ namespace Project.Editor.AITools
         "'rotate cw|ccw', 'settle'; default: idle, select, tap, settle, rotate, settle, tap, settle), seed (7), ammo (settings), win (false; " +
         "true: one red target block, the first red tap wins), tail (1.5 s). scene 'Specials' (Specials.unity open): scenario " +
         "(birth|line|bomb|chain|golden), special_look (pota|royal or 1|court or 2; default pota), until (the marker to stop at, default " +
-        "'finish' = the demo's ScenarioFinished; e.g. 'tap2'), tail (0.6 s). Both: width (540), aspect (0.5625), look (pota|candy|shatter), " +
+        "'finish' = the demo's ScenarioFinished; e.g. 'tap2'), tail (0.6 s). Feel layer (spec 2026-10-03): feel (on|off, restored after), " +
+        "and in scene 'ColorHunt' scenario intro | lowammo | finale | lose | chain | idle (presets of script/ammo/win/tail; markers start, " +
+        "result, finale). Both: width (540), aspect (0.5625), look (pota|candy|shatter), " +
         "closeup (zoom on focus; steps of 0.3× fixedDeltaTime, play the frames back at meta.speed 0.3), zoom (2.4), focus (cell; default the " +
         "first tap's), name ('colorhunt'). Out: Temp/record/<name>/f_NNNN_tS.SSS.png, events.json {markers in s: tap, tap2…, rotate, win, " +
         "born…, fire…, land…, finish, end; meta {…, speed, step}; sounds: [{id, clip, t, volume, pitch, voice}]}, sounds/<clip>.wav.")]
@@ -36,11 +38,55 @@ namespace Project.Editor.AITools
         /// <summary>What a start asks for: the ColorHunt scene's script, or a Specials scenario in a special look.</summary>
         public struct SpecialsRequest { public bool Specials; public SpecialScenario Scenario; public SpecialLook Look; }
 
+        /// <summary>A feel-layer scenario in the ColorHunt scene (spec 2026-10-03 Task 10): the script and the round it needs.</summary>
+        public struct FeelPreset { public string Script; public int Ammo; public bool Win; public float Tail; public bool ChainSeed; }
+
+        /// <summary>The feel scenarios: ammo −1 = the settings' value; ChainSeed = pick a seed whose best tap chains ≥ 4 steps.</summary>
+        public static bool TryFeelScenario(string name, out FeelPreset preset)
+        {
+            switch ((name ?? "").Trim().ToLowerInvariant())
+            {
+                case "intro": preset = new FeelPreset { Script = "wait 2.4", Ammo = -1, Tail = 0.3f }; return true;
+                case "lowammo": preset = new FeelPreset { Script = "wait 0.8; tap auto; settle; wait 1.6", Ammo = 9, Tail = 0.4f }; return true;
+                case "finale": preset = new FeelPreset { Script = "wait 0.6; tap auto; wait 4.2", Ammo = 140, Win = true, Tail = 0.3f }; return true;
+                case "lose": preset = new FeelPreset { Script = "wait 3.1", Ammo = 0, Tail = 0.3f }; return true;
+                case "chain": preset = new FeelPreset { Script = "wait 0.6; tap auto; settle; wait 0.6", Ammo = -1, Tail = 0.4f, ChainSeed = true }; return true;
+                case "idle": preset = new FeelPreset { Script = "wait 7.5", Ammo = -1, Tail = 0.2f }; return true;
+                default: preset = default; return false;
+            }
+        }
+
+        /// <summary>"on" / "off" (any case) → true / false; anything else (or nothing) = leave the asset alone.</summary>
+        public static bool TryFeel(string value, out bool on)
+        {
+            on = false;
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            switch (value.Trim().ToLowerInvariant())
+            {
+                case "on": case "true": case "1": on = true; return true;
+                case "off": case "false": case "0": on = false; return true;
+                default: return false;
+            }
+        }
+
+        /// <summary>The first seed in 1..maxSeeds whose best affordable tap (ColorHuntHint.Best) chains at least minSteps; 0 when none does.</summary>
+        public static uint ChainSeed(LevelDesign design, int ammo, int minSteps, int maxSeeds)
+        {
+            for (uint seed = 1; seed <= maxSeeds; seed++)
+            {
+                var b = ColorHuntRules.Create(design, ammo, seed);
+                int best = ColorHuntHint.Best(b);
+                if (best >= 0 && ColorHuntRules.Break(b, best).Steps.Count >= minSteps) return seed;
+            }
+            return 0;
+        }
+
         public class Parameters
         {
             [ToolParameter("'start' (default), 'status' or 'cancel'", Required = false)] public string action { get; set; }
             [ToolParameter("'ColorHunt' (default) or 'Specials' (the special-balls demo)", Required = false)] public string scene { get; set; }
-            [ToolParameter("Specials: birth | line | bomb | chain | golden", Required = false)] public string scenario { get; set; }
+            [ToolParameter("Specials: birth | line | bomb | chain | golden. ColorHunt (feel layer): intro | lowammo | finale | lose | chain | idle", Required = false)] public string scenario { get; set; }
+            [ToolParameter("Feel layer on|off for the recording (the asset's value is restored after)", Required = false)] public string feel { get; set; }
             [ToolParameter("Specials: pota (default) | royal (1) | court (2)", Required = false)] public string special_look { get; set; }
             [ToolParameter("Specials: the marker to stop at, then the tail (default 'finish'; e.g. 'tap2')", Required = false)] public string until { get; set; }
             [ToolParameter("ColorHunt: script, ';'-separated", Required = false)] public string script { get; set; }
@@ -133,7 +179,10 @@ namespace Project.Editor.AITools
                 return $"unknown scene '{scene}' (ColorHunt, Specials)";
             bool hasScenario = !string.IsNullOrWhiteSpace(scenario), hasLook = !string.IsNullOrWhiteSpace(specialLook);
             if (!specials)
-                return hasScenario || hasLook ? "scenario and special_look need scene 'Specials' (Specials.unity open)" : null;
+            {
+                if (hasScenario && TryFeelScenario(scenario, out _)) return hasLook ? "special_look needs scene 'Specials'" : null;
+                return hasScenario || hasLook ? "scenario and special_look need scene 'Specials' (Specials.unity open); ColorHunt scenarios: intro, lowammo, finale, lose, chain, idle" : null;
+            }
             if (scripted) return "script and win are for scene 'ColorHunt'; scene 'Specials' plays the scenario's own taps";
             if (!hasScenario) return $"scene 'Specials' needs a scenario ({ScenarioList})";
             if (!TryScenario(scenario, out var s)) return $"unknown scenario '{scenario}' ({ScenarioList}; 'free' has no script to record)";
@@ -208,6 +257,10 @@ namespace Project.Editor.AITools
             return "auto";
         }
 
+        private static FeelPreset _preset;
+        private static string _presetName = "";
+        private static bool _previousFeel, _restoreFeel;
+
         public static object HandleCommand(JObject p)
         {
             string action = (AIToolsCommon.GetString(p, "action", "start") ?? "start").ToLowerInvariant();
@@ -232,8 +285,24 @@ namespace Project.Editor.AITools
             }
             else
             {
-                try { _steps = Parse(AIToolsCommon.GetString(p, "script", _win ? WinScript : DefaultScript)); }
+                _preset = default;
+                _presetName = "";
+                string scenarioArg = AIToolsCommon.GetString(p, "scenario", null);
+                if (!string.IsNullOrWhiteSpace(scenarioArg) && TryFeelScenario(scenarioArg, out _preset))
+                {
+                    _presetName = scenarioArg.Trim().ToLowerInvariant();
+                    if (p["win"] == null) _win = _preset.Win;
+                }
+                try { _steps = Parse(AIToolsCommon.GetString(p, "script", _presetName.Length > 0 ? _preset.Script : _win ? WinScript : DefaultScript)); }
                 catch (Exception e) { return new ErrorResponse(e.Message); }
+            }
+            string feelArg = AIToolsCommon.GetString(p, "feel", null);
+            if (!string.IsNullOrWhiteSpace(feelArg) && !TryFeel(feelArg, out _)) return new ErrorResponse($"feel must be on or off, got '{feelArg}'");
+            if (TryFeel(feelArg, out bool feelOn) && game.S.Feel != null)
+            {
+                _previousFeel = game.S.Feel.Enabled;
+                _restoreFeel = true;
+                game.S.Feel.Enabled = feelOn;
             }
             string lookArg = AIToolsCommon.GetString(p, "look", null);
             if (!string.IsNullOrEmpty(lookArg) && !TryLook(lookArg, out _))
@@ -259,11 +328,11 @@ namespace Project.Editor.AITools
             _zoom = Mathf.Clamp(AIToolsCommon.GetFloat(p, "zoom", CloseupZoom), 1f, 6f);
             _focus = AIToolsCommon.GetInt(p, "focus", -1);
             _until = (AIToolsCommon.GetString(p, "until", "finish") ?? "finish").Trim().ToLowerInvariant();
-            _seed = AIToolsCommon.GetInt(p, "seed", 7);
-            _ammo = AIToolsCommon.GetInt(p, "ammo", game.S.Ammo);
+            _seed = AIToolsCommon.GetInt(p, "seed", _presetName.Length > 0 && _preset.ChainSeed ? (int)Mathf.Max(1, ChainSeed(game.S.ToDesign(), game.S.Ammo, 4, 80)) : 7);
+            _ammo = AIToolsCommon.GetInt(p, "ammo", _presetName.Length > 0 && _preset.Ammo >= 0 ? _preset.Ammo : game.S.Ammo);
             _width = Mathf.Clamp(AIToolsCommon.GetInt(p, "width", 540), 120, 2160);
             _aspect = Mathf.Clamp(AIToolsCommon.GetFloat(p, "aspect", 0.5625f), 0.3f, 3f);
-            _tail = Mathf.Max(0f, AIToolsCommon.GetFloat(p, "tail", _specials ? SpecialsTail : 1.5f));
+            _tail = Mathf.Max(0f, AIToolsCommon.GetFloat(p, "tail", _specials ? SpecialsTail : _presetName.Length > 0 ? _preset.Tail : 1.5f));
             _dir = "Temp/record/" + (AIToolsCommon.GetString(p, "name", "colorhunt") ?? "colorhunt");
             if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
             Directory.CreateDirectory(_dir);
@@ -296,12 +365,16 @@ namespace Project.Editor.AITools
                 ["speed"] = Math.Round(_closeup ? CloseupTimeScale : 1f, 3),   // seq_video plays the frames back at this speed
                 ["step"] = Math.Round(LargestGap(), 4),                   // 0.02 (0.006 in a close-up); else the stepping changed
                 ["result"] = why,
+                ["feel"] = game != null && game.S != null && game.S.Feel != null && game.S.Feel.Enabled,
             };
             if (_specials)
             {
                 meta["scenario"] = _request.Scenario.ToString().ToLowerInvariant();
                 meta["special_look"] = _request.Look.ToString().ToLowerInvariant();
             }
+            else if (_presetName.Length > 0) meta["scenario"] = _presetName;
+            if (game != null && _restoreFeel && game.S != null && game.S.Feel != null) game.S.Feel.Enabled = _previousFeel;
+            _restoreFeel = false;
             if (game != null && _restoreLook)
             {
                 game.SetLook(_previousLook);
@@ -376,6 +449,9 @@ namespace Project.Editor.AITools
             if (_warm > 0) { _warm--; return; }                  // the canvases just moved onto the camera lay out one frame late
             Capture();
             if (_specials) { TickSpecials(game); return; }
+            // feel-layer markers: the result moment (win or loss, before the card) and the leftover finale's start
+            if (!_events.ContainsKey("result") && game.Current == ColorHuntGame.State.Ended) _events["result"] = Now;
+            if (!_events.ContainsKey("finale") && game.Hud != null && game.Hud.Finale != null && game.Hud.Finale.Running) _events["finale"] = Now;
             if (_index >= _steps.Count)
             {
                 if (_tailStart < 0f) _tailStart = Now;
@@ -443,6 +519,7 @@ namespace Project.Editor.AITools
             _recorder = new FrameRecorder(game.Cam, _width, _aspect, true);
             _warm = 1;
             _t0 = Time.unscaledTime;
+            _events["start"] = 0f;
             _sounds = game.Juice != null ? game.Juice.Sounds : null;
             if (_sounds != null) _sounds.StartLog(() => Now);
             _dealt = true;

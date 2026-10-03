@@ -138,5 +138,55 @@ namespace Project.Tests
                 Object.DestroyImmediate(c);
             }
         }
+
+        [Test]
+        public void ParseRequest_AcceptsTheFeelScenariosInTheColorHuntScene()
+        {
+            foreach (var name in new[] { "intro", "lowammo", "finale", "lose", "chain", "idle" })
+            {
+                Assert.IsNull(ColorHuntRecordTool.ParseRequest("ColorHunt", name, null, false, out var r), name);
+                Assert.IsFalse(r.Specials, name);
+                Assert.IsTrue(ColorHuntRecordTool.TryFeelScenario(name, out var preset), name);
+                Assert.IsNotEmpty(preset.Script, name);
+            }
+            Assert.IsNotNull(ColorHuntRecordTool.ParseRequest("ColorHunt", "bomb", null, false, out _), "a Specials scenario still needs the Specials scene");
+            Assert.IsNull(ColorHuntRecordTool.ParseRequest("Specials", "bomb", "royal", false, out var sp));
+            Assert.IsTrue(sp.Specials);
+        }
+
+        [Test]
+        public void FeelPresets_CarryTheirAmmoWinAndTail()
+        {
+            Assert.IsTrue(ColorHuntRecordTool.TryFeelScenario("finale", out var finale));
+            Assert.IsTrue(finale.Win);
+            Assert.AreEqual(140, finale.Ammo);
+            Assert.IsTrue(ColorHuntRecordTool.TryFeelScenario("lose", out var lose));
+            Assert.AreEqual(0, lose.Ammo);
+            Assert.IsTrue(ColorHuntRecordTool.TryFeelScenario("lowammo", out var low));
+            Assert.AreEqual(9, low.Ammo);
+            Assert.IsTrue(ColorHuntRecordTool.TryFeelScenario("idle", out var idle));
+            Assert.Greater(idle.Script.Length, 0);
+            Assert.IsFalse(ColorHuntRecordTool.TryFeelScenario("nope", out _));
+        }
+
+        [Test]
+        public void TryFeel_ReadsOnOff()
+        {
+            Assert.IsTrue(ColorHuntRecordTool.TryFeel("on", out bool on) && on);
+            Assert.IsTrue(ColorHuntRecordTool.TryFeel("OFF", out bool off) && !off);
+            Assert.IsFalse(ColorHuntRecordTool.TryFeel("maybe", out _));
+            Assert.IsFalse(ColorHuntRecordTool.TryFeel(null, out _), "no value = leave the asset alone");
+        }
+
+        [Test]
+        public void ChainSeed_FindsABoardWhoseBestTapChainsAtLeastFourSteps()
+        {
+            var design = ScriptableObject.CreateInstance<ColorHuntSettings>().ToDesign();
+            uint seed = ColorHuntRecordTool.ChainSeed(design, 158, 4, 80);
+            Assert.Greater(seed, 0u);
+            var b = ColorHuntRules.Create(design, 158, seed);
+            int best = ColorHuntHint.Best(b);
+            Assert.GreaterOrEqual(ColorHuntRules.Break(b, best).Steps.Count, 4);
+        }
     }
 }

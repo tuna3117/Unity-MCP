@@ -210,3 +210,34 @@ Tasarım `docs/superpowers/specs/2026-10-01-colorhunt-special-balls-fx-design.md
   kare üstünde doldurma bloklarının görünmesi (Pota'da da var, U47); Royal'ın zincirinin üçüncü ateşe dokunuştan 0,64 sn sonra
   ulaşması (kayıt saatinde — kombo yavaş çekimi ve dip'ler yüzünden; oyun-içi zaman sınırı 0,6 sn hâlâ tutuyor, bu bir saat
   eseri, düzeltme gerekmiyor).
+
+## Oyun içi his katmanı (2026-10-03)
+
+Tuna'nın isteği: Pota'nın okunmasından çıkan eksik his listesindeki her şeyi (ses, müzik, titreşim hariç) Unity'de yap, Tuna videolardan
+bakacak. Tasarım `docs/superpowers/specs/2026-10-03-pota-ingame-feel-design.md`, plan `docs/superpowers/plans/2026-10-03-pota-ingame-feel.md`,
+Pota'ya teslim `docs/handoff/2026-10-03-pota-oyun-ici-his.md` (anlar, sayılar, varlıklar, Tuna'nın seçim tablosu).
+
+- **Anahtar:** `ColorHuntSettings.Feel.Enabled` ve `BasketSettings.Feel.Enabled` (varsayılan açık; kapalı = eski davranış birebir, Önce | Sonra
+  kayıtları için). Stüdyo cilası (`ColorHuntGame.Polish = Studio || Feel`) Pota görünümünde de çalışır: açılış, ipucu, cephane nabzı/yuvarlanma,
+  zincir kelimeleri; dokunuş çökmesi ve bedel çipi A/B'ye özel kaldı.
+- **Renk Avı** (`Scripts/ColorHunt/Feel/`): `LevelIntro` (F1 şerit + hedef çipleri + dalga; PotaFlow'da şerit damga anında, çipler panel girince),
+  `AmmoTension` (F2), `LeftoverFinale` (F3; `ColorHuntGame.End` dağılmayı finale bitince çağırır), `LoseMoment` (F9; kart `Feel.LoseHold` 1,2 sn
+  sonra), `BoardClip` (F7 stencil maskesi: `PotaBoard` katmanı + PC/Mobile renderer'larda iki `RenderObjects` özelliği, `ai_install_board_clip`
+  kurar; maske quad'ı Default katmanda ve çerçeve çubuğunun derinliğinde, yoksa kendi testine takılıp bütün tahtayı gizliyor / perspektif şerit
+  bırakıyordu), `FeelCurves` (saf eğriler). F4 `PotaBurstStyle.ChainPeak`, F5 `ColorHuntHint.Score` (U40: hedef eşya puanı), F6 `BlockView.Bounce`.
+- **Gökyüzü** (`Scripts/Flow/SkyLife.cs`, F8): bulutlar, kuş sürüsü (`flap` klibi PlayableGraph ile), şehir bandı (U27). Sahne başına bir tane
+  (`SkyLife.Ensure`); basket ortamı ve bulmaca sahnesi paylaşır. Blender tarifleri `recipes/{cloud_set,bird_flock,city_band}.py`,
+  `vfx_flipbook lettering` `miss` stili; `ai_studio_import` dört varlığı `Art/Props/`, `Art/VFX/vfx-letter-miss/`e alır ve iki ayar asset'ine bağlar.
+- **Basket** (`Scripts/Basket/Feel/`): `SlingshotFeel` (F10; `ShotInput.Pulled/Released`, `PlayerActor.SetLean/HandBall`, `Hoop.SetGlow`,
+  `AimPreview.SetPower`, `RoundCamera.PullOffset/PullPitch`), `MissFeel` (F11; `LetterPop` KAÇTI!, `Hoop.Blink`, `PlayerActor.SetSlump`,
+  `RoundCamera.SagOffset`; eski "Kaçtı" yazısı ve popup Feel açıkken kapalı), `SwishFeel` (F12; `Ball.TouchedRim`), `BasketCountFeel` (F13;
+  `BasketHud.Roll/PopAmount`, `FlowBadge` damgası yalnız tek başına Basket sahnesinde). Kafes parlaması yapılmadı (kafes duvarları görünmez).
+- **Kayıt:** `ai_colorhunt_record` `feel` (on|off, sonra geri alınır) ve ColorHunt sahnesinde `scenario` intro | lowammo | finale | lose | chain |
+  idle (script/ammo/win/tail ön ayarları; işaretler `start`, `result`, `finale`); `ai_basket_record` `mode` shot | pull | miss | swish, `pull`
+  (rampa sn), `feel`; `events.json` {start, pull, shot, miss, end, meta} yazar, kareler artık oyun saatiyle adlanır (adımlı editörde kare başına
+  ~5 ms; 1/30 sayımı 7× hızlı çıkıyordu). Toplu: `Tools/feel_record.sh [record|videos|all] [an …]` → `docs/screenshots/2026-10-03-feel-<an>-{side.mp4,sheet.jpg}`
+  ve `…-feel-all.mp4` (Önce | Sonra; Pota sütunu yok: Playwright Chromium'u öne alır, Tuna uygun saatte isterse eklenir).
+- **Testler:** EditMode `FeelCurvesTests`, `BoardClipInstallerTests`, `BasketRecordToolTests`, eklemeler (`ColorHuntHintTests`, `BurstStyleTests`,
+  `BlockViewTests`, `StudioAssetsTests`, `ColorHuntRecordToolTests`); PlayMode `FeelPlayTests`, `BasketFeelPlayTests`. Blender `tests/test_recipes_feel.py`.
+- **Dürüst notlar:** Pota'ya dokunulmadı; menü/ödül katmanı (kazanma penceresi, harita, ana ekran, market, öğretici eli) 2. alt proje. Finale
+  paraları ve topları `Default` katmanda (maske kırpmasın). Kahramanın eğimi arkadan bakınca az okunuyor; başı potaya çevirme yapılmadı.
