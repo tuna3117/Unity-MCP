@@ -92,6 +92,7 @@ MonoBehaviour:
     LoseDimTime: 0.4
     LoseCamBack: 0.3
     NearMissMax: 3
+    LoseHold: 1.2
   LevelNumber: 20
   Size: 7
   ColorCount: 5
@@ -170,6 +171,7 @@ MonoBehaviour:
   PieceTemplate: {fileID: 2100000, guid: e6f064aba970c4734896c17854901c2d, type: 2}
   ShockTemplate: {fileID: 2100000, guid: c8dd69970afd14801b723a17f8026f7d, type: 2}
   ToonTemplate: {fileID: 2100000, guid: 986432fda363b48febb4d4d3b99a4bbb, type: 2}
+  StencilMaskTemplate: {fileID: 2100000, guid: 3e07dccf775144fc5b0d2a3fe83503b4, type: 2}
   CandyPuff: {fileID: 2800000, guid: 99e14e3d9b28a4425b8c078e73370b6e, type: 3}
   CandyRing: {fileID: 2800000, guid: 8adca5aa811f4435c8e05f6ba8416b6e, type: 3}
   ShatterSmoke: {fileID: 2800000, guid: 933ce353e632d41f8b96a3d33743e6be, type: 3}

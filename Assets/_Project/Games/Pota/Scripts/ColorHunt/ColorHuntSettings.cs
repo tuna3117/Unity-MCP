@@ -111,6 +111,8 @@ namespace Project.ColorHunt
         public Material ShockTemplate;
         [Tooltip("Core Project/Toon: the special looks' Blender meshes with their embedded skin as base map (SpecialMeshes.Toon).")]
         public Material ToonTemplate;
+        [Tooltip("Project/PotaStencilMask: F7's invisible stencil quad over the frame's inside (BoardClip).")]
+        public Material StencilMaskTemplate;
 
         [Header("Studio looks (Blender hand-offs, ai_studio_import)")]
         [Tooltip("A: vfx_flipbook puff_toon, 4×4 frames of 256 px.")]

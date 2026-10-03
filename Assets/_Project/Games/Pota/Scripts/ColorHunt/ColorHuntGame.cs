@@ -23,6 +23,8 @@ namespace Project.ColorHunt
         [NonSerialized] public LeftoverFinale Finale;
         /// <summary>F9: the HUD's lose moment (set by ColorHuntHud.Bind); the card waits Feel.LoseHold instead of LoseWait.</summary>
         [NonSerialized] public LoseMoment Lose;
+        /// <summary>F7: the board clip on this object (set by BoardClip.Awake); the views take its layer.</summary>
+        [NonSerialized] public BoardClip Clip;
         public ColorHuntHud Hud;
         public Camera Cam;
         [Tooltip("Deal a board on Start. PotaFlow turns this off and stages the board itself (Prepare → Begin).")]
@@ -1235,6 +1237,7 @@ namespace Project.ColorHunt
                 go.transform.SetParent(_blocksRoot, false);
                 v = go.AddComponent<BlockView>();
                 v.Init(S, _blockMesh, _blockMat, _labelMat);
+                Clip?.Assign(go);                                      // F7: the board layer, clipped to the frame
             }
             v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false; v.Swell = -1f; v.LabelAngle = 0f; v.Pulse = 0f;
             v.ResetStudio();

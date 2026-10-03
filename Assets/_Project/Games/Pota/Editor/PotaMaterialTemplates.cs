@@ -35,6 +35,7 @@ namespace Project.Editor.AITools
             var piece = Template("PotaPiece", RuntimeMaterial.From(null, "Project/PotaPiece"));
             var shock = Template("PotaShockRing", RuntimeMaterial.From(null, "Project/PotaShockRing"));
             var toon = Template("PotaToon", RuntimeMaterial.From(null, "Project/Toon"));
+            var stencil = Template("PotaStencilMask", RuntimeMaterial.From(null, "Project/PotaStencilMask"));
 
             int colorHunt = 0, basket = 0;
             foreach (var guid in AssetDatabase.FindAssets("t:" + nameof(ColorHuntSettings)))
@@ -42,7 +43,7 @@ namespace Project.Editor.AITools
                 var s = AssetDatabase.LoadAssetAtPath<ColorHuntSettings>(AssetDatabase.GUIDToAssetPath(guid));
                 s.LabelTemplate = label; s.AdditiveTemplate = additive; s.ParticleLitTemplate = particleLit; s.SelectionTemplate = selection;
                 s.FlipbookTemplate = flipbook; s.CandyShardTemplate = candyShard; s.PieceTemplate = piece; s.ShockTemplate = shock;
-                s.ToonTemplate = toon;
+                s.ToonTemplate = toon; s.StencilMaskTemplate = stencil;
                 EditorUtility.SetDirty(s);
                 colorHunt++;
             }

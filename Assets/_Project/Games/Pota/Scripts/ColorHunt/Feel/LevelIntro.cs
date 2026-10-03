@@ -40,6 +40,7 @@ namespace Project.ColorHunt
                 Mathf.RoundToInt(3f * css), 0.18f, Mathf.RoundToInt(2f * css));
             var go = new GameObject("LevelRibbon", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
             go.transform.SetParent(hud.transform, false);
+            go.transform.SetSiblingIndex(1);                        // under the HUD panels (the tension edge is first)
             _ribbon = (RectTransform)go.transform;
             _ribbon.anchorMin = _ribbon.anchorMax = new Vector2(0.5f, 1f);
             _ribbon.pivot = new Vector2(0.5f, 0.5f);
@@ -170,6 +171,7 @@ namespace Project.ColorHunt
             float css = ColorHuntHud.Css;
             var go = new GameObject("GoalChip", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
             go.transform.SetParent(_hud.transform, false);
+            go.transform.SetSiblingIndex(2);                        // under the HUD panels, over the ribbon
             var rt = (RectTransform)go.transform;
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
             rt.pivot = new Vector2(0.5f, 0.5f);

@@ -140,6 +140,8 @@ namespace Project.Editor.AITools
             sounds.S = settings;
             chJuice.Sounds = sounds;
             game.Fx = fx; game.Salvo = salvo; game.Juice = chJuice;
+            BoardClipInstaller.InstallAll();                          // F7: the PotaBoard layer and the stencil-tested renderer passes
+            game.gameObject.AddComponent<BoardClip>();
             var input = gameGo.AddComponent<ColorHuntInput>();
             input.Game = game; input.Cam = cam;
 

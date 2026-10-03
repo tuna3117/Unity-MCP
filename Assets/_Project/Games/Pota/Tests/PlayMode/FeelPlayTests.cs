@@ -280,6 +280,28 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator BoardClip_PutsBlocksOnTheBoardLayer_AndTheMaskTurnsWithTheBoard()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            var clip = game.GetComponentInChildren<BoardClip>();
+            Assert.IsNotNull(clip, "the scene tool put a BoardClip on the game");
+            Assert.IsTrue(BoardClip.Installed(), "the renderer features are installed");
+            int layer = LayerMask.NameToLayer(BoardClip.LayerName);
+            Assert.GreaterOrEqual(layer, 0);
+            var v = game.ViewAt(0);
+            Assert.AreEqual(layer, v.gameObject.layer);
+            foreach (var r in v.GetComponentsInChildren<Renderer>()) Assert.AreEqual(layer, r.gameObject.layer, r.name);
+            Assert.AreNotEqual(layer, clip.Mask.gameObject.layer, "the mask is drawn by the default pass (it writes the stencil the board's passes test)");
+            Assert.AreEqual(BoardClip.MaskLocalSize(game.Board.Size).x, clip.Mask.localScale.x, 1e-3f);
+            Assert.IsTrue(game.Rotate(Rotation.Clockwise));
+            yield return Wait(0.2f);
+            Assert.AreNotEqual(0f, game.BoardRoot.localRotation.eulerAngles.z, "mid-turn");
+            Assert.AreEqual(game.BoardRoot.rotation.eulerAngles.z, clip.Mask.rotation.eulerAngles.z, 1e-3f, "the mask turns with the board");
+        }
+
+        [UnityTest]
         public IEnumerator AffordableCount_CountsBlocksTheAmmoCovers()
         {
             ColorHuntGame game = null; ColorHuntHud hud = null;
