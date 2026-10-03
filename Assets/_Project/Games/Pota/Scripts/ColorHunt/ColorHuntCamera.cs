@@ -29,6 +29,8 @@ namespace Project.ColorHunt
 
         /// <summary>Close-up for recordings: 1 = the Pota fit; 2 = half the distance, centred halfway to <see cref="ZoomFocus"/>.</summary>
         public float Zoom = 1f;
+        /// <summary>F9: metres the camera sits back from its fit (the lose moment pulls it; 0 = the fit).</summary>
+        public float BackOffset;
         public Vector3 ZoomFocus;
         private Vector3 _pushTarget;
         private float _pushAmount, _pushTime = -1f, _pushDuration = 1f;
@@ -78,7 +80,7 @@ namespace Project.ColorHunt
 
         private void LateUpdate()
         {
-            var pos = Zoomed(FitFor(_cam.fieldOfView, _cam.aspect), ZoomFocus, Zoom);
+            var pos = Zoomed(FitFor(_cam.fieldOfView, _cam.aspect), ZoomFocus, Zoom) + Vector3.back * BackOffset;
             if (_pushTime >= 0f)
             {
                 _pushTime += Time.unscaledDeltaTime;

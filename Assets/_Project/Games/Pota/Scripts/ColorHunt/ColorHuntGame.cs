@@ -21,6 +21,8 @@ namespace Project.ColorHunt
         public ColorHuntJuice Juice;
         /// <summary>F3: the HUD's leftover finale (set by ColorHuntHud.Bind); the win disperses after it.</summary>
         [NonSerialized] public LeftoverFinale Finale;
+        /// <summary>F9: the HUD's lose moment (set by ColorHuntHud.Bind); the card waits Feel.LoseHold instead of LoseWait.</summary>
+        [NonSerialized] public LoseMoment Lose;
         public ColorHuntHud Hud;
         public Camera Cam;
         [Tooltip("Deal a board on Start. PotaFlow turns this off and stages the board itself (Prepare → Begin).")]
@@ -386,6 +388,7 @@ namespace Project.ColorHunt
                 return;
             }
             if (won) Disperse();
+            if (!won && Feel && Lose != null) { Lose.Play(reason); _resultTimer = S.Feel.LoseHold; return; }
             _resultTimer = won ? S.WinWait : S.LoseWait;
         }
 

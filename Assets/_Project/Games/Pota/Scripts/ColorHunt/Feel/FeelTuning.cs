@@ -54,5 +54,7 @@ namespace Project.ColorHunt
         public float LoseCamBack = 0.3f;
         [Tooltip("Total remaining target items at or under this → \"Kıl payı!\".")]
         public int NearMissMax = 3;
+        [Tooltip("Seconds from the loss to the result card (replaces LoseWait while the feel layer is on, so the moment can be read).")]
+        public float LoseHold = 1.2f;
     }
 }

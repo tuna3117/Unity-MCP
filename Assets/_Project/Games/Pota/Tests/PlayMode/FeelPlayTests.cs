@@ -194,6 +194,91 @@ namespace Project.Tests
             Assert.IsTrue(ended);
         }
 
+        /// <summary>A round that ends at once with nothing affordable: ammo 0 and the given red target.</summary>
+        private static void StageInstantLoss(ColorHuntGame game, int redTarget)
+        {
+            var design = game.S.ToDesign();
+            design.Targets = new[] { (0, redTarget) };
+            game.Prepare(0, 7, design);
+            game.Begin();
+        }
+
+        [UnityTest]
+        public IEnumerator Lose_DimsTheBoard_PullsTheCameraBack_LabelsTheRemainingGoal_NearMissUnderFour()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            bool ended = false;
+            game.RoundEnded += (won, reason) => ended = true;
+            StageInstantLoss(game, 3);
+            yield return StudioLookPlayTests.WaitUntil(() => game.Current == ColorHuntGame.State.Ended, 2f);
+            yield return null;
+            Assert.IsTrue(hud.Lose.Playing);
+            Assert.IsTrue(hud.Lose.NearMiss, "3 left reads as a near miss");
+            Assert.AreEqual("3 kaldı", hud.Lose.RemainingLabel(0));
+            yield return Wait(game.S.Feel.LoseDimTime + 0.1f);
+            Assert.Less(game.ViewAt(0).Fade, game.S.Feel.LoseDim + 0.05f, "blocks faded to the lose dim");
+            var cam = game.Cam.GetComponent<ColorHuntCamera>();
+            Assert.Greater(cam.BackOffset, game.S.Feel.LoseCamBack * 0.8f, "the camera pulled back");
+            Assert.IsFalse(ended, "the card waits for the moment");
+            yield return StudioLookPlayTests.WaitUntil(() => ended, game.S.Feel.LoseHold + 0.5f);
+            Assert.IsTrue(ended, "the card comes after the hold");
+        }
+
+        [UnityTest]
+        public IEnumerator Lose_WithManyGoalsLeft_IsNotANearMiss()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            StageInstantLoss(game, 22);
+            yield return StudioLookPlayTests.WaitUntil(() => game.Current == ColorHuntGame.State.Ended, 2f);
+            yield return null;
+            Assert.IsTrue(hud.Lose.Playing);
+            Assert.IsFalse(hud.Lose.NearMiss);
+            Assert.AreEqual("22 kaldı", hud.Lose.RemainingLabel(0));
+        }
+
+        [UnityTest]
+        public IEnumerator Lose_WithFeelOff_KeepsTodaysBoardAndWait()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            game.S.Feel.Enabled = false;
+            game.NewRound();
+            yield return StudioLookPlayTests.WaitUntil(() => game.Current == ColorHuntGame.State.Playing && !game.Busy, 3f);
+            bool ended = false;
+            game.RoundEnded += (won, reason) => ended = true;
+            StageInstantLoss(game, 3);
+            yield return StudioLookPlayTests.WaitUntil(() => game.Current == ColorHuntGame.State.Ended, 2f);
+            yield return Wait(0.3f);
+            Assert.IsFalse(hud.Lose.Playing);
+            Assert.AreEqual(1f, game.ViewAt(0).Fade, 1e-4f);
+            yield return StudioLookPlayTests.WaitUntil(() => ended, game.S.LoseWait + 0.4f);
+            Assert.IsTrue(ended, "today's LoseWait");
+            game.S.Feel.Enabled = true;
+        }
+
+        [UnityTest]
+        public IEnumerator Lose_TurningFeelOffMidMoment_RestoresTheBoard()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            StageInstantLoss(game, 3);
+            yield return StudioLookPlayTests.WaitUntil(() => game.Current == ColorHuntGame.State.Ended, 2f);
+            yield return Wait(game.S.Feel.LoseDimTime + 0.1f);
+            Assert.Less(game.ViewAt(0).Fade, 0.9f);
+            game.S.Feel.Enabled = false;
+            yield return null;
+            yield return null;
+            Assert.IsFalse(hud.Lose.Playing);
+            Assert.AreEqual(1f, game.ViewAt(0).Fade, 1e-4f);
+            Assert.AreEqual(0f, game.Cam.GetComponent<ColorHuntCamera>().BackOffset, 1e-4f);
+            game.S.Feel.Enabled = true;
+        }
+
         [UnityTest]
         public IEnumerator AffordableCount_CountsBlocksTheAmmoCovers()
         {

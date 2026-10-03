@@ -50,6 +50,7 @@ namespace Project.ColorHunt
         public AmmoTension Tension { get; private set; }
         public LevelIntro Intro { get; private set; }
         public LeftoverFinale Finale { get; private set; }
+        public LoseMoment Lose { get; private set; }
         public int FlyingCount => _flying.Count + (Collect != null ? Collect.Flying : 0);
 
         internal RectTransform FlyersRoot => _flyers;
@@ -106,6 +107,10 @@ namespace Project.ColorHunt
             if (Finale == null) Finale = gameObject.AddComponent<LeftoverFinale>();
             Finale.Init(this, game);
             game.Finale = Finale;
+            Lose = GetComponent<LoseMoment>();
+            if (Lose == null) Lose = gameObject.AddComponent<LoseMoment>();
+            Lose.Init(this, game);
+            game.Lose = Lose;
         }
 
         /// <summary>A .sayac-style counter panel (face, lip, soft shadow) for the feel layer's badges.</summary>

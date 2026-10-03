@@ -47,6 +47,8 @@ namespace Project.ColorHunt
         public float Wiggle;
         /// <summary>F6 landing bounce clock (seconds since landing); −1 = none. Scales x wide / y flat, one overshoot, then rests.</summary>
         public float Bounce = -1f;
+        /// <summary>F9 lose dim: 1 = lit as usual; lower fades the body and labels toward grey at that brightness.</summary>
+        public float Fade = 1f;
         /// <summary>The press factor applied this frame (1 = none).</summary>
         public float PressScale { get; private set; } = 1f;
         private float _press, _release = -1f, _releaseFrom = 1f;
@@ -55,6 +57,7 @@ namespace Project.ColorHunt
         {
             Pressed = false;
             Bounce = -1f;
+            Fade = 1f;
             Wiggle = 0f;
             Bob = 0f;
             StickerSpin = 0f;
@@ -215,14 +218,26 @@ namespace Project.ColorHunt
             nt.localScale = Vector3.one * (PotaLook.LabelQuad * PotaLook.NumberScale);
         }
 
+        /// <summary>Fade &lt; 1: toward the colour's grey, at Fade brightness (F9).</summary>
+        private Color Faded(Color c)
+        {
+            if (Fade >= 1f) return c;
+            float f = Mathf.Clamp01(Fade);
+            float lum = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+            var grey = new Color(lum, lum, lum, c.a);
+            var r = Color.Lerp(c, grey, 1f - f) * f;
+            r.a = c.a;
+            return r;
+        }
+
         private void Apply()
         {
             bool dim = Dim && !Block.IsSpecial;                   // renkAviFaz.ts soluk: … && !g.blok.ozel
-            _bodyMpb.SetVector(BaseColorId, PotaLook.BlockColor(Tone, Flash, dim));
+            _bodyMpb.SetVector(BaseColorId, Faded(PotaLook.BlockColor(Tone, Flash, dim)));
             _body.SetPropertyBlock(_bodyMpb);
-            _itemMpb.SetVector(ColorId, dim ? PotaLook.ItemShort.linear : Color.white);
+            _itemMpb.SetVector(ColorId, Faded(dim ? PotaLook.ItemShort.linear : Color.white));
             _item.SetPropertyBlock(_itemMpb);
-            _numberMpb.SetVector(ColorId, dim ? PotaLook.NumberShort.linear : Color.white);
+            _numberMpb.SetVector(ColorId, Faded(dim ? PotaLook.NumberShort.linear : Color.white));
             _number.SetPropertyBlock(_numberMpb);
         }
     }
