@@ -47,13 +47,15 @@ namespace Project.Tests
         }
 
         [UnityTest]
-        public IEnumerator Menu_Lives_HeroBreathes_PlayShines()
+        public IEnumerator Menu_ArtStandsStill_PlayShines()
         {
             MetaDirector d = null;
             yield return Load(x => d = x);
             float s0 = d.Menu.HeroScale;
             yield return Wait(1.0f);
-            Assert.AreNotEqual(s0, d.Menu.HeroScale, "the hero breathes");
+            Assert.AreEqual(1f, s0, 1e-4f);
+            Assert.AreEqual(1f, d.Menu.HeroScale, 1e-4f, "no breathing on the key art (Tuna, 2026-10-03)");
+            Assert.AreEqual(0f, d.Menu.ArtOffset, 1e-3f, "and no sway");
             bool shone = false;
             float t = 0f;
             while (t < 3f && !shone) { shone = d.Menu.ShineVisible; t += Time.unscaledDeltaTime; yield return null; }
@@ -389,6 +391,8 @@ namespace Project.Tests
             yield return WaitUntil(() => !d.MarketPage.Moving, 1f);
             var m = d.Market;
             Assert.AreEqual(MetaDirector.Screen.Market, d.Current);
+            yield return Wait(0.8f);
+            Assert.AreEqual(1f, m.HeroScale, 1e-4f, "the market hero does not breathe either (Tuna, 2026-10-03)");
             m.TapChip(1);                                        // forma-kirmizi, 120
             yield return null;
             Assert.AreEqual(1, m.Tried);

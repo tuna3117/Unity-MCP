@@ -83,9 +83,6 @@ namespace Project.Meta
     /// <summary>The main screen's pure curves (M7).</summary>
     public static class MetaCurves
     {
-        /// <summary>1 → 1.02 → 1 over <paramref name="period"/> seconds (Pota vitrinNefes).</summary>
-        public static float Breath(float t, float period) => 1f + 0.02f * (0.5f - 0.5f * Mathf.Cos(t / Mathf.Max(0.01f, period) * 2f * Mathf.PI));
-
         /// <summary>The shine's position −1 (left, parked) … +1 (right) during a <paramref name="sweep"/> every <paramref name="every"/> seconds; −1 while resting.</summary>
         public static float Shine(float t, float every, float sweep)
         {

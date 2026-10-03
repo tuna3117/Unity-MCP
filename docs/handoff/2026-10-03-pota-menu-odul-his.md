@@ -34,7 +34,7 @@ Süreler gerçek saniye. Yazı tipleri Lilita One (başlık, sayılar) ve Fredok
 | M4 | Kazanma penceresi | 0,20 "Harika!" damga (0 → 1,3 → 1, −3°); 0,45 SKOR 0'dan toplama kübik yavaşlamayla sayar, her 1/12'de 1,06 zıplar; kalemler 0,9'da belirir. **Madalya yükselir:** sayaçla bronz belirir, gümüş/altın eşiği geçilince 0,15 sn'de flaşla döner (geri dönmez). 1,35 "Kupa +N" sayar, lig çubuğu eski değerden yeniye 0,6 sn dolar, "Sonraki lige N kupa" azalır; terfi varsa çubuk 1,0'da parlar ve Devam'dan sonra terfi penceresi gelir. 1,7 "+N" para `zipla` + M3 uçuşu; 1,9 ödül kartı. 2,3 Devam nabız (1,8 sn, 1,035). Konfeti Pota'nın (70 parça). | `MetaFeelTuning`: StampAt 0,2 · ScoreAt 0,45 · ScoreTime 0,8 · TrophyAt 1,35 · BarTime 0,6 · CoinsAt 1,7 · ContinueAt 2,3; eşik anı = `ScoreAt + ScoreTime × (1 − ∛(1 − eşik/skor))` | saf `Screens/WinSequence` (`Stage(t)`, `MedalFlipAt`), `Screens/WinWindow`, kurallar `MetaRules` |
 | M5 | Kaybetme penceresi | Kutu açılırken 0,25 sn ±4 px sallanır (`salla`), kalan sayı 52 px 0 → 1,3 → 1 basılır; kalan ≤ 3 ise sayının yanında kırmızı "Kıl payı!" (−6°); önerilen turuncu düğme 0,8 sn sonra nabız. | LoseShake 0,25; LosePulseAt 0,8; damga 0,3 | `Screens/LoseWindow` (`Shake(u)`, `NearMiss`) |
 | M6 | Harita ilerlemesi | Devam → harita kayar, 0,5 sn'de önceki bölümü ortalar; 0,3 sn sonra düğüm yeşile döner (0,2, 1,15 taşma) + madalya damgalanır (1,6 → 1, 0,3); yol noktaları sırayla altın yanar (0,04/nokta); "Sen" pini 3 zıplamayla gider (0,7), inişte 0,9 ezilir; yeni düğümün kilidi 0,15'te büzülür, rakam 0 → 1,3 → 1 (0,3), halka + 8 yıldız; kaydırma yeni düğümü ortalar (0,4). His kapalı: Pota gibi ana ekran. | toplam 2,1 sn; düğüm formülü `x = W/2 + sin(n·0,85)·W·0,3`, `y = 90 + (50−n)·118`; "Sen" yeri `haritaYer.ts senYeri` portu | saf `Screens/MapLayout`, `Screens/MapProgress`; `Screens/MapScreen` (`Play(from, to, medal)`) |
-| M7 | Ana ekran | Ana görsel nefes alır (3,2 sn, 1 → 1,02, hafif salınım; pivot kahramanda), Oyna düğmesinde 2,2 sn'de bir soldan sağa parıltı (0,35) + Pota'nın nabzı, üst şerit rozetleri açılışta sırayla iner (0,05 arayla), iki yumuşak bulut sprite'ı (Blender `cloud_still`) sağa kayar (6 ve 10 css/sn). | Breath 3,2; ShineEvery 2,2; ShineTime 0,35 | `Screens/MenuScreen`, `MetaCurves.Breath/Shine` |
+| M7 | Ana ekran | ~~Ana görsel nefes alır~~ (**Tuna istemedi, kaldırıldı**; marketteki kahramanın `vitrinNefes`'i de kalkmalı), Oyna düğmesinde 2,2 sn'de bir soldan sağa parıltı (0,35) + Pota'nın nabzı, üst şerit rozetleri açılışta sırayla iner (0,05 arayla), iki yumuşak bulut sprite'ı (Blender `cloud_still`) sağa kayar (6 ve 10 css/sn). | ShineEvery 2,2; ShineTime 0,35 | `Screens/MenuScreen`, `MetaCurves.Shine` |
 | M8 | Lig terfisi | Eski rozet 0,25 sn'de küçülüp dönerek kaybolur, yeni rozet 0 → 1,25 → 1 (0,4) ışın flaşı + konfetiyle gelir, adı damgalanır. Lig penceresi terfiden sonra açılınca "SEN" hapı ve vurgu rengi eski basamaktan yeniye 0,5 sn'de kayar. | OldOut 0,25; NewAt 0,2; NewIn 0,4; ışınlar 0,7; SEN 0,5 | `Screens/PromotionWindow`, `Screens/LeagueWindow` |
 | M9 | Bonus | Şeritler Pota'nın eğrisiyle döner (1,4 sn + 0,12/sütun, `cubic-bezier(.25,.9,.3,1)` ≈ `1 − (1−u)^3,5`); her şerit dururken 0,12 sn ezilme (y 0,92) ve hücreler 1,1 taşma; kazanan hücreler altın + 2 nabız, diğerleri 0,4 alfa; kazanç paraları hücreden sonuç kartına uçar (bekleyen kazanç, şeride yazılmaz); "Bu sefer olmadı" kart ±4 px sallanır. | SquashTime 0,12; PopTime 0,2; eşikler para ≥ 3 → ×10, saat ≥ 4 → 30 dk, hak ≥ 4 → +3 | saf `Screens/ReelSpin`, `Screens/BonusRules` (`bonus.ts` portu, tohumlu); `Screens/BonusWindow` |
 | M10 | Market | Satın alma: paralar rozetten çipe uçar (M3 harcama), sayaç düşer, çip 1,2 taşarak "Giyili/Senin" damgası alır, halka + 12 yıldız, kahraman 0,5 sn zıplar (`kutla`). Deneme: çipe dokununca kahraman 0,28 hop + yeni parça 0,15 sn beyaz flaş. Para yetmiyorsa büyük düğme ±4 px sallanır, para rozeti 2 kez kırmızı yanıp söner, toast "Para yetmiyor". Kahramanın forması `kahraman-maske.png`'nin forma seviyesi (gri 36) ile renklenir. | Hop 0,28; Celebrate 0,5; Flash 0,15; sallanma 0,3; blink 0,6 | `Screens/MarketScreen`, katalog `Screens/MarketCatalog` (forma 0/120/120/140/160, top 0/200/250/300/500) |
@@ -59,21 +59,21 @@ Pota'da bulut ve el için PNG'ler doğrudan `<img>`/CSS olarak kullanılır; mas
 
 ## 5. Tuna'nın seçimi
 
-Teslim: `docs/screenshots/2026-10-03-meta-*`. Her an için **Evet / Hayır / Değişiklik** bekleniyor; F1–F13 ile birlikte toplu aktarılacak.
+**2026-10-03: Tuna hepsini kabul etti, tek değişiklikle: nefes alıp verme (M7'deki ana görsel ve marketteki kahraman) kaldırıldı** — Pota'nın kendi `vitrinNefes`'i de aktarımda kaldırılmalı. F1–F13 ile birlikte toplu aktarılacak.
 
 | # | An | Karar |
 |---|---|---|
-| M1 | Pencere ve düğme kiti | |
-| M2 | Ekran geçişleri | |
-| M3 | Para uçuşu ve sayaçlar | |
-| M4 | Kazanma penceresi | |
-| M5 | Kaybetme penceresi | |
-| M6 | Harita ilerlemesi | |
-| M7 | Ana ekran | |
-| M8 | Lig terfisi | |
-| M9 | Bonus | |
-| M10 | Market | |
-| M11 | Öğretici eli | |
+| M1 | Pencere ve düğme kiti | Evet |
+| M2 | Ekran geçişleri | Evet |
+| M3 | Para uçuşu ve sayaçlar | Evet |
+| M4 | Kazanma penceresi | Evet |
+| M5 | Kaybetme penceresi | Evet |
+| M6 | Harita ilerlemesi | Evet |
+| M7 | Ana ekran | Evet, nefes hariç (kaldırıldı) |
+| M8 | Lig terfisi | Evet |
+| M9 | Bonus | Evet |
+| M10 | Market | Evet, kahramanın nefesi hariç (kaldırıldı) |
+| M11 | Öğretici eli | Evet |
 
 ## 6. Bu turda yapılmayanlar / vitrin sınırları
 

@@ -37,6 +37,7 @@ namespace Project.Meta
         public string TrophiesText => Trophies != null ? Trophies.Text.text : "";
         public string LivesText => Lives != null ? Lives.Text.text : "";
         public float HeroScale => _art != null ? _art.localScale.x : 1f;
+        public float ArtOffset => _art != null ? _art.anchoredPosition.x : 0f;
         public bool ShineVisible => _shine != null && _shine.gameObject.activeSelf;
         /// <summary>The coin badge's centre on the root canvas (coin flights land here).</summary>
         public Vector2 CoinsPoint => CanvasPoint(CoinsBadge.Rect);
@@ -239,8 +240,7 @@ namespace Project.Meta
                 _shine.gameObject.SetActive(false);
                 return;
             }
-            _art.localScale = Vector3.one * MetaCurves.Breath(_t, feel.Breath);
-            _art.anchoredPosition = new Vector2(Mathf.Sin(_t * 0.7f) * 2f * MetaStyle.Css, 0f);
+            _art.localScale = Vector3.one; _art.anchoredPosition = Vector2.zero;      // no breathing: Tuna disliked it (2026-10-03)
             Play.Rect.localScale = Vector3.one * (1f + 0.035f * (0.5f + 0.5f * Mathf.Sin(_t / 1.8f * 2f * Mathf.PI)));
             float shine = MetaCurves.Shine(_t, feel.ShineEvery, feel.ShineTime);
             bool on = shine > -1f;

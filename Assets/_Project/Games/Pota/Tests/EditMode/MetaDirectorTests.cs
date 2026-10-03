@@ -58,14 +58,6 @@ namespace Project.Tests
         }
 
         [Test]
-        public void Breath_IsASlowUnitSine()
-        {
-            Assert.AreEqual(1f, MetaCurves.Breath(0f, 3.2f), 1e-4f);
-            Assert.AreEqual(1.02f, MetaCurves.Breath(1.6f, 3.2f), 1e-3f);
-            Assert.AreEqual(1f, MetaCurves.Breath(3.2f, 3.2f), 1e-3f);
-        }
-
-        [Test]
         public void Shine_SweepsLeftToRightThenRests()
         {
             Assert.AreEqual(-1f, MetaCurves.Shine(0f, 2.2f, 0.35f), 1e-4f, "parked left");

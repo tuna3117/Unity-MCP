@@ -41,7 +41,7 @@ namespace Project.Meta
         public float MapScroll = 0.5f, NodeGreen = 0.2f, MedalStamp = 0.3f, DotStep = 0.04f, PinHop = 0.7f, UnlockPop = 0.3f;
 
         [Header("M7 main screen")]
-        public float Breath = 3.2f, BallHopEvery = 7f, ShineEvery = 2.2f, ShineTime = 0.35f;
+        public float BallHopEvery = 7f, ShineEvery = 2.2f, ShineTime = 0.35f;        // no Breath: Tuna disliked the breathing art (2026-10-03)
 
         /// <summary>A duration under the switch: itself when on, 0 when off.</summary>
         public float T(float seconds) => Enabled ? seconds : 0f;

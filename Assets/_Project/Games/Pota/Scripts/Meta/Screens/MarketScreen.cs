@@ -17,7 +17,7 @@ namespace Project.Meta
         private class Chip { public MarketCatalog.Item Item; public RectTransform Rt; public Image Card, Icon; public Text Label; public MetaButton Hit; }
 
         public const float HeroBottom = 380f;
-        public const float Breath = 3.2f, Hop = 0.28f, Celebrate = 0.5f, Flash = 0.15f, ShakeTime = 0.3f, BlinkTime = 0.6f;
+        public const float Hop = 0.28f, Celebrate = 0.5f, Flash = 0.15f, ShakeTime = 0.3f, BlinkTime = 0.6f;
 
         private MetaSettings _s;
         private RectTransform _root, _hero, _ring, _panel;
@@ -323,8 +323,8 @@ namespace Project.Meta
             float dt = Time.unscaledDeltaTime, css = MetaStyle.Css;
             _t += dt;
             bool feel = _s.Feel.Enabled;
-            // breath (Pota vitrinNefes) and hops
-            float hop = 0f, scale = 1f + 0.02f * (0.5f - 0.5f * Mathf.Cos(_t / Breath * 2f * Mathf.PI));
+            // hops only: Pota's vitrinNefes is gone too (Tuna disliked the breathing, 2026-10-03)
+            float hop = 0f, scale = 1f;
             if (_hopT >= 0f)
             {
                 _hopT += dt;
