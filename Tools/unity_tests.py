@@ -5,6 +5,7 @@ Usage (project root):
   ~/.local/bin/uv run Tools/unity_tests.py EditMode|PlayMode [Full.Name ...] [--no-compile]
 Full.Name is a fixture or test full name (e.g. Project.Tests.FlowTimelineTests). Stops Play Mode first. Compile errors
 (error CS...) fail the run (exit 2) before any test starts. Prints "<mode> passed/total" and every failure.
+Exit 0 only when every test passed (skipped/inconclusive fail the run) and every given name matched at least one test.
 """
 import json
 import os
@@ -88,6 +89,19 @@ def wait_idle(timeout=240):
     print("[unity_tests] warning: editor still busy after the wait")
 
 
+def unmatched(names, full_names):
+    """The requested fixture/test names that match no test (a name matches itself, its tests and its parameterised cases)."""
+    def hit(name, full):
+        return full == name or full.startswith(name + ".") or full.startswith(name + "(")
+    return [n for n in names if not any(hit(n, f) for f in full_names)]
+
+
+def all_passed(summary):
+    """True only when there were tests and every one passed: skipped and inconclusive tests are not a pass."""
+    total = summary.get("total", 0)
+    return total > 0 and summary.get("passed", 0) == total and summary.get("failed", 0) == 0
+
+
 def compile_errors():
     call("refresh_unity", {"mode": "force", "scope": "all", "compile": "request", "wait_for_ready": True})
     wait_idle()
@@ -114,7 +128,7 @@ def main(argv):
     if names:
         req["test_names"] = names
     for attempt in range(2):
-        data = run_job(req)
+        data = run_job(req, details=bool(names))
         if data.get("error"):
             print(f"[unity_tests] {mode}: {data['error']}")
             return 1
@@ -135,17 +149,21 @@ def main(argv):
             wait_idle()
             continue
         break
-    passed, failed = summary.get("passed", 0), summary.get("failed", 0)
+    passed = summary.get("passed", 0)
     print(f"{mode} {passed}/{summary.get('total', 0)} passed ({summary.get('resultState', data.get('status'))})")
-    for r in result.get("results") or []:
+    results = result.get("results") or []
+    for r in results:
         if r.get("state") == "Passed":
             continue
         name = r.get("fullName") or r.get("name") or json.dumps(r)[:200]
-        print(f"  FAIL {name}: {(r.get('message') or '').strip()[:400]}")
-    return 0 if failed == 0 and passed > 0 else 1
+        print(f"  {str(r.get('state') or 'FAIL').upper()} {name}: {(r.get('message') or '').strip()[:400]}")
+    missing = unmatched(names, [r.get("fullName") or "" for r in results]) if names else []
+    for n in missing:
+        print(f"  NO TESTS for {n}")
+    return 0 if all_passed(summary) and not missing else 1
 
 
-def run_job(req):
+def run_job(req, details=False):
     job = None
     for attempt in range(8):
         reply = call("run_tests", req)
@@ -162,7 +180,8 @@ def run_job(req):
         sys.exit(f"[unity_tests] run_tests returned no job id: {reply}")
     data = {}
     for _ in range(40):
-        data = call("get_test_job", {"job_id": job, "wait_timeout": 60, "include_failed_tests": True}).get("data") or {}
+        data = call("get_test_job", {"job_id": job, "wait_timeout": 60, "include_failed_tests": True,
+                                     "include_details": details}).get("data") or {}
         if data.get("status") != "running":
             break
     return data
