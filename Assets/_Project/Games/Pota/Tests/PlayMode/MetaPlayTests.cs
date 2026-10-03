@@ -234,5 +234,72 @@ namespace Project.Tests
             Assert.IsTrue(l.Recommended.Pulsing);
             Assert.AreEqual(d.S.Save.Lives - 1, d.Save.Lives);
         }
+
+        // ---------- Task 4: map progression ----------
+
+        private static Vector2 SenYeri(MetaDirector d, int n)
+        {
+            int last = d.S.MapLevels;
+            return MapLayout.SenYeri(MapLayout.Node(n, MapScreen.Width, last), n > 1 ? MapLayout.Node(n - 1, MapScreen.Width, last) : (Vector2?)null,
+                n < last ? MapLayout.Node(n + 1, MapScreen.Width, last) : (Vector2?)null, MapScreen.Width);
+        }
+
+        [UnityTest]
+        public IEnumerator Map_ShowsTheSave_CurrentNodePulses_PinBesideIt()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Tabs.Select(TabBar.Tab.Map);
+            yield return WaitUntil(() => !d.MapPage.Moving, 1f);
+            Assert.AreEqual(MapScreen.NodeState.Passed, d.Map.StateOf(19));
+            Assert.AreEqual(MapScreen.NodeState.Current, d.Map.StateOf(20));
+            Assert.AreEqual(MapScreen.NodeState.Locked, d.Map.StateOf(21));
+            var pin = d.Map.PinPosition; var expected = SenYeri(d, 20);
+            Assert.AreEqual(expected.x, pin.x, 0.5f, "the pin stands beside its node (Pota senYeri)");
+            Assert.AreEqual(expected.y, pin.y, 0.5f);
+            float s0 = d.Map.NodeScale(20);
+            yield return Wait(0.5f);
+            Assert.AreNotEqual(s0, d.Map.NodeScale(20), "the current node breathes (Pota nabiz)");
+        }
+
+        [UnityTest]
+        public IEnumerator Map_AfterDevam_ProgressesToTheNewNode()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Win.Tap();
+            yield return WaitUntil(() => d.Win.Elapsed > d.S.Feel.ContinueAt, 4f);
+            d.Win.Continue.Tap();
+            yield return WaitUntil(() => d.Current == MetaDirector.Screen.Map, 1f);
+            Assert.AreEqual(MetaDirector.Screen.Map, d.Current);
+            Assert.AreEqual(TabBar.Tab.Map, d.Tabs.Current);
+            Assert.IsTrue(d.Map.Progressing);
+            Assert.AreEqual(MapScreen.NodeState.Locked, d.Map.StateOf(21), "still locked while it plays");
+            yield return WaitUntil(() => !d.Map.Progressing, 4f);
+            Assert.AreEqual(MapScreen.NodeState.Passed, d.Map.StateOf(20));
+            Assert.AreEqual(MapScreen.NodeState.Current, d.Map.StateOf(21));
+            Assert.AreEqual(d.LastWin.MedalIndex, d.Map.MedalOf(20));
+            var pin = d.Map.PinPosition; var expected = SenYeri(d, 21);
+            Assert.AreEqual(expected.x, pin.x, 0.5f, "the pin landed beside the new node");
+            Assert.AreEqual(expected.y, pin.y, 0.5f);
+            Assert.AreEqual(21, d.Map.CentredNode, "the scroll ends on the new node");
+            Assert.AreEqual(21, d.Save.Level);
+        }
+
+        [UnityTest]
+        public IEnumerator Map_FeelOff_DevamReturnsToTheMenu()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.S.Feel.Enabled = false;
+            d.Dev.Win.Tap();
+            yield return null;
+            d.Win.Continue.Tap();
+            yield return null;
+            yield return null;
+            Assert.AreEqual(MetaDirector.Screen.Menu, d.Current, "Pota: Devam goes home");
+            Assert.AreEqual(MapScreen.NodeState.Current, d.Map.StateOf(21), "the map is already up to date");
+            d.S.Feel.Enabled = true;
+        }
     }
 }

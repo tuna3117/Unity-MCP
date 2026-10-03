@@ -27,6 +27,7 @@ namespace Project.Meta
         [SerializeField] private LoseWindow _lose;
         [SerializeField] private Confetti _confetti;
         [SerializeField] private Image _fade;
+        [SerializeField] private MapScreen _map;
 
         private SampleSave _save;
         private ScreenSlide _mapSlide, _marketSlide;
@@ -49,6 +50,7 @@ namespace Project.Meta
         public LoseWindow Lose => _lose;
         public Confetti Confetti => _confetti;
         public WinResult LastWin => _lastWin;
+        public MapScreen Map => _map;
         public event Action<Screen> ScreenChanged;
 
         /// <summary>The scene tool hands over the canvas; the screens are built on Play (Awake).</summary>
@@ -60,6 +62,7 @@ namespace Project.Meta
             _root = root;
             _menu = MenuScreen.Create(root, S);
             _mapPage = Page(root, "MapPage", S.MapBackground, new Color(126f / 255f, 195f / 255f, 240f / 255f, 0.3f));
+            _map = MapScreen.Create(_mapPage, S);
             _marketPage = Page(root, "MarketPage", null, new Color(20f / 255f, 40f / 255f, 80f / 255f, 0.82f));
             _tabs = TabBar.Create(root, S);
             _settings = SettingsWindow.Create(root, S);
@@ -117,6 +120,7 @@ namespace Project.Meta
             _lose.Recommended.Clicked -= RetryLevel; _lose.Recommended.Clicked += RetryLevel;
             foreach (var b in new[] { _lose.Basket, _lose.More, _lose.Video }) { b.Clicked -= CloseLose; b.Clicked += CloseLose; }
             _menu.Refresh(_save, false);
+            _map.Refresh(_save);
             _menu.Enter();
             _dev?.Bind(this);
             if (_dev != null)
@@ -177,12 +181,24 @@ namespace Project.Meta
             Set(Screen.Win);
         }
 
+        /// <summary>Devam: with the feel layer the map slides in and plays the progression (M6); without it Pota goes home.</summary>
         private void OnWinDone()
         {
             _win.Window.Hide(() =>
             {
                 _menu.Refresh(_save, true);
-                Set(Screen.Menu);
+                if (S.Feel.Enabled)
+                {
+                    _map.Refresh(_save);
+                    _tabs.Select(TabBar.Tab.Map);
+                    _map.Play(_lastWin.Save.Level - 1, _lastWin.Save.Level, _lastWin.MedalIndex);
+                }
+                else
+                {
+                    _map.Refresh(_save);
+                    _tabs.Select(TabBar.Tab.Home);
+                    Set(Screen.Menu);
+                }
                 if (_lastWin.Promoted) _toast.Show("Yeni lig! (terfi penceresi: görev 5)");
             });
         }
@@ -209,6 +225,7 @@ namespace Project.Meta
         {
             _save = MetaRules.Copy(S.Save);
             _menu.Refresh(_save, false);
+            _map.Refresh(_save);
         }
 
         private void OnTab(TabBar.Tab tab)
