@@ -28,3 +28,16 @@ def test_column_labels_take_the_given_ones_in_order():
     import pytest
     with pytest.raises(ValueError):
         fs.column_labels([1.0, 2.0], "only one")
+
+
+def test_label_lines_fit_inside_the_label_column():
+    from PIL import ImageFont
+    font = ImageFont.truetype(fs.FONT, 28)
+    width = fs.label_width(["A", "1 Büyük şut"], font)
+    assert width >= font.getlength("1 Büyük şut") + 24, "the column opens to the longest label"
+    long_label = "3 Pano damgası, dokunma atlamalı ve yavaş çekimli"
+    width = fs.label_width([long_label], font)
+    assert width <= fs.MAX_LABEL_W
+    lines = fs.wrap(long_label, font, width - 24)
+    assert len(lines) > 1 and " ".join(lines) == long_label
+    assert all(font.getlength(line) <= width - 24 for line in lines)

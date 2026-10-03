@@ -35,6 +35,31 @@ def column_labels(times, labels):
     return out
 
 
+# Turkish labels ("1 Büyük şut"): Arial Bold has ğ/ş/İ; the label column opens to the longest label, up to MAX_LABEL_W,
+# and longer labels wrap onto more lines instead of running under the first frame.
+FONT = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+MIN_LABEL_W, MAX_LABEL_W, LABEL_PAD = 150, 360, 24
+
+
+def label_width(labels, font):
+    """Width of the row-label column: the longest label plus padding, between MIN_LABEL_W and MAX_LABEL_W."""
+    longest = max((font.getlength(label) for label in labels), default=0)
+    return int(min(MAX_LABEL_W, max(MIN_LABEL_W, longest + LABEL_PAD)))
+
+
+def wrap(text, font, max_width):
+    """Splits text into lines no wider than max_width (a single word wider than that stays on its own line)."""
+    lines, line = [], ""
+    for word in text.split():
+        candidate = f"{line} {word}".strip()
+        if line and font.getlength(candidate) > max_width:
+            lines.append(line)
+            line = word
+        else:
+            line = candidate
+    return lines + ([line] if line else [])
+
+
 def load_frames(folder):
     out = []
     for n in sorted(os.listdir(folder)):
@@ -84,21 +109,24 @@ def main(argv):
         heads = [f"{anchor} {t:+.1f} s" for t in times]
     first = Image.open(rows[0][1][0][0])
     w = round(first.width * height / first.height)
-    label_w, head_h = 150, 44
-    sheet = Image.new("RGB", (label_w + w * len(times), head_h + height * len(rows)), (18, 22, 30))
-    draw = ImageDraw.Draw(sheet)
     try:
-        font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 28)
-        small = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 20)
+        font = ImageFont.truetype(FONT, 28)
+        small = ImageFont.truetype(FONT, 20)
     except OSError:
         font = small = ImageFont.load_default()
+    label_w, head_h = label_width([label for label, _, _ in rows], font), 44
+    sheet = Image.new("RGB", (label_w + w * len(times), head_h + height * len(rows)), (18, 22, 30))
+    draw = ImageDraw.Draw(sheet)
     for c, head in enumerate(heads):
         draw.text((label_w + c * w + 10, 8), head, fill=(240, 240, 240), font=font)
     if corner:
         draw.text((12, 12), corner, fill=(255, 200, 60), font=small)
     for r, (label, frames, folder) in enumerate(rows):
         y = head_h + r * height
-        draw.text((12, y + height // 2 - 14), label, fill=(255, 200, 60), font=font)
+        lines = wrap(label, font, label_w - LABEL_PAD)
+        line_h = 34
+        for k, line in enumerate(lines):
+            draw.text((12, y + height // 2 - line_h * len(lines) // 2 + k * line_h), line, fill=(255, 200, 60), font=font)
         offset = 0.0
         if anchor:
             import json
