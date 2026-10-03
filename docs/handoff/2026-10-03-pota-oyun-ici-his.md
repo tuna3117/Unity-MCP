@@ -62,23 +62,12 @@ three.js'e glb'ler doğrudan yüklenir (glTF, +Y yukarı, metre). Bulutlar/kuşl
 
 ## 5. Tuna'nın seçimi
 
-Tuna videolara bakıp hangi anların Pota'ya gireceğini seçer; bu tablo o zaman doldurulur.
+**2026-10-03: Tuna 13 anın hepsini beğendi ("çıkaracağım bir şey yok ilk turda üretilenlerden").** Pota'ya aktarım, 2. alt proje
+(menü ve ödül katmanı) de bitince **toplu** yapılacak; o zamana kadar bu belge ve 2. alt projenin belgesi birlikte teslim edilir.
 
-| # | An | Karar | Not |
-|---|---|---|---|
-| F1 | Bölüm başı | | |
-| F2 | Az top gerilimi | | |
-| F3 | Kalan topların finali | | |
-| F4 | Zincir kelimeleri | | |
-| F5 | Boşta ipucu | | |
-| F6 | İniş yaylanması | | |
-| F7 | Dolum maskesi | | |
-| F8 | Canlı arka plan | | |
-| F9 | Kaybetme anı | | |
-| F10 | Sapan | | |
-| F11 | Iska | | |
-| F12 | Temiz giriş | | |
-| F13 | Sayım ve damga | | |
+| # | An | Karar |
+|---|---|---|
+| F1–F13 | hepsi | Evet — toplu teslimde |
 
 ## 6. Bu turda yapılmayanlar
 
