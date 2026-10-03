@@ -54,9 +54,80 @@ namespace Project.Tests
         {
             string dir = Path.Combine(Path.GetTempPath(), "handoff_bad_kind");
             Directory.CreateDirectory(dir);
-            string path = Path.Combine(dir, "manifest.json");
-            File.WriteAllText(path, "{\"id\":\"x\",\"game\":\"Pota\",\"kind\":\"building\",\"files\":{\"glb\":\"x.glb\"}}");
-            Assert.Throws<ArgumentException>(() => ImportAssetTool.Import(path, Dest));
+            try
+            {
+                string path = Path.Combine(dir, "manifest.json");
+                File.WriteAllText(path, "{\"id\":\"x\",\"game\":\"Pota\",\"kind\":\"building\",\"files\":{\"glb\":\"x.glb\"}}");
+                Assert.Throws<ArgumentException>(() => ImportAssetTool.Import(path, Dest));
+            }
+            finally
+            {
+                Directory.Delete(dir, true);
+            }
+            Assert.IsFalse(Directory.Exists(dir), "the test leaves no temp folder behind");
+        }
+
+        [Test]
+        public void Folder_EmptyOrMissingDest_IsTheDefault()
+        {
+            Assert.AreEqual("Assets/_Project/Games/Pota/Art/Props/hoop", ImportAssetTool.TargetFolder(null, "Pota", "Props", "hoop"));
+            Assert.AreEqual("Assets/_Project/Games/Pota/Art/Props/hoop", ImportAssetTool.TargetFolder("", "Pota", "Props", "hoop"));
+            Assert.AreEqual("Assets/_Project/Games/Pota/Art/Props/hoop", ImportAssetTool.TargetFolder("  ", "Pota", "Props", "hoop"));
+            Assert.AreEqual("Assets/X/y", ImportAssetTool.TargetFolder("Assets/X/y/", "Pota", "Props", "hoop"));
+        }
+
+        [Test]
+        public void Folder_OutsideAssets_IsRefused()
+        {
+            Assert.Throws<ArgumentException>(() => ImportAssetTool.TargetFolder("/tmp/x", "Pota", "Props", "hoop"));
+            Assert.Throws<ArgumentException>(() => ImportAssetTool.TargetFolder("Packages/x", "Pota", "Props", "hoop"));
+            Assert.Throws<ArgumentException>(() => ImportAssetTool.TargetFolder("Assets/../x", "Pota", "Props", "hoop"));
+            Assert.Throws<ArgumentException>(() => ImportAssetTool.Import(Fixture, "/tmp/x"));
+        }
+
+        private static string RigFbxFixture => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Tools", "fixtures",
+            "handoff-rig-fbx", "manifest.json"));
+
+        [Test]
+        public void GlbAndFbx_AreEachMeasured_AndMatch()
+        {
+            var r = ImportAssetTool.Import(RigFbxFixture, Root + "/both");
+            Assert.IsTrue(r.matches, string.Join("; ", r.differences));
+            CollectionAssert.AreEquivalent(new[] { "handoff-rig-fbx.glb", "handoff-rig-fbx.fbx" }, r.models.ConvertAll(m => m.file));
+            foreach (var m in r.models)
+            {
+                Assert.AreEqual(164, m.tris, m.file);
+                Assert.AreEqual(3, m.bones, m.file);
+                Assert.AreEqual(1, m.clips.Count, m.file);
+            }
+        }
+
+        [Test]
+        public void Redelivery_WithoutTheFbx_RemovesTheStaleFbx()
+        {
+            ImportAssetTool.Import(RigFbxFixture, Root + "/stale");
+            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/stale/handoff-rig-fbx.fbx"));
+            string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Temp", "handoff-rig-glb-only"));
+            Directory.CreateDirectory(dir);
+            File.Copy(Path.Combine(Path.GetDirectoryName(RigFbxFixture), "handoff-rig-fbx.glb"), Path.Combine(dir, "handoff-rig-fbx.glb"), true);
+            File.WriteAllText(Path.Combine(dir, "manifest.json"),
+                File.ReadAllText(RigFbxFixture).Replace("\"fbx\": \"handoff-rig-fbx.fbx\"", "\"fbx\": null"));
+            var r = ImportAssetTool.Import(Path.Combine(dir, "manifest.json"), Root + "/stale");
+            Assert.IsTrue(r.matches, string.Join("; ", r.differences));
+            Assert.IsNull(AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/stale/handoff-rig-fbx.fbx"), "stale fbx removed");
+            CollectionAssert.AreEqual(new[] { Root + "/stale/handoff-rig-fbx.fbx" }, r.removed);
+            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/stale/handoff-rig-fbx.glb"));
+        }
+
+        [Test]
+        public void Redelivery_KeepsFilesTheManifestNeverListed()
+        {
+            ImportAssetTool.Import(Fixture, Dest);
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            AssetDatabase.CreateAsset(mat, Dest + "/handoff-cube_Toon.mat");
+            var r = ImportAssetTool.Import(Fixture, Dest);
+            Assert.IsEmpty(r.removed);
+            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<Material>(Dest + "/handoff-cube_Toon.mat"), "materials made beside a hand-off stay");
         }
 
         [Test]

@@ -18,8 +18,9 @@ namespace Project.Editor.AITools
     /// </summary>
     [McpForUnityTool("ai_import_asset", Description =
         "Import a Blender workshop hand-off. manifest: absolute path to manifest.json (the glb/fbx sits next to it). " +
-        "Copies into Assets/_Project/Games/<game>/Art/<Kind>/<id>/ (dest overrides); re-import keeps GUIDs. " +
-        "Then compares tris/bones/clip count with the manifest (matches=false lists the differences).")]
+        "Copies into Assets/_Project/Games/<game>/Art/<Kind>/<id>/ (dest overrides, must be under Assets/); re-import keeps GUIDs " +
+        "and removes files the previous delivery listed but this one does not (removed). " +
+        "Then compares tris/bones/clip count of every model file with the manifest (matches=false lists the differences).")]
     public static class ImportAssetTool
     {
         public class Parameters
@@ -35,10 +36,19 @@ namespace Project.Editor.AITools
             { "vfx-mesh", "VFX" }, { "vfx-flipbook", "VFX" },
         };
 
+        /// <summary>What Unity imported from one model file of the delivery (glb and fbx are measured separately).</summary>
+        public class ModelStats
+        {
+            public string file;
+            public int tris, bones;
+            public List<string> clips = new List<string>();
+        }
+
         public class Result
         {
             public string id, folder, main;
-            public List<string> copied = new List<string>();
+            public List<string> copied = new List<string>(), removed = new List<string>();
+            public List<ModelStats> models = new List<ModelStats>();
             public int manifestTris, unityTris, manifestBones, unityBones;
             public List<string> manifestClips = new List<string>(), unityClips = new List<string>();
             public List<string> differences = new List<string>();
@@ -56,9 +66,10 @@ namespace Project.Editor.AITools
                 string msg = $"{r.id} -> {r.folder}: {r.unityTris} tris, {r.unityBones} bones, {r.unityClips.Count} clips, " +
                              (r.matches ? "matches the manifest" : "DIFFERS: " + string.Join("; ", r.differences));
                 AIToolsCommon.Log("Import asset: " + msg);
+                if (r.removed.Count > 0) msg += $"; removed stale {string.Join(", ", r.removed)}";
                 return new SuccessResponse(msg, new
                 {
-                    r.id, r.folder, r.main, r.copied, r.matches, r.differences, r.manifestTris, r.unityTris,
+                    r.id, r.folder, r.main, r.copied, r.removed, r.models, r.matches, r.differences, r.manifestTris, r.unityTris,
                     r.manifestBones, r.unityBones, r.manifestClips, r.unityClips, r.sheetSize, r.manifestSheetSize,
                 });
             }
@@ -81,11 +92,12 @@ namespace Project.Editor.AITools
             JObject fb = null;
             if (flipbook) fb = m["flipbook"] as JObject ?? throw new ArgumentException("a vfx-flipbook manifest has no 'flipbook' block.");
 
-            var r = new Result { id = id, folder = dest ?? $"Assets/_Project/Games/{game}/Art/{kindFolder}/{id}" };
+            var r = new Result { id = id, folder = TargetFolder(dest, game, kindFolder, id) };
             AIToolsCommon.EnsureFolder(r.folder);
+            var previous = DeliveredFiles($"{r.folder}/manifest.json");
             string sourceDir = Path.GetDirectoryName(Path.GetFullPath(manifestPath));
-            string glb = files.Value<string>("glb"), fbx = files.Value<string>("fbx");
-            foreach (string name in new[] { glb, fbx, flipbook ? mainName : null, "manifest.json" }.Where(n => !string.IsNullOrEmpty(n)))
+            var delivered = DeliveredFiles(files, flipbook);
+            foreach (string name in delivered.Append("manifest.json"))
             {
                 string source = name == "manifest.json" ? manifestPath : Path.Combine(sourceDir, name);
                 if (!File.Exists(source)) throw new FileNotFoundException("Hand-off file missing: " + source);
@@ -94,10 +106,51 @@ namespace Project.Editor.AITools
                 AssetDatabase.ImportAsset(target, ImportAssetOptions.ForceUpdate);
                 r.copied.Add(target);
             }
+            foreach (string stale in previous.Except(delivered))
+            {
+                string path = $"{r.folder}/{stale}";
+                if (AssetDatabase.LoadMainAssetAtPath(path) != null && AssetDatabase.DeleteAsset(path)) r.removed.Add(path);
+            }
             r.main = $"{r.folder}/{mainName}";
             if (flipbook) ConfigureSheet(r.main, fb.Value<bool?>("linear") ?? false);
             Check(r, m, flipbook);
             return r;
+        }
+
+        /// <summary>
+        /// The asset folder a delivery goes to: <paramref name="dest"/> when given (must stay under Assets/), otherwise
+        /// Assets/_Project/Games/&lt;game&gt;/Art/&lt;Kind&gt;/&lt;id&gt;.
+        /// </summary>
+        public static string TargetFolder(string dest, string game, string kindFolder, string id)
+        {
+            if (string.IsNullOrWhiteSpace(dest)) return $"Assets/_Project/Games/{game}/Art/{kindFolder}/{id}";
+            string folder = dest.Trim().Replace('\\', '/').TrimEnd('/');
+            if (!folder.StartsWith("Assets/") || folder.Split('/').Any(part => part == ".." || part == "." || part.Length == 0))
+                throw new ArgumentException($"dest must be a folder under Assets/ (got '{dest}').");
+            return folder;
+        }
+
+        /// <summary>The model/sheet files a manifest delivers (not previews, not the manifest itself).</summary>
+        private static List<string> DeliveredFiles(JObject files, bool flipbook)
+        {
+            var names = new List<string> { files.Value<string>("glb"), files.Value<string>("fbx") };
+            if (flipbook) names.Add(files.Value<string>("sheet"));
+            return names.Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
+        }
+
+        /// <summary>The files an earlier delivery into this folder listed; empty when there was none.</summary>
+        private static List<string> DeliveredFiles(string oldManifestPath)
+        {
+            if (!File.Exists(oldManifestPath)) return new List<string>();
+            try
+            {
+                var old = JObject.Parse(File.ReadAllText(oldManifestPath));
+                return old["files"] is JObject files ? DeliveredFiles(files, old.Value<string>("kind") == "vfx-flipbook") : new List<string>();
+            }
+            catch (JsonException)
+            {
+                return new List<string>();   // an unreadable old manifest: remove nothing
+            }
         }
 
         /// <summary>
@@ -132,7 +185,17 @@ namespace Project.Editor.AITools
                 MeasureSheet(r, m["flipbook"] as JObject ?? throw new ArgumentException("a vfx-flipbook manifest has no 'flipbook' block."));
                 return;
             }
-            Measure(r);
+            var files = (JObject)m["files"];
+            foreach (string name in DeliveredFiles(files, false))
+            {
+                string path = $"{r.folder}/{name}";
+                if (path != r.main && AssetDatabase.LoadMainAssetAtPath(path) == null) continue;   // Verify on a folder that dropped the fbx
+                r.models.Add(Measure(path, name));
+            }
+            var main = r.models.First(s => $"{r.folder}/{s.file}" == r.main);
+            r.unityTris = main.tris;
+            r.unityBones = main.bones;
+            r.unityClips = main.clips;
             Compare(r, m["stats"] as JObject);
         }
 
@@ -161,16 +224,20 @@ namespace Project.Editor.AITools
                 r.differences.Add($"sheet manifest {r.manifestSheetSize[0]}x{r.manifestSheetSize[1]} vs Unity {tex.width}x{tex.height}");
         }
 
-        private static void Measure(Result r)
+        private static ModelStats Measure(string path, string file)
         {
-            var root = AssetDatabase.LoadAssetAtPath<GameObject>(r.main);
-            if (root == null) throw new IOException("Unity imported no model from " + r.main);
+            var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (root == null) throw new IOException("Unity imported no model from " + path);
             var skinned = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            r.unityTris = root.GetComponentsInChildren<MeshFilter>(true).Select(f => f.sharedMesh)
-                .Concat(skinned.Select(s => s.sharedMesh)).Where(mesh => mesh != null).Sum(Triangles);
-            r.unityBones = skinned.SelectMany(s => s.bones).Where(b => b != null).Distinct().Count();
-            r.unityClips = AssetDatabase.LoadAllAssetsAtPath(r.main).OfType<AnimationClip>()
-                .Where(c => !c.name.StartsWith("__preview__")).Select(c => c.name).OrderBy(n => n).ToList();
+            return new ModelStats
+            {
+                file = file,
+                tris = root.GetComponentsInChildren<MeshFilter>(true).Select(f => f.sharedMesh)
+                    .Concat(skinned.Select(s => s.sharedMesh)).Where(mesh => mesh != null).Sum(Triangles),
+                bones = skinned.SelectMany(s => s.bones).Where(b => b != null).Distinct().Count(),
+                clips = AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>()
+                    .Where(c => !c.name.StartsWith("__preview__")).Select(c => c.name).OrderBy(n => n).ToList(),
+            };
         }
 
         private static int Triangles(Mesh mesh)
@@ -188,10 +255,14 @@ namespace Project.Editor.AITools
             r.manifestBones = stats.Value<int?>("bones") ?? 0;
             r.manifestClips = (stats["clips"] as JArray)?.Select(t => t.ToString()).OrderBy(n => n).ToList()
                               ?? new List<string>();
-            if (r.manifestTris != r.unityTris) r.differences.Add($"tris manifest {r.manifestTris} vs Unity {r.unityTris}");
-            if (r.manifestBones != r.unityBones) r.differences.Add($"bones manifest {r.manifestBones} vs Unity {r.unityBones}");
-            if (r.manifestClips.Count != r.unityClips.Count)
-                r.differences.Add($"clips manifest {r.manifestClips.Count} vs Unity {r.unityClips.Count}");
+            foreach (var s in r.models)
+            {
+                string who = r.models.Count > 1 ? s.file + ": " : "";
+                if (r.manifestTris != s.tris) r.differences.Add($"{who}tris manifest {r.manifestTris} vs Unity {s.tris}");
+                if (r.manifestBones != s.bones) r.differences.Add($"{who}bones manifest {r.manifestBones} vs Unity {s.bones}");
+                if (r.manifestClips.Count != s.clips.Count)
+                    r.differences.Add($"{who}clips manifest {r.manifestClips.Count} vs Unity {s.clips.Count}");
+            }
         }
 
         private static string Required(JObject m, string key)
