@@ -114,7 +114,7 @@ namespace Project.ColorHunt
             _ghostAlpha = Mathf.MoveTowards(_ghostAlpha, _ghostTarget, dt / (_ghostTarget > _ghostAlpha ? 0.08f : 0.12f));
             _chip.alpha = _ghostAlpha;
             _chip.gameObject.SetActive(_ghostAlpha > 0.001f);
-            if (!studio) return;
+            if (!studio) { Pulsing = _wasPulsing = false; return; }
             if (_roll >= 0f)
             {
                 _roll += dt / StudioCurves.RollTime;

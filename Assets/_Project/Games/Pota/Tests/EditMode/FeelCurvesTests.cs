@@ -83,6 +83,14 @@ namespace Project.Tests
         }
 
         [Test]
+        public void HintDelay_IsZeroForTheLastAffordableBlockUnderTension()
+        {
+            Assert.AreEqual(StudioCurves.HintDelay, FeelCurves.HintDelay(5, true), 1e-4f);
+            Assert.AreEqual(StudioCurves.HintDelay, FeelCurves.HintDelay(1, false), 1e-4f);
+            Assert.AreEqual(0f, FeelCurves.HintDelay(1, true), 1e-4f);
+        }
+
+        [Test]
         public void Settings_HaveFeelBlocksOnByDefault()
         {
             Assert.IsTrue(ScriptableObject.CreateInstance<ColorHuntSettings>().Feel.Enabled);

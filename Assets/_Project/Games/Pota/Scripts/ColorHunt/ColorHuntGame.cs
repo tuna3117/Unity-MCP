@@ -509,6 +509,18 @@ namespace Project.ColorHunt
         public bool Polish => Studio || (S != null && S.Feel != null && S.Feel.Enabled);
         /// <summary>The feel layer's switch (spec 2026-10-03); false in A/B and when the asset turns it off.</summary>
         public bool Feel => S != null && S.Feel != null && S.Feel.Enabled;
+
+        /// <summary>Blocks the current ammo covers (F2: one left → the hint points at it at once).</summary>
+        public int AffordableCount
+        {
+            get
+            {
+                if (Board == null) return 0;
+                int n = 0;
+                foreach (var c in Board.Cells) if (c.Hp <= Board.Ammo) n++;
+                return n;
+            }
+        }
         /// <summary>The studio sticker flight: always under A/B, under the Pota look while <see cref="ColorHuntSettings.StudioFlight"/> is on.</summary>
         public bool StudioFlight => Studio || (S != null && S.StudioFlight);
         public IBurstStyle Style => _style ?? (_style = Resolve(Look));
@@ -1238,7 +1250,8 @@ namespace Project.ColorHunt
                 return;
             }
             _idle += dt;
-            if (_idle < StudioCurves.HintDelay) return;
+            bool tension = Feel && StudioCurves.LowAmmo(Board.Ammo, ColorHuntRules.Cheapest(Board));
+            if (_idle < FeelCurves.HintDelay(AffordableCount, tension)) return;
             _hintCell = ColorHuntHint.Best(Board);
             if (_hintCell >= 0) _hintT = 0f;
             else _idle = 0f;

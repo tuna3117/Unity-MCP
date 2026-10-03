@@ -57,6 +57,9 @@ namespace Project.ColorHunt
             return Mathf.Lerp(1.15f, 1f, PotaLook.Smoothstep((u - 0.6f) / 0.4f));
         }
 
+        /// <summary>F2/F5: seconds of idling before the hint; none when the last affordable block is all that is left under tension.</summary>
+        public static float HintDelay(int affordable, bool tension) => tension && affordable == 1 ? 0f : StudioCurves.HintDelay;
+
         /// <summary>A 0..1 sine breath at <paramref name="hz"/>: 0 at t = 0, 1 half a period later.</summary>
         public static float Breath(float t, float hz) => 0.5f - 0.5f * Mathf.Cos(t * hz * 2f * Mathf.PI);
     }

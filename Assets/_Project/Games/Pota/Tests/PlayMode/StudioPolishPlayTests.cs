@@ -100,8 +100,12 @@ namespace Project.Tests
             yield return null;
             Assert.IsTrue(hud.AmmoCounter.Clipped, "the rolling number stays under the CEPHANE label");
             game.SetLook(PuzzleLook.Pota);
+            game.S.Feel.Enabled = false;
             yield return null;
-            Assert.IsFalse(hud.AmmoCounter.Clipped, "Pota's ammo pop is not clipped");
+            Assert.IsFalse(hud.AmmoCounter.Clipped, "Pota's ammo pop without the feel layer is not clipped");
+            game.S.Feel.Enabled = true;
+            yield return null;
+            Assert.IsTrue(hud.AmmoCounter.Clipped, "with the feel layer the Pota look rolls (and clips) too");
         }
 
         [UnityTest]
@@ -159,15 +163,17 @@ namespace Project.Tests
         }
 
         [UnityTest]
-        public IEnumerator PotaLook_DealsWithoutIntro_AndNeverHints()
+        public IEnumerator PotaLook_WithoutTheFeelLayer_DealsWithoutIntro_AndNeverHints()
         {
             ColorHuntGame game = null;
             yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => game = g);
+            game.S.Feel.Enabled = false;                       // the feel layer opens both to the Pota look (FeelPlayTests)
             game.NewRound();
             yield return null;
             Assert.IsFalse(game.Intro);
             yield return Wait(StudioCurves.HintDelay + 0.6f);
             Assert.AreEqual(-1, game.HintCell);
+            game.S.Feel.Enabled = true;
         }
 
 
