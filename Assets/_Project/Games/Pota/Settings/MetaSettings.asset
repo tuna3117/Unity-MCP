@@ -1,0 +1,135 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1b179d79aa4c41938092c19d575de65, type: 3}
+  m_Name: MetaSettings
+  m_EditorClassIdentifier: Pota.Runtime::Project.Meta.MetaSettings
+  Feel:
+    Enabled: 1
+    WindowOpen: 0.28
+    WindowClose: 0.15
+    Backdrop: 0.18
+    RibbonDrop: 0.2
+    RibbonDelay: 0.06
+    Press: 0.06
+    Release: 0.18
+    ToastIn: 0.12
+    ToastHold: 1.2
+    ToastOut: 0.25
+    Slide: 0.25
+    TabLift: 0.15
+    PlayFade: 0.3
+    CoinBurst: 0.15
+    CoinFlight: 0.45
+    CoinStagger: 0.04
+    Roll: 0.14
+    StampAt: 0.2
+    ScoreAt: 0.45
+    ScoreTime: 0.8
+    TrophyAt: 1.35
+    BarTime: 0.6
+    CoinsAt: 1.7
+    ContinueAt: 2.3
+    LoseShake: 0.25
+    LosePulseAt: 0.8
+    MapScroll: 0.5
+    NodeGreen: 0.2
+    MedalStamp: 0.3
+    DotStep: 0.04
+    PinHop: 0.7
+    UnlockPop: 0.3
+    Breath: 3.2
+    BallHopEvery: 7
+    ShineEvery: 2.2
+    ShineTime: 0.35
+  Save:
+    Level: 20
+    Coins: 145
+    Lives: 3
+    MaxLives: 5
+    Trophies: 11800
+    BestScore: 0
+    FirstTry: 1
+    ScoreBlocks: 120
+    ScoreChain: 30
+    ScoreSpecial: 40
+    ScoreGold: 100
+    ScoreLeft: 9
+    ScoreObstacle: 0
+    LeftoverBalls: 137
+    RemainingOnLoss: 3
+    MedalSilver: 300
+    MedalGold: 420
+  LevelReward: 15
+  FirstTryReward: 10
+  LeagueThresholds: 00000000703000009cae00003cd10100585a0200i
+  LeagueNames:
+  - "\xC7aylak"
+  - "Amat\xF6r"
+  - Profesyonel
+  - All-Star
+  - "\u015Eampiyonlar Ligi"
+  MapLevels: 50
+  Lilita: {fileID: 12800000, guid: 7640cc1b4d6424a6291580a4262bff67, type: 3}
+  FredokaSemiBold: {fileID: 12800000, guid: f6bd82476966a4ccca268235ab6701ca, type: 3}
+  FredokaBold: {fileID: 12800000, guid: 314227d13accf4a9a97736d23600363b, type: 3}
+  MenuBackgrounds:
+  - {fileID: 21300000, guid: 0880002f9583b4700b1a80b73b75cce0, type: 3}
+  - {fileID: 21300000, guid: be72747b2aef8471e8405502c11244a5, type: 3}
+  - {fileID: 21300000, guid: 889a3a90494994bd58512a6b0e0b2b7d, type: 3}
+  - {fileID: 21300000, guid: 6203e648833d14d90bbeabc1eb47eef4, type: 3}
+  MapBackground: {fileID: 21300000, guid: 68a6afed5e5774d13bfb529f016ba672, type: 3}
+  LoadingBackground: {fileID: 21300000, guid: f9d5c8418980948208f61ed27de47fdd, type: 3}
+  Hero: {fileID: 21300000, guid: 36533305d7f424599bb036a9193e0ee6, type: 3}
+  HeroMask: {fileID: 21300000, guid: 2fbce58f5cef748dda273e01a3d18f33, type: 3}
+  Coin: {fileID: 21300000, guid: 3c82ce97e2c1a49e5ac705a3a8927412, type: 3}
+  Heart: {fileID: 21300000, guid: e28dcd363947449f88cb1c20e538ea0c, type: 3}
+  Trophy: {fileID: 21300000, guid: 18b4b4eae3f3d42fa95037339ee7be62, type: 3}
+  Gear: {fileID: 21300000, guid: 9c15ae75ed9f64c1b9236a82ca611aaa, type: 3}
+  Basket: {fileID: 21300000, guid: 11bb86cb673ce4de59a9e8958fc7988a, type: 3}
+  Ball: {fileID: 21300000, guid: f5f673d499fb54144b881a652ad98061, type: 3}
+  CoinPile: {fileID: 21300000, guid: 75f77821436904801bedfac91c6b1595, type: 3}
+  LeagueBadges:
+  - {fileID: 21300000, guid: 3360e391989144358ab80d570832413a, type: 3}
+  - {fileID: 21300000, guid: 9e1760f6124a248d1b3ff27ce97af256, type: 3}
+  - {fileID: 21300000, guid: f143c01ab418c4650a765d6a21888463, type: 3}
+  - {fileID: 21300000, guid: c2a3ebc083ecb4f87adaa53ebf119343, type: 3}
+  - {fileID: 21300000, guid: e5a58265af60c48bc8900f72699eb186, type: 3}
+  Medals:
+  - {fileID: 21300000, guid: 638b742419f884ee0975c45dc640663c, type: 3}
+  - {fileID: 21300000, guid: 5c6798c86ad4a41c28896a6cabd336a1, type: 3}
+  - {fileID: 21300000, guid: 417591e97297b4d46bff3552702408b8, type: 3}
+  Items:
+  - {fileID: 21300000, guid: a514e57c4ea2a4eeb85e62c42bf1bc0f, type: 3}
+  - {fileID: 21300000, guid: 5dd7334535feb4ac99c709c29939b7ff, type: 3}
+  - {fileID: 21300000, guid: a19e1b0e663354a7eb63ffb0b0879a3a, type: 3}
+  - {fileID: 21300000, guid: 29d8db23fcb7a4227b3757e57cc8bbd8, type: 3}
+  - {fileID: 21300000, guid: 89ac6ee5c2f9f489c957eb820e3eb8d3, type: 3}
+  TabIcons:
+  - {fileID: 21300000, guid: d83f8a423254b4d8a909f901d8486f85, type: 3}
+  - {fileID: 21300000, guid: c1b9186b43c4f4c8d9ecbe6f69ce4729, type: 3}
+  - {fileID: 21300000, guid: 7fd1cca1fdb144fd0b118eb098e137f4, type: 3}
+  CategoryIcons:
+  - {fileID: 21300000, guid: 62a77e5dbb9e64435bc0e329f0cd26e8, type: 3}
+  - {fileID: 21300000, guid: afc25b80769bc4a2784f4799cab03b2e, type: 3}
+  - {fileID: 21300000, guid: a29fcde18af4944b89cc6be751376266, type: 3}
+  - {fileID: 21300000, guid: 75f77821436904801bedfac91c6b1595, type: 3}
+  Boosters:
+  - {fileID: 21300000, guid: eec43a5de92234e53ad87be37334b14a, type: 3}
+  - {fileID: 21300000, guid: 3708e9ff16f5e4fd589cb6db460947fc, type: 3}
+  - {fileID: 21300000, guid: 7a7450276558c4903965e45d491f4f3f, type: 3}
+  Clothes:
+  - {fileID: 21300000, guid: 3c3fa4d3bfb9f4f86a3a395775d9fb23, type: 3}
+  - {fileID: 21300000, guid: 3f4808def6d254202b97d1bcdc20bdcb, type: 3}
+  - {fileID: 21300000, guid: 8c40eac5e7aad4409b97cda067dca290, type: 3}
+  - {fileID: 21300000, guid: 80e5484e27d3a4d80a5048da5a60a3b1, type: 3}
+  HandSprite: {fileID: 0}
+  CloudSprite: {fileID: 0}
