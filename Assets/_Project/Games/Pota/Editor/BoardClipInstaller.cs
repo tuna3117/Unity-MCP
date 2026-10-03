@@ -55,9 +55,15 @@ namespace Project.Editor.AITools
             if ((data.transparentLayerMask.value & bit) != 0) data.transparentLayerMask = data.transparentLayerMask.value & ~bit;
             int added = 0;
             if (Find(data, OpaqueName) == null) { Add(data, OpaqueName, RenderQueueType.Opaque, RenderPassEvent.AfterRenderingOpaques, bit); added++; }
-            if (Find(data, TransparentName) == null) { Add(data, TransparentName, RenderQueueType.Transparent, RenderPassEvent.AfterRenderingTransparents, bit); added++; }
+            // the board's transparents (labels) go BEFORE the default transparents, so burst debris, confetti and the selection ring
+            // (Default layer, in front of the board) still draw over them (review 2026-10-03)
+            if (Find(data, TransparentName) == null) { Add(data, TransparentName, RenderQueueType.Transparent, RenderPassEvent.BeforeRenderingTransparents, bit); added++; }
             foreach (var f in data.rendererFeatures)
-                if (f is RenderObjects ro && (f.name == OpaqueName || f.name == TransparentName)) ro.settings.filterSettings.LayerMask = bit;
+            {
+                if (!(f is RenderObjects ro)) continue;
+                if (f.name == OpaqueName) { ro.settings.filterSettings.LayerMask = bit; ro.settings.Event = RenderPassEvent.AfterRenderingOpaques; }
+                if (f.name == TransparentName) { ro.settings.filterSettings.LayerMask = bit; ro.settings.Event = RenderPassEvent.BeforeRenderingTransparents; }
+            }
             data.SetDirty();
             EditorUtility.SetDirty(data);
             return added;

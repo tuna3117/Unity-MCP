@@ -227,6 +227,8 @@ namespace Project.ColorHunt
         public int Selected => _selected;
         public event Action SelectionChanged;
         public BlockView ViewAt(int cell) => _views.TryGetValue(cell, out var v) ? v : null;
+        /// <summary>Every live block view (F7 re-layers them when the feel switch changes).</summary>
+        public IEnumerable<BlockView> Views => _views.Values;
 
         public void Select(int cell)
         {
@@ -1237,8 +1239,8 @@ namespace Project.ColorHunt
                 go.transform.SetParent(_blocksRoot, false);
                 v = go.AddComponent<BlockView>();
                 v.Init(S, _blockMesh, _blockMat, _labelMat);
-                Clip?.Assign(go);                                      // F7: the board layer, clipped to the frame
             }
+            Clip?.Assign(v.gameObject);                                // F7: the board layer while clipping is on (pooled views too)
             v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false; v.Swell = -1f; v.LabelAngle = 0f; v.Pulse = 0f;
             v.ResetStudio();
             v.SetBlock(block, cell);

@@ -66,7 +66,7 @@ namespace Project.Basket
                 BallsText.text = (_round.Current == BasketRound.State.Aim ? _round.Layout.BallCount : _round.BallsToThrow).ToString();
             if (_round.BasketCount != _lastBasket)
             {
-                if (Roll && BasketText != null) StartRoll(_lastBasket);
+                if (Roll && BasketText != null) BeginRoll(_lastBasket);
                 _lastBasket = _round.BasketCount;
                 _pop = 1f;
             }
@@ -80,12 +80,13 @@ namespace Project.Basket
         }
 
         // F13: the old number slides up and fades while the new one slides in from below (Project.ColorHunt.RollWindow clips the slot)
-        private void StartRoll(int old)
+        public void BeginRoll(int old)
         {
+            if (BasketText == null) return;
             if (_old == null)
             {
-                _basketHome = BasketText.rectTransform.anchoredPosition;
                 Project.ColorHunt.RollWindow.Wrap(BasketText, 12f);
+                _basketHome = BasketText.rectTransform.anchoredPosition;   // inside the window (the review found it read before the wrap: the number sat 40 px low, cut)
                 _old = Instantiate(BasketText, BasketText.transform.parent);
                 _old.name = "BasketOld";
                 _old.enabled = false;

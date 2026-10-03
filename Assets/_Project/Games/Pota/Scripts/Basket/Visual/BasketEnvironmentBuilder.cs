@@ -21,8 +21,10 @@ namespace Project.Basket.Visual
 
             var env = new GameObject("Environment").transform;
             env.SetParent(root, false);
-            if (s.Feel != null && s.Feel.Enabled)                     // F8: clouds and birds (the puzzle stage adds the city band)
-                Project.Flow.SkyLife.Ensure(env, new Project.Flow.SkyLife.Props { Clouds = s.Clouds, Birds = s.Birds, BirdFlap = s.BirdFlap, ToonTemplate = s.ToonTemplate },
+            // F8: clouds and birds (the puzzle stage adds the city band). Parented beside the column, not under it: LoadLevel destroys
+            // the column root and a sky under it died with the first retry (review 2026-10-03).
+            if (s.Feel != null && s.Feel.Enabled)
+                Project.Flow.SkyLife.Ensure(root.parent != null ? root.parent : root, new Project.Flow.SkyLife.Props { Clouds = s.Clouds, Birds = s.Birds, BirdFlap = s.BirdFlap, ToonTemplate = s.ToonTemplate },
                     root.position + Vector3.up * layout.TopRimY, layout.BasketFloorY, false);
 
             // --- facade shaft (behind the hoops) ---

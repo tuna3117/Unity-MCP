@@ -10,15 +10,17 @@ namespace Project.Tests
             ColorHuntRules.Create(ScriptableObject.CreateInstance<ColorHuntSettings>().ToDesign(), ammo, 7);
 
         [Test]
-        public void Score_IsStepsPlusTargetItemsCollected()
+        public void Score_IsStepsPlusTargetItemsTheBreakActuallyCollects()
         {
             var b = Deal(158);
             for (int i = 0; i < b.Cells.Length; i++)
             {
                 if (b.Cells[i].Hp > b.Ammo) continue;
                 var r = ColorHuntRules.Break(b, i);
+                // the items collected are what the targets lost, read from the break's own result board (cells after step 1 hold
+                // dropped and spawned blocks, so reading colours through the pre-tap board at exploded indices counts the wrong blocks)
                 int items = 0;
-                foreach (var step in r.Steps) foreach (int c in step.Exploded) if (IsTarget(b, b.Cells[c].Color)) items++;
+                for (int t = 0; t < b.Targets.Length; t++) items += Mathf.Max(0, b.Targets[t].Remaining) - Mathf.Max(0, r.Board.Targets[t].Remaining);
                 Assert.AreEqual(r.Steps.Count + items, ColorHuntHint.Score(b, i), $"cell {i}");
             }
         }

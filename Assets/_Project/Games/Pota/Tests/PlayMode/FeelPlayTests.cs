@@ -170,6 +170,52 @@ namespace Project.Tests
             Assert.AreEqual(0, game.DisplayedAmmo, "the counter rolled down to zero");
             yield return StudioLookPlayTests.WaitUntil(() => ended, game.S.WinWait + 0.6f);
             Assert.IsTrue(ended, "RoundEnded follows the finale and the disperse");
+            Assert.AreEqual(hud.Finale.BallsCreated, hud.Finale.BallsPooled, "every ball went back to the pool exactly once");
+            Assert.AreEqual(hud.Finale.CoinsCreated, hud.Finale.CoinsPooled, "every coin went back to the pool exactly once");
+        }
+
+        [UnityTest]
+        public IEnumerator Finale_FeelOffMidWay_HidesTheBadge_AndStillEnds()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            int cell = StageOneRedTarget(game, 140);
+            Assume.That(cell >= 0);
+            bool ended = false;
+            game.RoundEnded += (won, reason) => ended = won;
+            Assert.AreEqual("broken", game.Tap(cell));
+            yield return StudioLookPlayTests.WaitUntil(() => hud.Finale.Running, 6f);
+            yield return Wait(0.5f);
+            game.S.Feel.Enabled = false;
+            yield return null;
+            yield return null;
+            Assert.IsFalse(hud.Finale.Running);
+            Assert.IsFalse(hud.Finale.BadgeVisible, "the PARA badge goes with the feel layer");
+            yield return StudioLookPlayTests.WaitUntil(() => ended, game.S.WinWait + 0.6f);
+            Assert.IsTrue(ended);
+            game.S.Feel.Enabled = true;
+        }
+
+        [UnityTest]
+        public IEnumerator BoardClip_FollowsTheFeelSwitch()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            var clip = game.GetComponentInChildren<BoardClip>();
+            int layer = LayerMask.NameToLayer(BoardClip.LayerName);
+            Assert.AreEqual(layer, game.ViewAt(0).gameObject.layer);
+            game.S.Feel.Enabled = false;
+            yield return null;
+            yield return null;
+            Assert.AreEqual(0, game.ViewAt(0).gameObject.layer, "Feel off = today's draw path (Default layer, no clip)");
+            Assert.IsFalse(clip.Mask.gameObject.activeSelf, "no mask without the feel layer");
+            game.S.Feel.Enabled = true;
+            yield return null;
+            yield return null;
+            Assert.AreEqual(layer, game.ViewAt(0).gameObject.layer);
+            Assert.IsTrue(clip.Mask.gameObject.activeSelf);
         }
 
         [UnityTest]
@@ -335,6 +381,7 @@ namespace Project.Tests
             yield return null;
             var skies = Object.FindObjectsByType<Project.Flow.SkyLife>(FindObjectsSortMode.None);
             Assert.AreEqual(1, skies.Length, "the basket environment and the puzzle stage share one sky");
+            Assert.IsNotNull(skies[0].City, "the puzzle stage adds the city band to the sky the basket built first");
         }
 
         [UnityTest]

@@ -114,7 +114,7 @@ MonoBehaviour:
   m_Active: 1
   settings:
     passTag: BoardClip Transparent
-    Event: 500
+    Event: 450
     filterSettings:
       RenderQueueType: 1
       LayerMask:

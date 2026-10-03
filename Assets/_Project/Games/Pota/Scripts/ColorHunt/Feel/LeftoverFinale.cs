@@ -44,6 +44,11 @@ namespace Project.ColorHunt
         public int CoinsShown => _shown;
         public int Flights => _plan != null ? _plan.Length : 0;
         public bool BadgeVisible => _badge != null && _badge.gameObject.activeSelf;
+        /// <summary>Pool accounting (the review found balls pushed twice): created once, pooled exactly once per use.</summary>
+        public int BallsCreated { get; private set; }
+        public int BallsPooled => _ballPool.Count;
+        public int CoinsCreated { get; private set; }
+        public int CoinsPooled => _coinPool.Count;
 
         public void Init(ColorHuntHud hud, ColorHuntGame game)
         {
@@ -105,9 +110,9 @@ namespace Project.ColorHunt
         {
             _t = -1f; _badgeIn = -1f; _stamp = -1f; _roll = -1f;
             _plan = null; _coinPlan = null;
-            foreach (var b in _balls) HideBall(b);
+            foreach (var b in _balls) if (!b.Done) HideBall(b);     // done ones are in the pool already
             _balls.Clear();
-            foreach (var c in _coins) HideCoin(c);
+            foreach (var c in _coins) if (!c.Done) HideCoin(c);
             _coins.Clear();
             if (_badge != null) _badge.gameObject.SetActive(false);
             if (_old != null) _old.enabled = false;
@@ -169,7 +174,7 @@ namespace Project.ColorHunt
         private void Update()
         {
             if (_t < 0f || _game == null) return;
-            if (!_game.Feel) { Finish(); return; }
+            if (!_game.Feel) { Finish(); if (_badge != null) _badge.gameObject.SetActive(false); return; }
             float dt = Time.unscaledDeltaTime;
             _t += dt;
             var feel = _game.S.Feel;
@@ -298,9 +303,9 @@ namespace Project.ColorHunt
             var done = _done;
             _done = null;
             _t = -1f;
-            foreach (var b in _balls) HideBall(b);
+            foreach (var b in _balls) if (!b.Done) HideBall(b);
             _balls.Clear();
-            foreach (var c in _coins) HideCoin(c);
+            foreach (var c in _coins) if (!c.Done) HideCoin(c);
             _coins.Clear();
             if (_badge != null && _coins0 > 0) { _amount.text = "+" + _coins0; _badge.localScale = Vector3.one; }
             if (_game != null && _game.DisplayedAmmo != 0 && _plan != null && _plan.Length > 0) _game.ShowAmmo(0);
@@ -311,6 +316,7 @@ namespace Project.ColorHunt
 
         private Ball NewBall()
         {
+            BallsCreated++;
             var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             go.name = "FinaleBall";
             Destroy(go.GetComponent<Collider>());
@@ -353,6 +359,7 @@ namespace Project.ColorHunt
         private Coin NewCoin()
         {
             if (_coinMesh == null) return null;
+            CoinsCreated++;
             var go = new GameObject("FinaleCoin", typeof(MeshFilter), typeof(MeshRenderer));
             go.transform.SetParent(_root, false);
             go.GetComponent<MeshFilter>().sharedMesh = _coinMesh;

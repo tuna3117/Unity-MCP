@@ -20,14 +20,17 @@ namespace Project.ColorHunt
             return best;
         }
 
-        /// <summary>Chain steps + exploded cells whose colour is still a target (Break is pure: it clones the board).</summary>
+        /// <summary>
+        /// Chain steps + target items the break collects (Break is pure: it clones the board). The items are what the targets lost
+        /// between the board and the break's result: reading colours through the pre-tap board at exploded indices counted dropped and
+        /// spawned blocks under the wrong colour (review 2026-10-03).
+        /// </summary>
         public static int Score(Board b, int cell)
         {
             var r = ColorHuntRules.Break(b, cell);
             int items = 0;
-            foreach (var step in r.Steps)
-                foreach (int c in step.Exploded)
-                    if (IsTarget(b, b.Cells[c].Color)) items++;
+            for (int t = 0; t < b.Targets.Length && t < r.Board.Targets.Length; t++)
+                items += System.Math.Max(0, b.Targets[t].Remaining) - System.Math.Max(0, r.Board.Targets[t].Remaining);
             return r.Steps.Count + items;
         }
 

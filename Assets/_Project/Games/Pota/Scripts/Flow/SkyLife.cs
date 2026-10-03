@@ -42,11 +42,18 @@ namespace Project.Flow
         public Transform City { get; private set; }
         public bool BirdsFlapping => _graph.IsValid() && _graph.IsPlaying();
 
-        /// <summary>The scene's one SkyLife, built now if missing (idempotent; a scene with one already keeps it).</summary>
+        /// <summary>
+        /// The scene's one SkyLife, built now if missing (idempotent). A later caller that asks for the city (the puzzle stage, after the
+        /// basket environment built the clouds first in PotaFlow) adds it to the existing sky.
+        /// </summary>
         public static SkyLife Ensure(Transform parent, Props props, Vector3 centre, float groundY, bool city)
         {
             var existing = FindAnyObjectByType<SkyLife>();
-            if (existing != null) return existing;
+            if (existing != null)
+            {
+                if (city && existing.City == null) existing.AddCity(props, centre, groundY);
+                return existing;
+            }
             var go = new GameObject("SkyLife");
             go.transform.SetParent(parent, false);
             var sky = go.AddComponent<SkyLife>();
@@ -121,6 +128,18 @@ namespace Project.Flow
                 _graph.Play();
             }
             flock.SetActive(false);
+        }
+
+        /// <summary>Adds the city band around <paramref name="centre"/> to a sky built without one.</summary>
+        public void AddCity(Props props, Vector3 centre, float groundY)
+        {
+            if (City != null) return;
+            _groundY = groundY;
+            var keep = _centre;
+            _centre = centre;
+            BuildCity(props);
+            _centre = keep;
+            _city = City != null;
         }
 
         private void BuildCity(Props props)

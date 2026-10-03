@@ -24,6 +24,9 @@ namespace Project.ColorHunt
         public Transform Mask { get; private set; }
         /// <summary>The board layer's index, −1 when the project has no such layer (then nothing is clipped).</summary>
         public int Layer { get; private set; } = -1;
+        /// <summary>Clipping is on: the feel layer is on and the project has the board layer. Off = today's draw path (Default layer).</summary>
+        public bool Active => Layer >= 0 && _game != null && _game.Feel;
+        private bool _applied;
 
         /// <summary>The project has the board layer (the installer adds it with the renderer features).</summary>
         public static bool Installed() => LayerMask.NameToLayer(LayerName) >= 0;
@@ -63,6 +66,14 @@ namespace Project.ColorHunt
         {
             if (_game == null || _game.BoardRoot == null || Layer < 0) return;
             if (Mask == null) Build();
+            bool on = Active;
+            if (on != _applied)
+            {
+                _applied = on;
+                foreach (var v in _game.Views) Assign(v.gameObject);
+                Mask.gameObject.SetActive(on);
+            }
+            if (!on) return;
             int n = _game.Board != null ? _game.Board.Size : _game.S.Size;
             var size = MaskLocalSize(n);
             Mask.localScale = new Vector3(size.x, size.y, 1f);
@@ -89,11 +100,12 @@ namespace Project.ColorHunt
             Mask = go.transform;
         }
 
-        /// <summary>Puts <paramref name="root"/> and everything under it on the board layer.</summary>
+        /// <summary>Puts <paramref name="root"/> and everything under it on the board layer (Default when clipping is off).</summary>
         public void Assign(GameObject root)
         {
-            if (Layer < 0 || root == null) return;
-            foreach (var t in root.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = Layer;
+            if (root == null) return;
+            int layer = Active ? Layer : 0;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
         }
     }
 }

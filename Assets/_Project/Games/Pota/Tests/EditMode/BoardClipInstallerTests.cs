@@ -43,7 +43,8 @@ namespace Project.Tests
             Assert.AreEqual(RenderQueueType.Opaque, ((RenderObjects)_data.rendererFeatures[0]).settings.filterSettings.RenderQueueType);
             Assert.AreEqual(RenderPassEvent.AfterRenderingOpaques, ((RenderObjects)_data.rendererFeatures[0]).settings.Event);
             Assert.AreEqual(RenderQueueType.Transparent, ((RenderObjects)_data.rendererFeatures[1]).settings.filterSettings.RenderQueueType);
-            Assert.AreEqual(RenderPassEvent.AfterRenderingTransparents, ((RenderObjects)_data.rendererFeatures[1]).settings.Event);
+            // before the default transparents: the burst debris, confetti and selection ring (Default layer) then draw over the labels
+            Assert.AreEqual(RenderPassEvent.BeforeRenderingTransparents, ((RenderObjects)_data.rendererFeatures[1]).settings.Event);
         }
 
         [Test]
@@ -53,6 +54,16 @@ namespace Project.Tests
             int added = BoardClipInstaller.Install(_data, 20);
             Assert.AreEqual(0, added);
             Assert.AreEqual(2, _data.rendererFeatures.Count);
+        }
+
+        [Test]
+        public void Install_BringsAnExistingFeatureUpToDate()
+        {
+            BoardClipInstaller.Install(_data, 20);
+            var transparent = (RenderObjects)_data.rendererFeatures[1];
+            transparent.settings.Event = RenderPassEvent.AfterRenderingTransparents;        // an older install
+            Assert.AreEqual(0, BoardClipInstaller.Install(_data, 20));
+            Assert.AreEqual(RenderPassEvent.BeforeRenderingTransparents, transparent.settings.Event);
         }
 
         [Test]

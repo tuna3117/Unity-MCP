@@ -146,6 +146,43 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator Count_RollKeepsTheNumberInsideItsWindow()
+        {
+            Parts p = null;
+            yield return LoadAim(x => p = x);
+            yield return null;
+            p.Hud.BeginRoll(3);
+            yield return Wait(0.3f);
+            var text = p.Hud.BasketText.rectTransform;
+            var window = (RectTransform)text.parent;
+            Assert.IsNotNull(window.GetComponent<UnityEngine.UI.RectMask2D>(), "the number rolls inside a clip window");
+            var corners = new Vector3[4];
+            text.GetWorldCorners(corners);
+            var r = window.rect;
+            foreach (var c in corners)
+            {
+                var local = (Vector2)window.InverseTransformPoint(c);
+                Assert.IsTrue(local.x >= r.xMin - 1f && local.x <= r.xMax + 1f && local.y >= r.yMin - 1f && local.y <= r.yMax + 1f,
+                    $"a corner of the number sits outside its window: {local} vs {r}");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Sky_SurvivesARetry()
+        {
+            Parts p = null;
+            yield return LoadAim(x => p = x);
+            Assert.AreEqual(1, Object.FindObjectsByType<Project.Flow.SkyLife>(FindObjectsSortMode.None).Length);
+            p.Round.ResetRound();
+            yield return null;
+            yield return null;
+            yield return null;
+            var skies = Object.FindObjectsByType<Project.Flow.SkyLife>(FindObjectsSortMode.None);
+            Assert.AreEqual(1, skies.Length, "one sky after the retry");
+            Assert.AreEqual(6, skies[0].CloudCount, "its clouds are still there");
+        }
+
+        [UnityTest]
         public IEnumerator RoundEnd_StampsTheCountOverTheCage()
         {
             Parts p = null;
