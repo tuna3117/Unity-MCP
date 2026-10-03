@@ -242,3 +242,34 @@ Pota'ya teslim `docs/handoff/2026-10-03-pota-oyun-ici-his.md` (anlar, sayılar, 
   2026-10-03 sonu (inceleme düzeltmeleri sonrası): EditMode 428/428, PlayMode 156/156 (önceki 387 / 128); Blender `tools/run.sh test` yeni 3 tarif testi + miss levhası.
 - **Dürüst notlar:** Pota'ya dokunulmadı; menü/ödül katmanı (kazanma penceresi, harita, ana ekran, market, öğretici eli) 2. alt proje. Finale
   paraları ve topları `Default` katmanda (maske kırpmasın). Kahramanın eğimi arkadan bakınca az okunuyor; başı potaya çevirme yapılmadı.
+
+## Menü ve ödül katmanı (2026-10-03, 2. alt proje)
+
+Pota'nın menü katmanı Unity'de birebir (`Scenes/Meta.unity`, Pota görselleri + Fredoka) ve üstüne M1–M11 his anları. Tasarım
+`docs/superpowers/specs/2026-10-03-pota-meta-feel-design.md`, plan `docs/superpowers/plans/2026-10-03-pota-meta-feel.md`, UI rehberi
+`docs/reference/2026-10-03-pota-meta-ui-style.md`, Pota'ya teslim `docs/handoff/2026-10-03-pota-menu-odul-his.md` (F belgesiyle birlikte).
+
+- **Anahtar:** `MetaSettings.Feel.Enabled` (`Settings/MetaSettings.asset`; `MetaFeelTuning.T(sn)` kapalıyken 0). Örnek kayıt `MetaSettings.Save`
+  (bölüm 20, 145 para, 3 can, 11 800 kupa, skor kalemleri, madalya eşikleri 300/420, cephane 158, hedef). Kurallar saf: `MetaRules` (`Win/Lose/Score/BarFill`).
+- **Varlıklar:** `ai_potameta_import` (Pota `public/assets` → `Art/Meta/`, Fredoka 600/700 → `Art/Fonts/`; `kahraman-maske.png` okunabilir+sıkıştırmasız,
+  market forma rengi için). `ai_studio_import` artık `vfx-hand-pointer` ve `vfx-cloud-still`i de alır ve `MetaSettings.HandSprite/CloudSprite`'a bağlar.
+- **Kit** (`Scripts/Meta/Ui/`): `MetaStyle` (palet, eğriler, sprite üreticileri; `Ring` = boş halka), `MetaButton` (basma/bırakma, `Pulse`), `MetaWindow`
+  (örtü/kutu/şerit, `Fit`), `RollingNumber`, `CoinFlight` (`CoinPlan.Count`), `Toast`, `ScreenSlide`, `Confetti`, `MetaUiKit` (satır/etiket/kart).
+- **Ekranlar** (`Scripts/Meta/Screens/`): `MenuScreen` (M7), `TabBar`, `LevelWindow`, `WinWindow` + saf `WinSequence` (M4), `LoseWindow` (M5), `MapScreen` +
+  saf `MapLayout`/`MapProgress` (M6), `LeagueWindow`/`PromotionWindow` (M8), `BonusWindow` + saf `ReelSpin`/`BonusRules` (M9), `MarketScreen` + `MarketCatalog`
+  (M10), `TutorialHand` (M11), `SettingsWindow`, `DevStrip` (vitrin şeridi). Ekranlar `MetaDirector.Awake`'te çalışma anında kurulur (Edit Mode'da kurulan
+  kitin özel alanları kaydedilmiyordu); sahne aracı `ai_meta_build_scene` yalnız kamera/EventSystem/canvas/yönetmen koyar.
+- **Yönetmen:** `MetaDirector` — Oyna → bölüm penceresi → karartma; şerit Kazan → `WinSequence` → Devam → (terfi penceresi →) harita ilerlemesi (his kapalı: ana
+  ekran); Kaybet; Terfi; Bonus; Öğretici; lig rozeti → lig penceresi (SEN kayması). `GainCoins/SpendCoins` para uçuşu + sayaçlar.
+- **Kayıt:** `ai_meta_record {"scenario": menu|level|win|lose|map|promotion|bonus|market|tutorial, "feel": on|off}` (Play Mode'da, kare kare, `events.json`
+  işaretleri `open/score/medal/coins/continue/devam/map/unlock/league/spin/stop/tap/buy/fail`); kayıt sırasında UI kamerasının `cullingMask`'ı açılır (sahnede 0).
+  Toplu: `Tools/meta_record.sh [record|videos|all] [an …]` → `docs/screenshots/2026-10-03-meta-<an>-{side.mp4,sheet.jpg}` (Pota sütunu `onizleme/` stilinden) ve `…-meta-all.mp4`.
+- **Testler:** EditMode `MetaStyleTests`, `MetaAssetsTests`, `MetaDirectorTests`, `WinSequenceTests`, `MapLayoutTests`, `MapProgressTests`, `ReelSpinTests`,
+  `BonusRulesTests`, `MetaRecordToolTests`; PlayMode `MetaPlayTests` (23 senaryo). Blender `tests/test_vfx.py MetaStillTests`. 2026-10-03 gece (inceleme düzeltmeleri sonrası): EditMode 474/474, PlayMode 186/186.
+- **Dersler:** 400 üst üste binen, hepsi ayrı dokulu UI elemanı (harita yılanı) kök canvas'ın derinlik sıralamasını bozdu (başlık düğümlerin altına düştü):
+  parçalar sprite paylaşır, içerik iç içe `Canvas`ta. `ColorHuntHud.CircleSprite` saydam dolguyu siyah boyar (halka için `MetaStyle.Ring`); küçük (64 px)
+  gradyan `PanelSprite` `Sliced` tipte hiç çizilmedi (`Simple`). `ScreenSlide.Show` sayfayı en üste alır: sekme çubuğu/şerit her sekme değişiminde yeniden
+  yükseltilir. `kahraman-maske.png` parlaklık maskesi (parça başına gri seviye), alfa değil.
+- **İnceleme düzeltmeleri (2026-10-03 gece):** ödül parası `ShowWin`'de kayda yazılır, uçuş sayacı oynatır (`ShowCoins`); market para sayısını yönetmenin kaydından okur (`Bind(coins)`, sekmede `Sync`); her şerit eylemi önce açık pencereleri kapatır (`CloseWindows`); en iyi skor bölüm başına (`MetaRules.Win` yeni bölümde 0); son bölümde harita yalnız yeşil + madalya; `MetaStyle` sprite önbelleği; kapalı hâlde Pota'nın kendi hareketleri (`WinSequence.Pota`, market zıplama/sallanma/kutlama); M3 rozet ezilmesi/parıltı/dönüş (`CoinBadgeFx`); kayıt aracı hata yakalar. Ertelenen küçükler U84–U95.
+- **Tuna'nın kararı (2026-10-03):** 11 anın hepsi kabul; nefes alıp verme (ana görsel ve market kahramanı) istenmedi ve kaldırıldı (`MetaCurves.Breath` ve `Feel.Breath` silindi).
+- **Dürüst notlar:** teslim belgesinin §6'sı (vitrin sınırları: gerçek bölüm yok, market kısmi, saat hücresi kalp, Pota sütunu hareketsiz).
