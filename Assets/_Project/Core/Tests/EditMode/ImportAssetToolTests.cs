@@ -174,6 +174,40 @@ namespace Project.Tests
             ImportAssetTool.Import(manifest, Root + "/linear");
             var imp = (TextureImporter)AssetImporter.GetAtPath(Root + "/linear/fixture-flipbook.png");
             Assert.IsFalse(imp.sRGBTexture);
+            foreach (string platform in new[] { "iPhone", "Android" })
+            {
+                var s = imp.GetPlatformTextureSettings(platform);
+                Assert.IsTrue(s.overridden, platform);
+                Assert.AreEqual(TextureImporterFormat.ASTC_4x4, s.format, platform + ": data sheets keep 8 bpp");
+            }
+        }
+
+        [Test]
+        public void Flipbook_IsAstcCompressedOnPhones()
+        {
+            ImportAssetTool.Import(FlipbookFixture, Root + "/astc");
+            var imp = (TextureImporter)AssetImporter.GetAtPath(Root + "/astc/fixture-flipbook.png");
+            foreach (string platform in new[] { "iPhone", "Android" })
+            {
+                var s = imp.GetPlatformTextureSettings(platform);
+                Assert.IsTrue(s.overridden, platform);
+                Assert.AreEqual(TextureImporterFormat.ASTC_6x6, s.format, platform);
+            }
+            Assert.AreEqual(TextureImporterCompression.Uncompressed, imp.textureCompression, "the editor keeps the exact sheet");
+        }
+
+        [Test]
+        public void Reapply_ConfiguresEveryFlipbookUnderAFolder_AndSkipsModels()
+        {
+            ImportAssetTool.Import(FlipbookFixture, Root + "/again/flipbook");
+            ImportAssetTool.Import(Fixture, Root + "/again/cube");
+            var imp = (TextureImporter)AssetImporter.GetAtPath(Root + "/again/flipbook/fixture-flipbook.png");
+            imp.ClearPlatformTextureSettings("iPhone");
+            imp.SaveAndReimport();
+            var done = ImportAssetTool.ReapplySheetSettings(Root + "/again");
+            CollectionAssert.AreEqual(new[] { Root + "/again/flipbook/fixture-flipbook.png" }, done);
+            imp = (TextureImporter)AssetImporter.GetAtPath(Root + "/again/flipbook/fixture-flipbook.png");
+            Assert.AreEqual(TextureImporterFormat.ASTC_6x6, imp.GetPlatformTextureSettings("iPhone").format);
         }
 
         [Test]

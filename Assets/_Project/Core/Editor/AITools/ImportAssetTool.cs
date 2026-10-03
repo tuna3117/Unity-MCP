@@ -28,6 +28,9 @@ namespace Project.Editor.AITools
             [ToolParameter("Absolute path to the hand-off manifest.json")] public string manifest { get; set; }
             [ToolParameter("Target folder; default Assets/_Project/Games/<game>/Art/<Kind>/<id>", Required = false)]
             public string dest { get; set; }
+            [ToolParameter("Instead of importing: re-apply the flipbook import settings to every delivered sheet under this Assets/ folder",
+                Required = false)]
+            public string reapply { get; set; }
         }
 
         public static readonly Dictionary<string, string> KindFolders = new Dictionary<string, string>
@@ -58,6 +61,14 @@ namespace Project.Editor.AITools
 
         public static object HandleCommand(JObject p)
         {
+            string reapply = AIToolsCommon.GetString(p, "reapply");
+            if (!string.IsNullOrEmpty(reapply))
+            {
+                if (!AssetDatabase.IsValidFolder(reapply)) return new ErrorResponse($"No folder '{reapply}'.");
+                var sheets = ReapplySheetSettings(reapply);
+                AIToolsCommon.Log($"Import asset: re-applied flipbook settings to {sheets.Count} sheets under {reapply}");
+                return new SuccessResponse($"Re-applied flipbook settings to {sheets.Count} sheets.", new { sheets });
+            }
             string manifest = AIToolsCommon.GetString(p, "manifest");
             if (string.IsNullOrEmpty(manifest)) return new ErrorResponse("'manifest' is required.");
             try
@@ -199,7 +210,38 @@ namespace Project.Editor.AITools
             Compare(r, m["stats"] as JObject);
         }
 
-        /// <summary>Particle flipbook import: straight alpha, clamped, mipmapped, uncompressed; sRGB unless the sheet holds data.</summary>
+        /// <summary>
+        /// Re-applies <see cref="ConfigureSheet"/> to every vfx-flipbook delivery (its manifest.json) under
+        /// <paramref name="folder"/>: deliveries imported before a settings change pick it up without a new hand-off.
+        /// </summary>
+        public static List<string> ReapplySheetSettings(string folder)
+        {
+            var done = new List<string>();
+            foreach (string guid in AssetDatabase.FindAssets("manifest t:TextAsset", new[] { folder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (Path.GetFileName(path) != "manifest.json") continue;
+                JObject m;
+                try { m = JObject.Parse(File.ReadAllText(path)); }
+                catch (JsonException) { continue; }
+                if (m.Value<string>("kind") != "vfx-flipbook" || !(m["files"] is JObject files)) continue;
+                string sheet = $"{Path.GetDirectoryName(path).Replace('\\', '/')}/{files.Value<string>("sheet")}";
+                if (!(AssetImporter.GetAtPath(sheet) is TextureImporter)) continue;
+                ConfigureSheet(sheet, (m["flipbook"] as JObject)?.Value<bool?>("linear") ?? false);
+                done.Add(sheet);
+            }
+            done.Sort(StringComparer.Ordinal);
+            return done;
+        }
+
+        /// <summary>Phone platforms that get a compressed override (the editor keeps the exact sheet).</summary>
+        public static readonly string[] PhonePlatforms = { "iPhone", "Android" };
+
+        /// <summary>
+        /// Particle flipbook import: straight alpha, clamped, mipmapped; sRGB unless the sheet holds data. Uncompressed in
+        /// the editor, ASTC on phones: 6×6 for colour (≈3.6 bpp; a 1024² sheet drops from 5.3 MB to ~0.6 MB with mips),
+        /// 4×4 for data sheets such as the shock ring's screen normals, whose gradients band at coarser blocks.
+        /// </summary>
         private static void ConfigureSheet(string path, bool linear)
         {
             var imp = (TextureImporter)AssetImporter.GetAtPath(path);
@@ -211,6 +253,15 @@ namespace Project.Editor.AITools
             imp.sRGBTexture = !linear;
             imp.npotScale = TextureImporterNPOTScale.None;
             imp.textureCompression = TextureImporterCompression.Uncompressed;
+            foreach (string platform in PhonePlatforms)
+            {
+                var s = imp.GetPlatformTextureSettings(platform);
+                s.overridden = true;
+                s.maxTextureSize = imp.maxTextureSize;
+                s.format = linear ? TextureImporterFormat.ASTC_4x4 : TextureImporterFormat.ASTC_6x6;
+                s.compressionQuality = (int)TextureCompressionQuality.Best;
+                imp.SetPlatformTextureSettings(s);
+            }
             imp.SaveAndReimport();
         }
 
