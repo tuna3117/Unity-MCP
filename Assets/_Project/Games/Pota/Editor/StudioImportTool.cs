@@ -92,6 +92,13 @@ namespace Project.Editor.AITools
             s.BirdFlap = Clip("bird-flock", "flap");
             s.CityBand = Prop("city-band");
             EditorUtility.SetDirty(s);
+            var basket = AssetDatabase.LoadAssetAtPath<Project.Basket.BasketSettings>("Assets/_Project/Games/Pota/Settings/BasketSettings.asset");
+            if (basket != null)
+            {
+                basket.Clouds = s.Clouds; basket.Birds = s.Birds; basket.BirdFlap = s.BirdFlap; basket.ToonTemplate = s.ToonTemplate;
+                EditorUtility.SetDirty(basket);
+                report.Add("basket settings: sky props wired");
+            }
             AssetDatabase.SaveAssets();
             report.Add($"settings: puff={s.CandyPuff != null} ring={s.CandyRing != null} smoke={s.ShatterSmoke != null} " +
                        $"shock={s.ShockRing != null} pieces={s.ShatterPieces != null}");

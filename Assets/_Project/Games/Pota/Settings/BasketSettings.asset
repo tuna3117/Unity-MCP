@@ -90,6 +90,10 @@ MonoBehaviour:
     StampRest: 1.8
     StampTime: 0.35
     CageGlowTime: 0.3
+  Clouds: {fileID: 8771091787928289351, guid: dffb45637e3ad4a819e2e5c23425e8a2, type: 3}
+  Birds: {fileID: 8771091787928289351, guid: 66b373c90d4cf4ba283a5ac2de209e63, type: 3}
+  BirdFlap: {fileID: 1517152000292899334, guid: 66b373c90d4cf4ba283a5ac2de209e63, type: 3}
+  ToonTemplate: {fileID: 2100000, guid: 986432fda363b48febb4d4d3b99a4bbb, type: 2}
   SwishSlowMoScale: 0.35
   SwishSlowMoSeconds: 0.4
   SwishShake: 0.04

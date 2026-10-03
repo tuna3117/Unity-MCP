@@ -82,6 +82,9 @@ namespace Project.Flow
             var courtCentre = root.position + new Vector3(0f, -GroundBelow, CourtSize.y * 0.5f - CourtNear);
             if (BuildCourt) Court = CourtBuilder.Build(transform, CourtSize, courtCentre, CourtColor, CourtLineColor);
             if (BuildRoof) BuildBuilding(courtCentre);
+            if (Game.Feel)
+                SkyLife.Ensure(transform, new SkyLife.Props { Clouds = Game.S.Clouds, Birds = Game.S.Birds, BirdFlap = Game.S.BirdFlap,
+                    CityBand = Game.S.CityBand, ToonTemplate = Game.S.ToonTemplate }, root.position, Hoop.GroundY, true);
             if (Game.S.RoomReflection == null) { Debug.LogWarning("[PuzzleStage] no RoomReflection: run ai_potalook_import"); return; }
             var go = new GameObject("RoomReflection");
             go.transform.SetParent(transform, false);

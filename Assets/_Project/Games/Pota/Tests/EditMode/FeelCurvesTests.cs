@@ -91,6 +91,29 @@ namespace Project.Tests
         }
 
         [Test]
+        public void CloudPose_StaysOnItsRing_AndDrifts()
+        {
+            var a = FeelCurves.CloudPose(2, 0f, 6, 90f, 0.5f);
+            var b = FeelCurves.CloudPose(2, 10f, 6, 90f, 0.5f);
+            Assert.AreEqual(90f, new Vector2(a.x, a.z).magnitude, 1e-3f);
+            Assert.AreEqual(90f, new Vector2(b.x, b.z).magnitude, 1e-3f);
+            Assert.AreEqual(5f, Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z)), 0.05f, "0.5 m/s along the ring for 10 s");
+            Assert.Less(Mathf.Abs(a.y), 0.5f, "the bob is small");
+            var other = FeelCurves.CloudPose(3, 0f, 6, 90f, 0.5f);
+            Assert.Greater(Vector3.Distance(a, other), 30f, "clouds are spread around the ring");
+        }
+
+        [Test]
+        public void BirdPass_IsMinusOneWhileResting_ThenRunsZeroToOne()
+        {
+            Assert.AreEqual(-1f, FeelCurves.BirdPass(1f, 4f, 22f, 9f), 1e-4f, "before the first pass");
+            Assert.AreEqual(0f, FeelCurves.BirdPass(4f, 4f, 22f, 9f), 1e-4f);
+            Assert.AreEqual(0.5f, FeelCurves.BirdPass(8.5f, 4f, 22f, 9f), 1e-4f);
+            Assert.AreEqual(-1f, FeelCurves.BirdPass(14f, 4f, 22f, 9f), 1e-4f, "resting between passes");
+            Assert.AreEqual(0f, FeelCurves.BirdPass(26f, 4f, 22f, 9f), 1e-4f, "the next pass a period later");
+        }
+
+        [Test]
         public void Settings_HaveFeelBlocksOnByDefault()
         {
             Assert.IsTrue(ScriptableObject.CreateInstance<ColorHuntSettings>().Feel.Enabled);

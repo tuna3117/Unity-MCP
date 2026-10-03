@@ -60,6 +60,25 @@ namespace Project.ColorHunt
         /// <summary>F2/F5: seconds of idling before the hint; none when the last affordable block is all that is left under tension.</summary>
         public static float HintDelay(int affordable, bool tension) => tension && affordable == 1 ? 0f : StudioCurves.HintDelay;
 
+        /// <summary>
+        /// F8: cloud i of n on a ring of <paramref name="radius"/> around the origin, drifting at <paramref name="speed"/> m/s with a slow
+        /// ±0.4 m bob; clouds are spread evenly and alternate heights through the caller.
+        /// </summary>
+        public static Vector3 CloudPose(int i, float t, int n, float radius, float speed)
+        {
+            float angle = (i + 0.5f) / Mathf.Max(1, n) * 2f * Mathf.PI + t * speed / Mathf.Max(1f, radius);
+            float bob = 0.4f * Mathf.Sin(t * 0.21f + i * 1.7f);
+            return new Vector3(Mathf.Cos(angle) * radius, bob, Mathf.Sin(angle) * radius);
+        }
+
+        /// <summary>F8: the bird pass progress 0..1 while a pass runs (first at <paramref name="first"/>, then every <paramref name="period"/>), −1 at rest.</summary>
+        public static float BirdPass(float t, float first, float period, float duration)
+        {
+            if (t < first) return -1f;
+            float local = (t - first) % period;
+            return local <= duration ? local / duration : -1f;
+        }
+
         /// <summary>A 0..1 sine breath at <paramref name="hz"/>: 0 at t = 0, 1 half a period later.</summary>
         public static float Breath(float t, float hz) => 0.5f - 0.5f * Mathf.Cos(t * hz * 2f * Mathf.PI);
     }

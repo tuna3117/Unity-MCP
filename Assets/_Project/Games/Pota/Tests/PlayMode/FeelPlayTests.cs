@@ -302,6 +302,42 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator SkyLife_CloudsDrift_BirdsFlapAndPass_CityStands()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            var sky = Object.FindAnyObjectByType<Project.Flow.SkyLife>();
+            Assert.IsNotNull(sky, "the puzzle stage built a SkyLife");
+            Assert.AreEqual(6, sky.CloudCount);
+            Assert.IsNotNull(sky.City, "the city band stands behind the roof");
+            var cloud = sky.Cloud(0);
+            var p0 = cloud.position;
+            yield return Wait(0.5f);
+            Assert.Greater(Vector3.Distance(p0, cloud.position), 0.05f, "clouds drift");
+            foreach (var r in cloud.GetComponentsInChildren<Renderer>()) Assert.AreEqual("Project/Toon", r.sharedMaterial.shader.name);
+            Assert.IsTrue(sky.BirdsFlapping, "the flap clip plays");
+            sky.StartBirdPass();
+            yield return null;
+            var b0 = sky.Birds.position;
+            yield return Wait(0.3f);
+            Assert.Greater(Vector3.Distance(b0, sky.Birds.position), 0.5f, "the flock crosses the sky");
+            float boardTop = game.transform.position.y + PotaLook.PanoSize * 0.5f;
+            for (int i = 0; i < sky.CloudCount; i++)
+                Assert.Greater(Vector3.Distance(sky.Cloud(i).position, game.transform.position), 60f, "clouds stay far from the board");
+            Assert.Less(sky.City.position.y, game.transform.position.y - 5f, "the city's bases sit below the roof");
+        }
+
+        [UnityTest]
+        public IEnumerator SkyLife_IsBuiltOnceInPotaFlow()
+        {
+            UnityEngine.SceneManagement.SceneManager.LoadScene("PotaFlow");
+            yield return null;
+            yield return null;
+            var skies = Object.FindObjectsByType<Project.Flow.SkyLife>(FindObjectsSortMode.None);
+            Assert.AreEqual(1, skies.Length, "the basket environment and the puzzle stage share one sky");
+        }
+
+        [UnityTest]
         public IEnumerator AffordableCount_CountsBlocksTheAmmoCovers()
         {
             ColorHuntGame game = null; ColorHuntHud hud = null;

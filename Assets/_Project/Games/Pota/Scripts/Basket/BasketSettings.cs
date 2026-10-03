@@ -89,6 +89,11 @@ namespace Project.Basket
 
         [Header("Feel layer (spec 2026-10-03: slingshot, miss, SWISH!, count stamp)")]
         public BasketFeelTuning Feel = new BasketFeelTuning();
+        [Tooltip("F8 sky life for the basket scene (ai_studio_import): the cloud set, the bird flock and its flap clip; the puzzle stage adds the city.")]
+        public GameObject Clouds, Birds;
+        public AnimationClip BirdFlap;
+        [Tooltip("Core Project/Toon template for the clouds and birds (ai_studio_import).")]
+        public Material ToonTemplate;
 
         [Header("Juice")]
         public float SwishSlowMoScale = 0.35f;
