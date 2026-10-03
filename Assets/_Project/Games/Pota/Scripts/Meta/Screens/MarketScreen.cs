@@ -76,11 +76,11 @@ namespace Project.Meta
             m._coinBadgeFace = m.CoinsBadge.Face.GetComponent<Image>();
             m.Coins = RollingNumber.Attach(m.CoinsBadge.Label, s.Feel, 6f);
             // category pills
-            string[] names = { "Giysi", "Top", "Güç", "Para" };
+            string[] names = { "Giysiler", "Toplar", "Güçlendirme", "Paketler" };
             m._tabs = new MetaButton[4];
             for (int i = 0; i < 4; i++)
             {
-                var tab = MetaButton.Create(rt, "Tab" + i, MetaButton.Kind.Small, MetaButton.Tone.Navy, names[i], new Vector2(84f, 44f), s.Lilita, 12f, s.Feel);
+                var tab = MetaButton.Create(rt, "Tab" + i, MetaButton.Kind.Small, MetaButton.Tone.Navy, names[i], new Vector2(88f, 44f), s.Lilita, 11f, s.Feel);
                 tab.Rect.anchorMin = tab.Rect.anchorMax = new Vector2(0.5f, 1f); tab.Rect.pivot = new Vector2(0.5f, 1f);
                 tab.Rect.anchoredPosition = new Vector2((-135f + i * 90f) * css, -118f * css);
                 tab.WithIcon(s.CategoryIcons.Length > i ? s.CategoryIcons[i] : null, 26f);

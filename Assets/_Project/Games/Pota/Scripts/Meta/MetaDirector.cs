@@ -245,7 +245,7 @@ namespace Project.Meta
             _fadeT = -1f;
             _fade.gameObject.SetActive(false);
             Set(Screen.Menu);
-            _toast.Show("Oyun burada oynanır — sonucu şeritten seç: Kazan / Kaybet");
+            _toast.Show("Sonucu şeritten seç: Kazan / Kaybet");
         }
 
         private void Update()

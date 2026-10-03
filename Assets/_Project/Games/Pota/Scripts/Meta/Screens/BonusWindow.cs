@@ -229,6 +229,7 @@ namespace Project.Meta
                     for (int i = 0; i < _state.Rows; i++)
                         if (_state.Cells[c * _state.Rows + i].Kind == BonusRules.Kind.Coin) { from = MetaUiKit.CanvasPoint(_root, _reels[c].Cells[ReelSpin.TravelRows + i]); found++; break; }
                 CoinsFlew = true;
+                _result.text = "";                                   // the card reads the winnings when the coins land
                 FlyCoins(_added.Coins, from, MetaUiKit.CanvasPoint(_root, _card), () => _result.text = BonusRules.Text(_state.Winnings));
             }
             else _result.text = _state.Spins > 0 && !_added.Any && _added.ExtraRights == 0 ? "Bu sefer olmadı" : BonusRules.Text(_state.Winnings);

@@ -227,6 +227,7 @@ namespace Project.Meta
             float dt = Time.unscaledDeltaTime;
             _t += dt;
             var feel = _s.Feel;
+            foreach (var c in _clouds) if (c != null) c.gameObject.SetActive(feel.Enabled && _s.CloudSprite != null);   // the clouds are M7's, not Pota's
             if (!feel.Enabled)
             {
                 _art.localScale = Vector3.one;
