@@ -69,28 +69,10 @@ namespace Project.Editor.AITools
             }
         }
 
-        /// <summary>
-        /// The first seed in 1..maxSeeds whose best affordable tap (ColorHuntHint.Best) explodes blocks in at least minSteps steps (the
-        /// tap's own step counted: depth 3 words need 4 exploding steps); 0 when none does. Plain Steps.Count also counts drop-only steps.
-        /// </summary>
-        public static uint ChainSeed(LevelDesign design, int ammo, int minSteps, int maxSeeds)
-        {
-            for (uint seed = 1; seed <= maxSeeds; seed++)
-            {
-                var b = ColorHuntRules.Create(design, ammo, seed);
-                int best = ColorHuntHint.Best(b);
-                if (best >= 0 && ExplodingSteps(ColorHuntRules.Break(b, best)) >= minSteps) return seed;
-            }
-            return 0;
-        }
+        /// <summary>The recorder's "chain" preset board: ColorHuntHint.ChainSeed (four exploding steps = a depth-3 word).</summary>
+        public static uint ChainSeed(LevelDesign design, int ammo, int minSteps, int maxSeeds) => ColorHuntHint.ChainSeed(design, ammo, minSteps, maxSeeds);
 
-        /// <summary>Steps of a break that explode at least one block (the chain depth the game shows is this minus one).</summary>
-        public static int ExplodingSteps(BreakResult r)
-        {
-            int n = 0;
-            foreach (var s in r.Steps) if (s.Exploded.Count > 0) n++;
-            return n;
-        }
+        public static int ExplodingSteps(BreakResult r) => ColorHuntHint.ExplodingSteps(r);
 
         public class Parameters
         {

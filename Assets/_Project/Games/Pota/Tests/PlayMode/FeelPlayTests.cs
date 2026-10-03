@@ -338,6 +338,35 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator ChainWords_ShowUnderThePotaLook_FromDepthThree()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            var design = game.S.ToDesign();
+            uint seed = ColorHuntHint.ChainSeed(design, game.S.Ammo, 4, 200);
+            Assume.That(seed > 0, "a board whose best tap explodes in four steps");
+            game.Prepare(game.S.Ammo, seed, design);
+            game.Begin();
+            yield return null;
+            int cell = ColorHuntHint.Best(game.Board);
+            Assert.AreEqual("broken", game.Tap(cell));
+            string word = null;
+            int deepest = 0;
+            float t = 0f;
+            while (t < 6f && (game.Busy || t < 0.5f))
+            {
+                var style = game.Style as PotaBurstStyle;
+                if (style != null && style.Hud != null && style.Hud.LastWord != null) word = style.Hud.LastWord;
+                deepest = Mathf.Max(deepest, game.LongestChain);
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Assert.GreaterOrEqual(deepest, 3, "the chain reached depth 3");
+            Assert.Contains(word, new[] { "Süper!", "Harika!", "Muhteşem!" }, "a chain word (the last one shown: the deepest step's)");
+        }
+
+        [UnityTest]
         public IEnumerator AffordableCount_CountsBlocksTheAmmoCovers()
         {
             ColorHuntGame game = null; ColorHuntHud hud = null;

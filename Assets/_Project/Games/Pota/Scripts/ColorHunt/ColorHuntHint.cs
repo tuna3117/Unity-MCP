@@ -31,6 +31,29 @@ namespace Project.ColorHunt
             return r.Steps.Count + items;
         }
 
+        /// <summary>
+        /// The first seed in 1..maxSeeds whose best affordable tap explodes blocks in at least minSteps steps (the tap's own step counted:
+        /// depth-3 words need 4 exploding steps); 0 when none does. Recorder "chain" preset and tests.
+        /// </summary>
+        public static uint ChainSeed(LevelDesign design, int ammo, int minSteps, int maxSeeds)
+        {
+            for (uint seed = 1; seed <= maxSeeds; seed++)
+            {
+                var b = ColorHuntRules.Create(design, ammo, seed);
+                int best = Best(b);
+                if (best >= 0 && ExplodingSteps(ColorHuntRules.Break(b, best)) >= minSteps) return seed;
+            }
+            return 0;
+        }
+
+        /// <summary>Steps of a break that explode at least one block (drop-only steps do not count).</summary>
+        public static int ExplodingSteps(BreakResult r)
+        {
+            int n = 0;
+            foreach (var s in r.Steps) if (s.Exploded.Count > 0) n++;
+            return n;
+        }
+
         private static bool IsTarget(Board b, int color)
         {
             foreach (var t in b.Targets) if (t.Color == color && t.Remaining > 0) return true;
