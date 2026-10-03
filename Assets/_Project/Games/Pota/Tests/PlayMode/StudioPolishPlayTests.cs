@@ -134,8 +134,9 @@ namespace Project.Tests
             int n = game.Board.Size;
             var bottom = game.ViewAt(ColorHuntRules.Index(n, n - 1, 0));
             var top = game.ViewAt(ColorHuntRules.Index(n, 0, 0));
+            yield return StudioLookPlayTests.WaitUntil(() => bottom.Scale > 0f, 2f);   // the feel layer's ribbon and goals come first
             Assert.Greater(bottom.Scale, top.Scale, "the bottom row pops first");
-            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 1f);
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 1.5f);
             Assert.IsFalse(game.Intro);
             Assert.AreEqual(1f, top.Scale, 1e-5f);
             Assert.IsFalse(game.Busy);

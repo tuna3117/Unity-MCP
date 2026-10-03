@@ -192,5 +192,17 @@ namespace Project.Tests
             Assert.AreEqual(0f, _go.transform.position.y, 1e-5f);
             Assert.AreEqual(90f, item.localEulerAngles.z, 1e-3f);
         }
+
+        [Test]
+        public void Bounce_SquashesWideThenRests()
+        {
+            var v = Make(new Block(0, 5));
+            v.Bounce = 0f;
+            v.Tick(0f);
+            Assert.Greater(v.transform.localScale.x, v.transform.localScale.y * 1.1f, "wide and flat on landing");
+            v.Tick(_s.Feel.LandBounceTime + 0.01f);
+            Assert.Less(v.Bounce, 0f, "the bounce is over");
+            Assert.AreEqual(v.transform.localScale.x, v.transform.localScale.y, 1e-4f);
+        }
     }
 }

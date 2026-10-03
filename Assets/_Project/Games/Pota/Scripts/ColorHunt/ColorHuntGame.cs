@@ -30,14 +30,20 @@ namespace Project.ColorHunt
         /// <summary>The golden ball's gate rings (yapbozSahne.ts gecisGoster), on the game root: they never turn with the board.</summary>
         public GateRings Gates { get; private set; }
         /// <summary>Taps wait: a job, the salvo, a loose swell, the intro, a golden ball or a gathered block on its way (until it arrives).</summary>
-        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _intro >= 0f || _goldens.Count > 0
+        public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _introOn || _goldens.Count > 0
                             || _gathering.Count > 0;
 
         private float _intro = -1f, _idle, _hintT = -1f;
+        private float _introSpeed = 1f;
+        private bool _introOn;
         private int _hintCell = -1;
 
         /// <summary>Studio board intro running (spec §3.3): the board is busy, taps wait.</summary>
-        public bool Intro => _intro >= 0f;
+        public bool Intro => _introOn;
+        /// <summary>F1: the level intro began (the HUD plays its ribbon and goal chips).</summary>
+        public event Action IntroStarted;
+        /// <summary>F1: a tap compressed the intro (the HUD compresses too).</summary>
+        public event Action IntroSkipped;
         /// <summary>The block the idle hint is wiggling, −1 when none (spec §3.4).</summary>
         public int HintCell => _hintT >= 0f ? _hintCell : -1;
         public int DisplayedAmmo { get; private set; }
@@ -1160,7 +1166,7 @@ namespace Project.ColorHunt
                     d.Landed = true;
                     if (d.Distance > 0f)
                     {
-                        v.Squash = 1f;
+                        if (Feel) v.Bounce = 0f; else v.Squash = 1f;      // F6: directional bounce instead of the uniform 0.88
                         Juice?.Landed(d.Distance);
                         if (d.Distance >= 1f) Fx?.Puff(new Vector2(v.Home.x, v.Home.y - 0.45f), 0.4f + 0.08f * d.Distance);
                     }
@@ -1213,15 +1219,28 @@ namespace Project.ColorHunt
         public void StartIntro()
         {
             if (!Polish) return;
-            _intro = 0f;
+            _intro = Feel ? -S.Feel.IntroBoardAt : 0f;      // the feel layer's ribbon and goals come first
+            _introSpeed = 1f;
+            _introOn = true;
             foreach (var v in _views.Values) v.Scale = 0f;
+            Raise(IntroStarted);
+        }
+
+        /// <summary>F1: a tap during the intro compresses what is left into Feel.IntroSkipTime.</summary>
+        public void SkipIntro()
+        {
+            if (!_introOn || Board == null) return;
+            float remaining = Mathf.Max(0.01f, StudioCurves.IntroTotal(Board.Size) - _intro);
+            float skip = Feel ? S.Feel.IntroSkipTime : 0.3f;
+            _introSpeed = Mathf.Max(_introSpeed, remaining / Mathf.Max(0.01f, skip));
+            Raise(IntroSkipped);
         }
 
         /// <summary>Rows pop in bottom first, 0.03 s apart, each 0 → 1.15 → 1 in 0.3 s.</summary>
         private void AdvanceIntro(float dt)
         {
-            if (_intro < 0f || Board == null) return;
-            _intro += dt;
+            if (!_introOn || Board == null) return;
+            _intro += dt * _introSpeed;
             int n = Board.Size;
             foreach (var kv in _views)
             {
@@ -1230,6 +1249,8 @@ namespace Project.ColorHunt
             }
             if (_intro < StudioCurves.IntroTotal(n)) return;
             _intro = -1f;
+            _introOn = false;
+            _introSpeed = 1f;
             foreach (var v in _views.Values) v.Scale = 1f;
         }
 
@@ -1275,7 +1296,7 @@ namespace Project.ColorHunt
             foreach (var v in _gathering.Keys) Recycle(v);
             _gathering.Clear();
             _disperse = -1f;
-            _intro = -1f; StopHint(); _idle = 0f;
+            _intro = -1f; _introOn = false; _introSpeed = 1f; StopHint(); _idle = 0f;
             _jobs.Clear();
             Salvo?.Clear();
             Select(-1);

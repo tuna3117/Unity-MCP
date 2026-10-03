@@ -113,6 +113,13 @@ namespace Project.ColorHunt
             fx.Roll = 0f;
         }
 
+        /// <summary>The arrival squash and ring on a row without a flyer (the level intro's goal chips).</summary>
+        internal void ArrivalRing(int color)
+        {
+            var fx = Row(color);
+            if (fx != null) { fx.Squash = 0f; fx.Ring = 0f; }
+        }
+
         public void StampTick(int color)
         {
             var fx = Row(color);

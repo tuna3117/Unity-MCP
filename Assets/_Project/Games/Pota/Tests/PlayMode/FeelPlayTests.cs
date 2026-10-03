@@ -68,6 +68,69 @@ namespace Project.Tests
         }
 
         [UnityTest]
+        public IEnumerator Intro_UnderThePotaLook_TapsWait_RibbonAndGoalsPlay_ReadyUnder1_8s()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            game.NewRound();
+            yield return null;
+            yield return null;
+            Assert.IsTrue(game.Intro, "the feel layer's intro runs under the Pota look");
+            Assert.IsTrue(game.Busy, "taps wait");
+            Assert.IsFalse(hud.Intro.Done);
+            Assert.IsTrue(hud.Intro.RibbonVisible, "the BÖLÜM ribbon is up");
+            Assert.AreEqual("BÖLÜM " + game.S.LevelNumber, hud.Intro.Title);
+            int n = game.Board.Size;
+            var top = game.ViewAt(ColorHuntRules.Index(n, 0, 0));
+            Assert.AreEqual(0f, top.Scale, 1e-5f, "blocks wait for the ribbon and the goals");
+            float t = 0f;
+            while (game.Intro && t < 1.8f) { t += Time.unscaledDeltaTime; yield return null; }
+            Assert.IsFalse(game.Intro, "ready within 1.8 s");
+            Assert.AreEqual(1f, top.Scale, 1e-5f);
+            Assert.IsTrue(hud.Intro.Done);
+            Assert.AreEqual(game.Board.Targets.Length, hud.Intro.GoalsArrived, "every goal chip flew to its row");
+            Assert.IsFalse(hud.Intro.RibbonVisible);
+        }
+
+        [UnityTest]
+        public IEnumerator Intro_Skip_FinishesWithin0_35s()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            game.NewRound();
+            yield return Wait(0.2f);
+            Assert.IsTrue(game.Intro);
+            game.SkipIntro();
+            float t = 0f;
+            while (game.Intro && t < 0.35f) { t += Time.unscaledDeltaTime; yield return null; }
+            Assert.IsFalse(game.Intro, "a tap compresses the rest of the intro");
+            Assert.IsTrue(hud.Intro.Done);
+        }
+
+        [UnityTest]
+        public IEnumerator Landing_BouncesDirectionally_UnderTheFeelLayer()
+        {
+            ColorHuntGame game = null; ColorHuntHud hud = null;
+            yield return StudioLookPlayTests.LoadLook(PuzzleLook.Pota, (g, h) => { game = g; hud = h; });
+            yield return StudioLookPlayTests.WaitUntil(() => !game.Intro, 2f);
+            int cell = ColorHuntHint.Best(game.Board);
+            Assert.AreEqual("broken", game.Tap(cell));
+            bool bounced = false;
+            float t = 0f;
+            while (t < 3f && !bounced)
+            {
+                for (int i = 0; i < game.Board.Cells.Length; i++)
+                {
+                    var v = game.ViewAt(i);
+                    if (v != null && v.Bounce >= 0f && v.transform.localScale.x > v.transform.localScale.y * 1.1f) bounced = true;
+                }
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Assert.IsTrue(bounced, "a landing block was wider than tall");
+        }
+
+        [UnityTest]
         public IEnumerator AffordableCount_CountsBlocksTheAmmoCovers()
         {
             ColorHuntGame game = null; ColorHuntHud hud = null;

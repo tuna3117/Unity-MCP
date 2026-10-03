@@ -45,6 +45,8 @@ namespace Project.ColorHunt
         public bool Pressed;
         /// <summary>Studio idle hint: z tilt in degrees.</summary>
         public float Wiggle;
+        /// <summary>F6 landing bounce clock (seconds since landing); −1 = none. Scales x wide / y flat, one overshoot, then rests.</summary>
+        public float Bounce = -1f;
         /// <summary>The press factor applied this frame (1 = none).</summary>
         public float PressScale { get; private set; } = 1f;
         private float _press, _release = -1f, _releaseFrom = 1f;
@@ -52,6 +54,7 @@ namespace Project.ColorHunt
         public void ResetStudio()
         {
             Pressed = false;
+            Bounce = -1f;
             Wiggle = 0f;
             Bob = 0f;
             StickerSpin = 0f;
@@ -173,7 +176,16 @@ namespace Project.ColorHunt
                 if (_release >= 1f) { _press = 0f; _release = -1f; press = 1f; }
             }
             PressScale = press;
-            transform.localScale = Vector3.one * Mathf.Max(0.001f, own * Scale * press);
+            float s = Mathf.Max(0.001f, own * Scale * press);
+            var bounce = Vector2.one;
+            if (Bounce >= 0f)
+            {
+                float time = _s != null && _s.Feel != null ? _s.Feel.LandBounceTime : 0.18f;
+                bounce = FeelCurves.LandBounce(Bounce / Mathf.Max(0.01f, time));
+                Bounce += dt;
+                if (Bounce >= time) { Bounce = -1f; bounce = Vector2.one; }
+            }
+            transform.localScale = new Vector3(s * bounce.x, s * bounce.y, s * bounce.x);
             transform.localRotation = Quaternion.Euler(0f, 0f, Wiggle);
             PlaceLabels(own);
             Apply();

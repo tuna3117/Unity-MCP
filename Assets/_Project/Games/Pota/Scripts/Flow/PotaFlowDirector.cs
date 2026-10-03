@@ -74,6 +74,7 @@ namespace Project.Flow
         private Vector2 _cageViewport;
         private float _fogStart0, _fogEnd0, _skipSpeed, _lastT, _camU;
         private bool _skipping, _heroShown, _badgeMerged, _revealSounded, _built, _prewarmed, _shotPlayed, _netShown, _swished, _stamped;
+        private bool _ribbonShown, _goalsFlown;
         private Quaternion _heroRot0 = Quaternion.identity;
         private int _shownCount;
         private Canvas _basketCanvas, _boardCanvas;
@@ -201,6 +202,7 @@ namespace Project.Flow
             var player = Round.Column.Player;
             _heroRot0 = player != null ? player.transform.rotation : Quaternion.identity;
             _heroShown = _skipping = _badgeMerged = _revealSounded = _shotPlayed = _netShown = _swished = _stamped = false;
+            _ribbonShown = _goalsFlown = false;
             Clock = 0f;
             _lastT = 0f;
             EnterPhase(Phase.Transition);
@@ -329,6 +331,9 @@ namespace Project.Flow
             Hoop.SetGlow(glow);
             if (!_revealSounded && t >= tl.RevealStartTime) { _revealSounded = true; Sfx?.Play("multiply"); }
             Hud.SetIntro(tl.AmmoProgress(t), tl.HudProgress(t));
+            // F1 under PotaFlow: the BÖLÜM ribbon with the board reveal, the goal chips once the target panel is home
+            if (!_ribbonShown && t >= tl.RevealStartTime) { _ribbonShown = true; Hud.Intro?.ShowRibbon(); }
+            if (!_goalsFlown && t >= tl.HudStartTime + S.Timing.HudTime) { _goalsFlown = true; Hud.Intro?.FlyGoals(); }
         }
 
         private void PlaceBadge(float t)

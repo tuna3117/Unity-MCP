@@ -48,6 +48,7 @@ namespace Project.ColorHunt
         public CollectFlight Collect { get; private set; }
         public AmmoCounter AmmoCounter { get; private set; }
         public AmmoTension Tension { get; private set; }
+        public LevelIntro Intro { get; private set; }
         public int FlyingCount => _flying.Count + (Collect != null ? Collect.Flying : 0);
 
         internal RectTransform FlyersRoot => _flyers;
@@ -97,6 +98,28 @@ namespace Project.ColorHunt
             Tension = GetComponent<AmmoTension>();
             if (Tension == null) Tension = gameObject.AddComponent<AmmoTension>();
             Tension.Init(this);
+            Intro = GetComponent<LevelIntro>();
+            if (Intro == null) Intro = gameObject.AddComponent<LevelIntro>();
+            Intro.Init(this);
+        }
+
+        /// <summary>F1: a target row's icon, count and tick are hidden until its goal chip arrives (the tick only when the goal is done).</summary>
+        internal void SetRowShown(int color, bool on)
+        {
+            foreach (var r in _rows)
+            {
+                if (r.Color != color) continue;
+                r.Icon.enabled = on && r.Icon.sprite != null;
+                r.Count.enabled = on;
+                r.Tick.enabled = on && Game != null && Game.ShownTarget(color) == 0;
+            }
+        }
+
+        /// <summary>index.html @keyframes pop on a target row's icon and count.</summary>
+        internal void PopRow(int color)
+        {
+            foreach (var r in _rows)
+                if (r.Color == color) { _pops[r.Icon.transform] = 0f; _pops[r.Count.transform] = 0f; }
         }
 
         // Listeners added while the scene tool builds the HUD in Edit Mode are not saved with the scene: wire them here.
@@ -313,7 +336,7 @@ namespace Project.ColorHunt
                 }
                 row.Count.color = done ? PotaLook.HudGreen : PotaLook.HudGold;
                 bool stamped = done && !row.Tick.enabled;
-                row.Tick.enabled = done;
+                row.Tick.enabled = done && row.Count.enabled;              // a row hidden by the level intro stays hidden
                 if (stamped && studio) Collect.StampTick(row.Color);
             }
         }

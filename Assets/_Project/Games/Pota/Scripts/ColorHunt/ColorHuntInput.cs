@@ -29,6 +29,7 @@ namespace Project.ColorHunt
             if (pressed && !_down)
             {
                 _down = true;
+                if (Game.Intro) Game.SkipIntro();                   // F1: a tap compresses the level intro
                 Game.Select(CellUnder(pos));
             }
             else if (pressed && _down)
