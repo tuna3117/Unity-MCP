@@ -78,6 +78,7 @@ namespace Project.Editor.AITools
                 imp.alphaIsTransparency = !big;
                 imp.maxTextureSize = big ? 4096 : 512;            // 1536×2752 stays full size (2048 shrank it to 1143 wide)
                 imp.textureCompression = TextureImporterCompression.Compressed;
+                if (path.EndsWith("kahraman-maske.png")) { imp.isReadable = true; imp.textureCompression = TextureImporterCompression.Uncompressed; }   // luminance mask, read at runtime (MarketScreen tints the jersey)
                 imp.SaveAndReimport();
             }
             if (fonts) report.AddRange(ImportFredoka());

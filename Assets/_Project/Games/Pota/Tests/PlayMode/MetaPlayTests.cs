@@ -301,5 +301,131 @@ namespace Project.Tests
             Assert.AreEqual(MapScreen.NodeState.Current, d.Map.StateOf(21), "the map is already up to date");
             d.S.Feel.Enabled = true;
         }
+
+        // ---------- Task 5: promotion, bonus, market ----------
+
+        [UnityTest]
+        public IEnumerator Promotion_NewBadgeOvershoots_OldBadgeLeaves()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Promotion.Tap();
+            yield return null;
+            Assert.AreEqual(MetaDirector.Screen.Promotion, d.Current);
+            var p = d.Promotion;
+            Assert.AreEqual("Yeni lig!", p.Window.Title.text);
+            Assert.AreEqual("Amatör", p.LeagueName);
+            float peak = 0f, t = 0f;
+            while (t < 1.2f) { peak = Mathf.Max(peak, p.NewBadgeScale); t += Time.unscaledDeltaTime; yield return null; }
+            Assert.Greater(peak, 1.15f, "the new badge overshoots");
+            Assert.AreEqual(1f, p.NewBadgeScale, 0.02f, "and settles");
+            Assert.IsFalse(p.OldBadgeVisible);
+            Assert.AreEqual(1, d.S.LeagueOf(d.Save.Trophies));
+            p.Continue.Tap();
+            yield return WaitUntil(() => d.Current != MetaDirector.Screen.Promotion, 1f);
+            Assert.AreEqual("12,4K", d.Menu.TrophiesText);
+        }
+
+        [UnityTest]
+        public IEnumerator League_SenRowSlides_ToTheNewLeague()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.OpenLeague(0);
+            yield return null;
+            Assert.IsTrue(d.League.Window.IsOpen);
+            Assert.AreEqual("Çaylak", d.League.Rows[4].Name.text, "Çaylak at the bottom, Şampiyonlar on top");
+            Assert.AreEqual(0, d.League.SenRow);
+            d.League.Window.Hide();
+            yield return WaitUntil(() => d.League.Window.State == MetaWindow.Phase.Closed, 1f);
+            d.Dev.Promotion.Tap();
+            yield return null;
+            d.Promotion.Continue.Tap();
+            yield return WaitUntil(() => d.Current != MetaDirector.Screen.Promotion, 1f);
+            d.OpenLeague(0);
+            yield return null;
+            Assert.IsTrue(d.League.SenMoving, "the SEN pill slides from the old row");
+            yield return WaitUntil(() => !d.League.SenMoving, 1f);
+            Assert.AreEqual(1, d.League.SenRow);
+        }
+
+        [UnityTest]
+        public IEnumerator Bonus_ReelsStopInOrder_WinCellsGlow_CoinsFlyToTheCard()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Dev.Bonus.Tap();
+            yield return null;
+            var b = d.Bonus;
+            Assert.AreEqual(MetaDirector.Screen.Bonus, d.Current);
+            Assert.AreEqual("BONUS OYNA · 3", b.Play.Label.text);
+            b.Play.Tap();
+            yield return null;
+            Assert.IsTrue(b.Spinning);
+            int stoppedBefore = 0;
+            yield return WaitUntil(() => b.StoppedColumns >= 3, 3f);
+            stoppedBefore = b.StoppedColumns;
+            Assert.IsTrue(b.Spinning, "the right columns still spin");
+            Assert.GreaterOrEqual(stoppedBefore, 3);
+            yield return WaitUntil(() => !b.Spinning, 3f);
+            Assert.AreEqual("BONUS OYNA · 2", b.Play.Label.text);
+            Assert.Greater(b.Winnings.Coins, 0, "the showcase seed pays on the first spin");
+            Assert.Greater(b.GlowingCells, 0, "the winning cells glow");
+            Assert.IsTrue(b.CoinsFlew, "coins flew to the result card");
+            yield return WaitUntil(() => !d.Coins.Running, 3f);
+            StringAssert.Contains(b.Winnings.Coins.ToString(), b.ResultText);
+            Assert.AreEqual(d.S.Save.Coins, d.Menu.Coins.Value, "winnings wait for the level (Pota)");
+        }
+
+        [UnityTest]
+        public IEnumerator Market_Buy_CoinsFlyToTheChip_ChipStamped_HeroHops_InsufficientShakes()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.Tabs.Select(TabBar.Tab.Market);
+            yield return WaitUntil(() => !d.MarketPage.Moving, 1f);
+            var m = d.Market;
+            Assert.AreEqual(MetaDirector.Screen.Market, d.Current);
+            m.TapChip(1);                                        // forma-kirmizi, 120
+            yield return null;
+            Assert.AreEqual(1, m.Tried);
+            Assert.AreEqual("Kırmızı forma · 120", m.Big.Label.text);
+            m.Big.Tap();
+            yield return null;
+            Assert.IsTrue(m.Purchasing);
+            yield return WaitUntil(() => !m.Purchasing, 3f);
+            Assert.AreEqual(25, d.Save.Coins);
+            Assert.AreEqual(25, d.Menu.Coins.Value);
+            Assert.AreEqual("Giyili", m.ChipLabel(1));
+            Assert.AreEqual("Giyili", m.Big.Label.text);
+            Assert.Greater(m.HeroHopPeak, 0.5f, "the hero jumped (Pota kutla)");
+            m.TapChip(4);                                        // forma-siyah, 160 > 25
+            yield return null;
+            m.Big.Tap();
+            yield return Wait(0.5f);
+            Assert.IsFalse(m.Purchasing);
+            Assert.Greater(m.ShakePeak, 1f, "the big button shook");
+            Assert.AreEqual(25, d.Save.Coins);
+            Assert.AreEqual("160", m.ChipLabel(4));
+        }
+
+        [UnityTest]
+        public IEnumerator Market_FeelOff_BuysInstantly()
+        {
+            MetaDirector d = null;
+            yield return Load(x => d = x);
+            d.S.Feel.Enabled = false;
+            d.Tabs.Select(TabBar.Tab.Market);
+            yield return null;
+            d.Market.TapChip(2);
+            yield return null;
+            d.Market.Big.Tap();
+            yield return null;
+            yield return null;
+            Assert.IsFalse(d.Market.Purchasing);
+            Assert.AreEqual(25, d.Menu.Coins.Value);
+            Assert.AreEqual("Giyili", d.Market.ChipLabel(2));
+            d.S.Feel.Enabled = true;
+        }
     }
 }

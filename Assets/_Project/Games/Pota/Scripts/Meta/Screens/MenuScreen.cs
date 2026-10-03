@@ -28,6 +28,7 @@ namespace Project.Meta
         public RollingNumber Lives { get; private set; }
         public Text LevelPill { get; private set; }
         public Image LeagueIcon { get; private set; }
+        public MetaButton LeagueBadge { get; private set; }
         public string PlayLabel => Play != null && Play.Label != null ? Play.Label.text : "";
         public string CoinsText => Coins != null ? Coins.Text.text : "";
         public string TrophiesText => Trophies != null ? Trophies.Text.text : "";
@@ -105,6 +106,7 @@ namespace Project.Meta
             rh.spacing = 4f * css; rh.childAlignment = TextAnchor.MiddleRight; rh.childControlWidth = false; rh.childControlHeight = false; rh.childForceExpandWidth = false; rh.childForceExpandHeight = false;
             var league = Badge(rrt, s, "LeagueBadge", s.LeagueBadges[s.LeagueOf(s.Save.Trophies)], MetaStyle.KupaKisa(s.Save.Trophies), Vector2.zero, 26f);
             m.LeagueIcon = league.Icon;
+            m.LeagueBadge = league;
             var coins = Badge(rrt, s, "CoinsBadge", s.Coin, s.Save.Coins.ToString(), Vector2.zero, 20f);
             m.CoinsBadge = coins;
             var lives = Badge(rrt, s, "LivesBadge", s.Heart, s.Save.Lives >= s.Save.MaxLives ? "TAM" : s.Save.Lives.ToString(), Vector2.zero, 20f);

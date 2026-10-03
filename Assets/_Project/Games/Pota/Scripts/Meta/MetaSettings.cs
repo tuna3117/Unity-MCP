@@ -84,6 +84,9 @@ namespace Project.Meta
         public int[] LeagueThresholds = { 0, 12400, 44700, 119100, 154200 };
         public string[] LeagueNames = { "Çaylak", "Amatör", "Profesyonel", "All-Star", "Şampiyonlar Ligi" };
         public int MapLevels = 50;
+        [Tooltip("Bonus reels (Pota bonus.ts): columns; seed −1 = the first seed whose first spin pays coins.")]
+        public int BonusColumns = 7;
+        public int BonusSeed = -1;
 
         [Header("Fonts (ai_potameta_import)")]
         public Font Lilita;

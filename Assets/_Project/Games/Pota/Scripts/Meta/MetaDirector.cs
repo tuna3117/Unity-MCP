@@ -28,6 +28,12 @@ namespace Project.Meta
         [SerializeField] private Confetti _confetti;
         [SerializeField] private Image _fade;
         [SerializeField] private MapScreen _map;
+        [SerializeField] private MarketScreen _market;
+        [SerializeField] private LeagueWindow _league;
+        [SerializeField] private PromotionWindow _promotion;
+        [SerializeField] private BonusWindow _bonus;
+        private int _leagueSeen;
+        private Action _afterPromotion;
 
         private SampleSave _save;
         private ScreenSlide _mapSlide, _marketSlide;
@@ -51,6 +57,10 @@ namespace Project.Meta
         public Confetti Confetti => _confetti;
         public WinResult LastWin => _lastWin;
         public MapScreen Map => _map;
+        public MarketScreen Market => _market;
+        public LeagueWindow League => _league;
+        public PromotionWindow Promotion => _promotion;
+        public BonusWindow Bonus => _bonus;
         public event Action<Screen> ScreenChanged;
 
         /// <summary>The scene tool hands over the canvas; the screens are built on Play (Awake).</summary>
@@ -64,12 +74,16 @@ namespace Project.Meta
             _mapPage = Page(root, "MapPage", S.MapBackground, new Color(126f / 255f, 195f / 255f, 240f / 255f, 0.3f));
             _map = MapScreen.Create(_mapPage, S);
             _marketPage = Page(root, "MarketPage", null, new Color(20f / 255f, 40f / 255f, 80f / 255f, 0.82f));
+            _market = MarketScreen.Create(_marketPage, S, root);
             _tabs = TabBar.Create(root, S);
             _settings = SettingsWindow.Create(root, S);
             _level = LevelWindow.Create(root, S);
             _confetti = Confetti.Create(root);
             _win = WinWindow.Create(root, S, root, _confetti);
             _lose = LoseWindow.Create(root, S);
+            _league = LeagueWindow.Create(root, S);
+            _promotion = PromotionWindow.Create(root, S, _confetti);
+            _bonus = BonusWindow.Create(root, S, root);
             _fade = Page(root, "Fade", null, Color.black).GetComponent<Image>();
             _fade.gameObject.SetActive(false);
             _toast = Toast.Create(root, S.Lilita, S.Feel);
@@ -119,15 +133,79 @@ namespace Project.Meta
             _lose.Window.Closed -= OnLoseClosed; _lose.Window.Closed += OnLoseClosed;
             _lose.Recommended.Clicked -= RetryLevel; _lose.Recommended.Clicked += RetryLevel;
             foreach (var b in new[] { _lose.Basket, _lose.More, _lose.Video }) { b.Clicked -= CloseLose; b.Clicked += CloseLose; }
+            _menu.LeagueBadge.Clicked -= OpenLeagueSeen; _menu.LeagueBadge.Clicked += OpenLeagueSeen;
+            _promotion.Done -= OnPromotionDone; _promotion.Done += OnPromotionDone;
+            _bonus.FlyCoins = (amount, from, to, done) => _coins.Fly(from, to, amount, null, done);
+            _bonus.Window.Closed -= OnBonusClosed; _bonus.Window.Closed += OnBonusClosed;
+            _market.Bind(SpendCoins, msg => _toast.Show(msg));
+            _leagueSeen = S.LeagueOf(_save.Trophies);
             _menu.Refresh(_save, false);
             _map.Refresh(_save);
+            _market.Refresh(_save);
             _menu.Enter();
             _dev?.Bind(this);
             if (_dev != null)
             {
                 _dev.Win.Clicked -= ShowWin; _dev.Win.Clicked += ShowWin;
                 _dev.Lose.Clicked -= ShowLose; _dev.Lose.Clicked += ShowLose;
+                _dev.Promotion.Clicked -= ShowPromotion; _dev.Promotion.Clicked += ShowPromotion;
+                _dev.Bonus.Clicked -= ShowBonus; _dev.Bonus.Clicked += ShowBonus;
             }
+        }
+
+        // ---------- league, promotion, bonus, market ----------
+
+        /// <summary>The league table; <paramref name="fromLeague"/> ≥ 0 and different slides the SEN row (M8).</summary>
+        public void OpenLeague(int fromLeague = -1)
+        {
+            _league.Open(_save.Trophies, fromLeague);
+            _leagueSeen = S.LeagueOf(_save.Trophies);
+            Set(Screen.League);
+            _league.Window.Closed -= OnSettingsClosed; _league.Window.Closed += OnSettingsClosed;
+        }
+
+        private void OpenLeagueSeen() => OpenLeague(_leagueSeen);
+
+        /// <summary>The dev strip's "Terfi": the trophies jump to the next league's floor and the promotion window plays.</summary>
+        public void ShowPromotion()
+        {
+            int l = S.LeagueOf(_save.Trophies);
+            if (l >= S.LeagueThresholds.Length - 1) { _toast.Show("En üst lig"); return; }
+            _save.Trophies = S.LeagueThresholds[l + 1];
+            _afterPromotion = null;
+            _promotion.Open(l, l + 1);
+            Set(Screen.Promotion);
+        }
+
+        private void OnPromotionDone()
+        {
+            _promotion.Window.Hide(() =>
+            {
+                _menu.Refresh(_save, true);
+                var next = _afterPromotion; _afterPromotion = null;
+                if (next != null) next();
+                else OnSettingsClosed();
+            });
+        }
+
+        public void ShowBonus()
+        {
+            _bonus.Open(BonusRules.Start(S.BonusColumns, S.BonusSeed >= 0 ? S.BonusSeed : BonusRules.ShowcaseSeed));
+            Set(Screen.Bonus);
+        }
+
+        private void OnBonusClosed() => OnSettingsClosed();
+
+        /// <summary>Coins spent: they fly from the market's badge to <paramref name="to"/>, both counters rolling down (M3 spend).</summary>
+        public void SpendCoins(int amount, Vector2 to, Action done)
+        {
+            int target = _save.Coins - amount, shown = _save.Coins, count = CoinPlan.Count(amount);
+            _save.Coins = target;
+            if (count == 0 || !S.Feel.Enabled) { _menu.Coins.Set(target, false); _market.Coins.Set(target, false); done?.Invoke(); return; }
+            int step = Mathf.Max(1, amount / count), arrived = 0;
+            _coins.Fly(_market.CoinsPoint, to, amount,
+                () => { arrived++; shown = arrived >= count ? target : Mathf.Max(target, shown - step); _market.Coins.Set(shown, true); _menu.Coins.Set(shown, true); },
+                () => { _market.Coins.Set(target, true); _menu.Coins.Set(target, true); done?.Invoke(); });
         }
 
         // ---------- level → "game" → result ----------
@@ -187,20 +265,30 @@ namespace Project.Meta
             _win.Window.Hide(() =>
             {
                 _menu.Refresh(_save, true);
-                if (S.Feel.Enabled)
+                if (_lastWin.Promoted)
                 {
-                    _map.Refresh(_save);
-                    _tabs.Select(TabBar.Tab.Map);
-                    _map.Play(_lastWin.Save.Level - 1, _lastWin.Save.Level, _lastWin.MedalIndex);
+                    _afterPromotion = AfterWin;                 // M4: the promotion window comes after Devam, then the map
+                    _promotion.Open(_lastWin.LeagueBefore, _lastWin.LeagueAfter);
+                    Set(Screen.Promotion);
                 }
-                else
-                {
-                    _map.Refresh(_save);
-                    _tabs.Select(TabBar.Tab.Home);
-                    Set(Screen.Menu);
-                }
-                if (_lastWin.Promoted) _toast.Show("Yeni lig! (terfi penceresi: görev 5)");
+                else AfterWin();
             });
+        }
+
+        private void AfterWin()
+        {
+            if (S.Feel.Enabled)
+            {
+                _map.Refresh(_save);
+                _tabs.Select(TabBar.Tab.Map);
+                _map.Play(_lastWin.Save.Level - 1, _lastWin.Save.Level, _lastWin.MedalIndex);
+            }
+            else
+            {
+                _map.Refresh(_save);
+                _tabs.Select(TabBar.Tab.Home);
+                Set(Screen.Menu);
+            }
         }
 
         /// <summary>The dev strip's "Kaybet": a life goes, the lose window shows what remained.</summary>
@@ -224,8 +312,10 @@ namespace Project.Meta
         public void ResetSave()
         {
             _save = MetaRules.Copy(S.Save);
+            _leagueSeen = S.LeagueOf(_save.Trophies);
             _menu.Refresh(_save, false);
             _map.Refresh(_save);
+            _market.Refresh(_save);
         }
 
         private void OnTab(TabBar.Tab tab)
@@ -236,6 +326,8 @@ namespace Project.Meta
                 case TabBar.Tab.Market: _mapSlide.Hide(); _marketSlide.Show(); Set(Screen.Market); break;
                 default: _mapSlide.Hide(); _marketSlide.Hide(); Set(Screen.Menu); break;
             }
+            _tabs.transform.SetAsLastSibling();             // a shown page moves to the top; the bar stays over the pages
+            _dev?.transform.SetAsLastSibling();
         }
 
         private void Set(Screen s)
