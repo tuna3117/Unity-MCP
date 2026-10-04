@@ -140,6 +140,20 @@ namespace Project.Tests
         }
 
         [Test]
+        public void ADeliveryThatFailedTheWorkshopGate_IsADifference()
+        {
+            string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Temp", "handoff-gate-failed"));
+            Directory.CreateDirectory(dir);
+            string src = Path.GetDirectoryName(Fixture);
+            File.Copy(Path.Combine(src, "handoff-cube.glb"), Path.Combine(dir, "handoff-cube.glb"), true);
+            File.WriteAllText(Path.Combine(dir, "manifest.json"),
+                File.ReadAllText(Fixture).Replace("\"passed\": true", "\"passed\": false, \"degenerate\": 2"));
+            var r = ImportAssetTool.Import(Path.Combine(dir, "manifest.json"), Root + "/gate");
+            Assert.IsFalse(r.matches);
+            StringAssert.Contains("workshop checks failed", string.Join("; ", r.differences));
+        }
+
+        [Test]
         public void AnimationOnlyFbx_CountsTheBonesOfTheSkeleton()
         {
             var r = ImportAssetTool.Import(Fixture2("handoff-anim-only"), Root + "/anim");

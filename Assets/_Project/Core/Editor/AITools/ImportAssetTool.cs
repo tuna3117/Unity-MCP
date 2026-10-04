@@ -246,6 +246,15 @@ namespace Project.Editor.AITools
 
         private static void Check(Result r, JObject m, bool flipbook)
         {
+            // The workshop's own gate (model QC, animation gate, degenerate triangles…): a failed delivery is never a match.
+            if (m["checks"] is JObject checks && checks.Value<bool?>("passed") == false)
+            {
+                var failed = checks.Properties().Where(c => c.Name != "passed" && (
+                        (c.Value.Type == JTokenType.Integer && c.Value.Value<int>() > 0) ||
+                        (c.Value is JObject o && o.Value<bool?>("passed") == false)))
+                    .Select(c => c.Name);
+                r.differences.Add("workshop checks failed (" + string.Join(", ", failed) + ")");
+            }
             if (flipbook)
             {
                 MeasureSheet(r, m["flipbook"] as JObject ?? throw new ArgumentException("a vfx-flipbook manifest has no 'flipbook' block."));
