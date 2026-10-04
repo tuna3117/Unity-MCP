@@ -1,0 +1,461 @@
+{
+  "id": "pota-hero-anim",
+  "game": "Pota",
+  "kind": "character",
+  "version": 1,
+  "files": {
+    "glb": "pota-hero-anim.glb",
+    "fbx": "pota-hero-anim.fbx",
+    "previews": [
+      "preview.png",
+      "preview-run.png",
+      "preview-shoot.png",
+      "preview-jump.png",
+      "preview-victory.png",
+      "preview-defeat.png",
+      "preview-hit.png",
+      "preview-celebrate.png",
+      "preview-idle_raw.png",
+      "preview-run_raw.png",
+      "preview-shoot_raw.png",
+      "preview-jump_raw.png",
+      "preview-victory_raw.png",
+      "preview-defeat_raw.png",
+      "preview-hit_raw.png",
+      "preview-celebrate_raw.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 8480,
+    "materials": 1,
+    "textures": [
+      {
+        "name": "base",
+        "size": [
+          1024,
+          1024
+        ]
+      }
+    ],
+    "bones": 53,
+    "clips": [
+      "celebrate",
+      "celebrate_raw",
+      "defeat",
+      "defeat_raw",
+      "hit",
+      "hit_raw",
+      "idle",
+      "idle_raw",
+      "jump",
+      "jump_raw",
+      "run",
+      "run_raw",
+      "shoot",
+      "shoot_raw",
+      "victory",
+      "victory_raw"
+    ],
+    "size_m": [
+      0.5396,
+      0.3582,
+      1.0295
+    ],
+    "bone_names": [
+      "squash",
+      "mixamorig:Hips",
+      "mixamorig:Spine",
+      "mixamorig:Spine1",
+      "mixamorig:Spine2",
+      "mixamorig:Neck",
+      "mixamorig:Head",
+      "mixamorig:LeftShoulder",
+      "mixamorig:LeftArm",
+      "mixamorig:LeftForeArm",
+      "mixamorig:LeftHand",
+      "mixamorig:LeftHandThumb1",
+      "mixamorig:LeftHandThumb2",
+      "mixamorig:LeftHandThumb3",
+      "mixamorig:LeftHandIndex1",
+      "mixamorig:LeftHandIndex2",
+      "mixamorig:LeftHandIndex3",
+      "mixamorig:LeftHandMiddle1",
+      "mixamorig:LeftHandMiddle2",
+      "mixamorig:LeftHandMiddle3",
+      "mixamorig:LeftHandRing1",
+      "mixamorig:LeftHandRing2",
+      "mixamorig:LeftHandRing3",
+      "mixamorig:LeftHandPinky1",
+      "mixamorig:LeftHandPinky2",
+      "mixamorig:LeftHandPinky3",
+      "mixamorig:RightShoulder",
+      "mixamorig:RightArm",
+      "mixamorig:RightForeArm",
+      "mixamorig:RightHand",
+      "mixamorig:RightHandThumb1",
+      "mixamorig:RightHandThumb2",
+      "mixamorig:RightHandThumb3",
+      "mixamorig:RightHandIndex1",
+      "mixamorig:RightHandIndex2",
+      "mixamorig:RightHandIndex3",
+      "mixamorig:RightHandMiddle1",
+      "mixamorig:RightHandMiddle2",
+      "mixamorig:RightHandMiddle3",
+      "mixamorig:RightHandRing1",
+      "mixamorig:RightHandRing2",
+      "mixamorig:RightHandRing3",
+      "mixamorig:RightHandPinky1",
+      "mixamorig:RightHandPinky2",
+      "mixamorig:RightHandPinky3",
+      "mixamorig:LeftUpLeg",
+      "mixamorig:LeftLeg",
+      "mixamorig:LeftFoot",
+      "mixamorig:LeftToeBase",
+      "mixamorig:RightUpLeg",
+      "mixamorig:RightLeg",
+      "mixamorig:RightFoot",
+      "mixamorig:RightToeBase"
+    ]
+  },
+  "source": {
+    "recipe": null,
+    "copy_provenance": null,
+    "inputs": [
+      "/Users/tunaaltin17/projects/Blender MCP/.logs/pota-hero-anim/clips.blend"
+    ],
+    "pipeline": "character_animated",
+    "clips": [
+      {
+        "name": "idle",
+        "action": "idle_styl",
+        "recipe": "idle",
+        "raw_source": null
+      },
+      {
+        "name": "run",
+        "action": "run_styl",
+        "recipe": "run",
+        "raw_source": null
+      },
+      {
+        "name": "shoot",
+        "action": "shoot_styl",
+        "recipe": "shoot",
+        "raw_source": null
+      },
+      {
+        "name": "jump",
+        "action": "jump_styl",
+        "recipe": "jump",
+        "raw_source": null
+      },
+      {
+        "name": "victory",
+        "action": "victory_styl",
+        "recipe": "victory",
+        "raw_source": null
+      },
+      {
+        "name": "defeat",
+        "action": "defeat_styl",
+        "recipe": "defeat",
+        "raw_source": null
+      },
+      {
+        "name": "hit",
+        "action": "hit_styl",
+        "recipe": "hit",
+        "raw_source": null
+      },
+      {
+        "name": "celebrate",
+        "action": "celebrate_styl",
+        "recipe": "celebrate",
+        "raw_source": null
+      },
+      {
+        "name": "idle_raw",
+        "action": "idle_raw",
+        "recipe": "idle.raw",
+        "raw_source": null
+      },
+      {
+        "name": "run_raw",
+        "action": "run_raw",
+        "recipe": "run.raw",
+        "raw_source": null
+      },
+      {
+        "name": "shoot_raw",
+        "action": "shoot_raw",
+        "recipe": "shoot.raw",
+        "raw_source": null
+      },
+      {
+        "name": "jump_raw",
+        "action": "jump_raw",
+        "recipe": "jump.raw",
+        "raw_source": null
+      },
+      {
+        "name": "victory_raw",
+        "action": "victory_raw",
+        "recipe": "victory.raw",
+        "raw_source": null
+      },
+      {
+        "name": "defeat_raw",
+        "action": "defeat_raw",
+        "recipe": "defeat.raw",
+        "raw_source": null
+      },
+      {
+        "name": "hit_raw",
+        "action": "hit_raw",
+        "recipe": "hit.raw",
+        "raw_source": null
+      },
+      {
+        "name": "celebrate_raw",
+        "action": "celebrate_raw",
+        "recipe": "celebrate.raw",
+        "raw_source": null
+      }
+    ]
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "animated": [],
+    "passed": true,
+    "clips": {
+      "fbx_takes": [
+        "Armature|Armature|celebrate",
+        "Armature|Armature|celebrate_raw",
+        "Armature|Armature|defeat",
+        "Armature|Armature|defeat_raw",
+        "Armature|Armature|hit",
+        "Armature|Armature|hit_raw",
+        "Armature|Armature|idle",
+        "Armature|Armature|idle_raw",
+        "Armature|Armature|jump",
+        "Armature|Armature|jump_raw",
+        "Armature|Armature|run",
+        "Armature|Armature|run_raw",
+        "Armature|Armature|shoot",
+        "Armature|Armature|shoot_raw",
+        "Armature|Armature|victory",
+        "Armature|Armature|victory_raw"
+      ],
+      "glb_clips": [
+        "celebrate",
+        "celebrate_raw",
+        "defeat",
+        "defeat_raw",
+        "hit",
+        "hit_raw",
+        "idle",
+        "idle_raw",
+        "jump",
+        "jump_raw",
+        "run",
+        "run_raw",
+        "shoot",
+        "shoot_raw",
+        "victory",
+        "victory_raw"
+      ],
+      "missing_in_fbx": [],
+      "missing_in_glb": [],
+      "fbx_bones": 53,
+      "passed": true
+    },
+    "root": {
+      "clips": {
+        "idle": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "run": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "shoot": {
+          "start_m": 0.0,
+          "drift_m": 0.0064
+        },
+        "jump": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "victory": {
+          "start_m": 0.0,
+          "drift_m": 0.0054
+        },
+        "defeat": {
+          "start_m": 0.0,
+          "drift_m": 0.0172
+        },
+        "hit": {
+          "start_m": 0.0,
+          "drift_m": 0.0079
+        },
+        "celebrate": {
+          "start_m": 0.0,
+          "drift_m": 0.003
+        },
+        "idle_raw": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "run_raw": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "shoot_raw": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "jump_raw": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "victory_raw": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "defeat_raw": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "hit_raw": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        },
+        "celebrate_raw": {
+          "start_m": 0.0,
+          "drift_m": 0.0
+        }
+      },
+      "start_limit_m": 0.01,
+      "passed": true
+    }
+  },
+  "made": "2026-10-04T02:58:56Z",
+  "clips_meta": [
+    {
+      "name": "idle",
+      "frames": 72,
+      "fps": 30,
+      "loop": true
+    },
+    {
+      "name": "run",
+      "frames": 16,
+      "fps": 30,
+      "loop": true,
+      "root_velocity": [
+        -0.0112,
+        -2.5726,
+        0.0
+      ]
+    },
+    {
+      "name": "shoot",
+      "frames": 54,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "jump",
+      "frames": 55,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "victory",
+      "frames": 61,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "defeat",
+      "frames": 63,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "hit",
+      "frames": 47,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "celebrate",
+      "frames": 76,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "idle_raw",
+      "frames": 119,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "run_raw",
+      "frames": 89,
+      "fps": 30,
+      "loop": false,
+      "root_velocity": [
+        -0.158,
+        -1.331,
+        -0.0
+      ]
+    },
+    {
+      "name": "shoot_raw",
+      "frames": 89,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "jump_raw",
+      "frames": 89,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "victory_raw",
+      "frames": 89,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "defeat_raw",
+      "frames": 89,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "hit_raw",
+      "frames": 59,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "celebrate_raw",
+      "frames": 89,
+      "fps": 30,
+      "loop": false
+    }
+  ],
+  "import": {
+    "rig": "generic"
+  }
+}
