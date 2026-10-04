@@ -53,6 +53,9 @@ namespace Project.Tests
             Assert.AreEqual(1f, tsa.frameOverTimeMultiplier, 1e-3f, "Unity keeps it just under 1 (0.9999) so the last frame never wraps");
             Assert.AreEqual(1, tsa.cycleCount);
             Assert.AreEqual(1, ps.emission.GetBurst(0).count.constant);
+            Assert.IsTrue(ps.colorOverLifetime.enabled, "a non-empty last frame must not pop off");
+            Assert.Less(ps.colorOverLifetime.color.gradient.Evaluate(0.99f).a, 0.2f);
+            Assert.AreEqual(1f, ps.colorOverLifetime.color.gradient.Evaluate(0.8f).a, 1e-4f);
             var mat = ps.GetComponent<ParticleSystemRenderer>().sharedMaterial;
             Assert.AreEqual(FlipbookMaterial.ShaderName, mat.shader.name);
             Assert.AreEqual(Root + "/flip/fixture-flipbook.png", AssetDatabase.GetAssetPath(mat.GetTexture("_BaseMap")));
@@ -107,6 +110,18 @@ namespace Project.Tests
             Assert.IsFalse(ps.textureSheetAnimation.enabled);
             Assert.IsTrue(ps.sizeOverLifetime.enabled);
             Assert.Greater(ps.sizeOverLifetime.size.curve.Evaluate(0.15f), 1.05f, "pop overshoot");
+        }
+
+        [Test]
+        public void Facing_ComesFromTheManifest_OrTheOption()
+        {
+            string ground = Flipbook("ground", m => m.Replace("\"linear\": false", "\"linear\": false, \"facing\": \"ground\""));
+            var r = VfxFromDeliveryTool.Build(ground, Opts("ground"));
+            Assert.AreEqual(ParticleSystemRenderMode.HorizontalBillboard, RootSystem(r.prefab).GetComponent<ParticleSystemRenderer>().renderMode);
+            var o = Opts("upright");
+            o.facing = "camera";
+            r = VfxFromDeliveryTool.Build(ground, o);
+            Assert.AreEqual(ParticleSystemRenderMode.Billboard, RootSystem(r.prefab).GetComponent<ParticleSystemRenderer>().renderMode);
         }
 
         [Test]

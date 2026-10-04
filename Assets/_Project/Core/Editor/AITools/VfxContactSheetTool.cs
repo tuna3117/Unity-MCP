@@ -96,21 +96,32 @@ namespace Project.Editor.AITools
             try
             {
                 // Frame the camera on everything the effect covers over its life, then keep that framing.
+                // Particle renderer bounds are conservative (a 1 m cloud filled a tenth of the frame): use the particles
+                // themselves, and mesh renderer bounds for everything else.
                 Bounds? all = null;
+                void Add(Bounds b) { if (all == null) all = b; else { var a = all.Value; a.Encapsulate(b); all = a; } }
+                var buffer = new ParticleSystem.Particle[256];
                 foreach (float t in r.times)
                 {
                     Seek(systems, bursts, t);
-                    foreach (var rend in inst.GetComponentsInChildren<Renderer>(true))
+                    foreach (var ps in systems)
                     {
-                        if (rend is ParticleSystemRenderer pr && pr.GetComponent<ParticleSystem>().particleCount == 0) continue;
-                        var b = rend.bounds;
-                        if (b.size.sqrMagnitude <= 0f) continue;
-                        if (all == null) all = b; else { var a = all.Value; a.Encapsulate(b); all = a; }
+                        int n = ps.GetParticles(buffer);
+                        bool world = ps.main.simulationSpace == ParticleSystemSimulationSpace.World;
+                        for (int k = 0; k < n; k++)
+                        {
+                            Vector3 s3 = buffer[k].GetCurrentSize3D(ps);
+                            float extent = Mathf.Max(s3.x, s3.y, s3.z) * 1.15f;   // pop overshoot
+                            Vector3 pos = world ? buffer[k].position : ps.transform.TransformPoint(buffer[k].position);
+                            Add(new Bounds(pos, Vector3.one * extent));
+                        }
                     }
+                    foreach (var rend in inst.GetComponentsInChildren<MeshRenderer>(true))
+                        if (rend.bounds.size.sqrMagnitude > 0f) Add(rend.bounds);
                 }
                 var bounds = all ?? new Bounds(root.transform.position, Vector3.one);
-                float radius = Mathf.Max(0.1f, bounds.extents.magnitude);
-                float dist = radius / Mathf.Sin(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 1.05f;
+                float radius = Mathf.Max(0.05f, Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z)) * 1.15f;
+                float dist = radius / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + bounds.extents.z;
                 camGo.transform.position = bounds.center + new Vector3(0f, 0.25f, -1f).normalized * dist;
                 camGo.transform.LookAt(bounds.center);
 

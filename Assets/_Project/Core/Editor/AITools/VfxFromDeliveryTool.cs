@@ -37,11 +37,15 @@ namespace Project.Editor.AITools
             [ToolParameter("Sheet blending: alpha (default) or additive", Required = false)] public string blend { get; set; }
             [ToolParameter("HDR brightness multiplier for bloom (default 1)", Required = false)] public float? intensity { get; set; }
             [ToolParameter("Tint, #RRGGBB or #RRGGBBAA (default white)", Required = false)] public string color { get; set; }
+            [ToolParameter("Sheets: camera (billboard, default) or ground (lies flat: cracks, dust rings); default from the manifest's flipbook.facing", Required = false)]
+            public string facing { get; set; }
         }
 
         public class Options
         {
             public string id, outFolder, library;
+            /// <summary>"camera" or "ground"; null = the manifest's flipbook.facing, else camera.</summary>
+            public string facing;
             public float size = 1f, intensity = 1f;
             public int count = -1;
             public bool additive;
@@ -76,6 +80,9 @@ namespace Project.Editor.AITools
                 string blend = AIToolsCommon.GetString(p, "blend", "alpha");
                 if (blend != "alpha" && blend != "additive") return new ErrorResponse("blend must be 'alpha' or 'additive'.");
                 o.additive = blend == "additive";
+                o.facing = AIToolsCommon.GetString(p, "facing");
+                if (o.facing != null && o.facing != "camera" && o.facing != "ground")
+                    return new ErrorResponse("facing must be 'camera' or 'ground'.");
                 string color = AIToolsCommon.GetString(p, "color");
                 if (!string.IsNullOrEmpty(color) && !ColorUtility.TryParseHtmlString(color, out o.color))
                     return new ErrorResponse($"Unreadable color '{color}' (use #RRGGBB or #RRGGBBAA).");
@@ -274,6 +281,14 @@ namespace Project.Editor.AITools
                 tsa.frameOverTime = new ParticleSystem.MinMaxCurve((float)frames / (cols * rows), AnimationCurve.Linear(0f, 0f, 1f, 1f));
                 tsa.startFrame = 0f;
                 tsa.cycleCount = loop ? 4 : 1;
+                // A sheet whose last frame still holds something (the fire's smoke wisp) would pop off when the particle
+                // dies: fade the last 12 % of the life (an empty last frame is unaffected).
+                var fade = ps.colorOverLifetime;
+                fade.enabled = true;
+                var g = new Gradient();
+                g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.88f), new GradientAlphaKey(0f, 1f) });
+                fade.color = g;
             }
             else
             {
@@ -289,8 +304,9 @@ namespace Project.Editor.AITools
                     new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.7f), new GradientAlphaKey(0f, 1f) });
                 col.color = g;
             }
+            string facing = o.facing ?? fb.Value<string>("facing") ?? "camera";
             var renderer = root.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.renderMode = facing == "ground" ? ParticleSystemRenderMode.HorizontalBillboard : ParticleSystemRenderMode.Billboard;
             renderer.alignment = ParticleSystemRenderSpace.View;
             renderer.sharedMaterial = mat;
         }
