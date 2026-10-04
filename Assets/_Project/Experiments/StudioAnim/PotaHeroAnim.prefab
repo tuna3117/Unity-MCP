@@ -133,14 +133,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -1206874426333947015, guid: 7b4cf17cc14114dc593872167c7e31a2, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 0d918b0af053a44b9a287a3867b0adee, type: 2}
     - target: {fileID: 919132149155446097, guid: 7b4cf17cc14114dc593872167c7e31a2, type: 3}
       propertyPath: m_Name
       value: Model
       objectReference: {fileID: 0}
-    - target: {fileID: 1914928848149426562, guid: 7b4cf17cc14114dc593872167c7e31a2, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 0d918b0af053a44b9a287a3867b0adee, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

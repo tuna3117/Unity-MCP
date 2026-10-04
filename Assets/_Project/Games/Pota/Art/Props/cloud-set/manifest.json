@@ -2,7 +2,7 @@
   "id": "cloud-set",
   "game": "Pota",
   "kind": "prop",
-  "version": 1,
+  "version": 2,
   "files": {
     "glb": "cloud-set.glb",
     "fbx": null,
@@ -14,7 +14,7 @@
   "up": "+Y",
   "scale_applied": true,
   "stats": {
-    "tris": 1080,
+    "tris": 1046,
     "materials": 1,
     "textures": [],
     "bones": 0,
@@ -40,7 +40,9 @@
       "Cloud_2"
     ],
     "transforms_unapplied": [],
+    "degenerate": 0,
+    "animated": [],
     "passed": true
   },
-  "made": "2026-10-03T02:46:52Z"
+  "made": "2026-10-04T22:57:21Z"
 }

@@ -2,7 +2,7 @@
   "id": "pota-hero-anim",
   "game": "Pota",
   "kind": "character",
-  "version": 1,
+  "version": 2,
   "files": {
     "glb": "pota-hero-anim.glb",
     "fbx": "pota-hero-anim.fbx",
@@ -29,7 +29,7 @@
   "up": "+Y",
   "scale_applied": true,
   "stats": {
-    "tris": 8480,
+    "tris": 14122,
     "materials": 1,
     "textures": [
       {
@@ -60,56 +60,13 @@
       "victory_raw"
     ],
     "size_m": [
-      0.5396,
-      0.3582,
-      1.0295
+      0.5348,
+      0.3661,
+      1.0258
     ],
     "bone_names": [
       "squash",
       "mixamorig:Hips",
-      "mixamorig:Spine",
-      "mixamorig:Spine1",
-      "mixamorig:Spine2",
-      "mixamorig:Neck",
-      "mixamorig:Head",
-      "mixamorig:LeftShoulder",
-      "mixamorig:LeftArm",
-      "mixamorig:LeftForeArm",
-      "mixamorig:LeftHand",
-      "mixamorig:LeftHandThumb1",
-      "mixamorig:LeftHandThumb2",
-      "mixamorig:LeftHandThumb3",
-      "mixamorig:LeftHandIndex1",
-      "mixamorig:LeftHandIndex2",
-      "mixamorig:LeftHandIndex3",
-      "mixamorig:LeftHandMiddle1",
-      "mixamorig:LeftHandMiddle2",
-      "mixamorig:LeftHandMiddle3",
-      "mixamorig:LeftHandRing1",
-      "mixamorig:LeftHandRing2",
-      "mixamorig:LeftHandRing3",
-      "mixamorig:LeftHandPinky1",
-      "mixamorig:LeftHandPinky2",
-      "mixamorig:LeftHandPinky3",
-      "mixamorig:RightShoulder",
-      "mixamorig:RightArm",
-      "mixamorig:RightForeArm",
-      "mixamorig:RightHand",
-      "mixamorig:RightHandThumb1",
-      "mixamorig:RightHandThumb2",
-      "mixamorig:RightHandThumb3",
-      "mixamorig:RightHandIndex1",
-      "mixamorig:RightHandIndex2",
-      "mixamorig:RightHandIndex3",
-      "mixamorig:RightHandMiddle1",
-      "mixamorig:RightHandMiddle2",
-      "mixamorig:RightHandMiddle3",
-      "mixamorig:RightHandRing1",
-      "mixamorig:RightHandRing2",
-      "mixamorig:RightHandRing3",
-      "mixamorig:RightHandPinky1",
-      "mixamorig:RightHandPinky2",
-      "mixamorig:RightHandPinky3",
       "mixamorig:LeftUpLeg",
       "mixamorig:LeftLeg",
       "mixamorig:LeftFoot",
@@ -117,7 +74,50 @@
       "mixamorig:RightUpLeg",
       "mixamorig:RightLeg",
       "mixamorig:RightFoot",
-      "mixamorig:RightToeBase"
+      "mixamorig:RightToeBase",
+      "mixamorig:Spine",
+      "mixamorig:Spine1",
+      "mixamorig:Spine2",
+      "mixamorig:LeftShoulder",
+      "mixamorig:LeftArm",
+      "mixamorig:LeftForeArm",
+      "mixamorig:LeftHand",
+      "mixamorig:LeftHandIndex1",
+      "mixamorig:LeftHandIndex2",
+      "mixamorig:LeftHandIndex3",
+      "mixamorig:LeftHandMiddle1",
+      "mixamorig:LeftHandMiddle2",
+      "mixamorig:LeftHandMiddle3",
+      "mixamorig:LeftHandPinky1",
+      "mixamorig:LeftHandPinky2",
+      "mixamorig:LeftHandPinky3",
+      "mixamorig:LeftHandRing1",
+      "mixamorig:LeftHandRing2",
+      "mixamorig:LeftHandRing3",
+      "mixamorig:LeftHandThumb1",
+      "mixamorig:LeftHandThumb2",
+      "mixamorig:LeftHandThumb3",
+      "mixamorig:Neck",
+      "mixamorig:Head",
+      "mixamorig:RightShoulder",
+      "mixamorig:RightArm",
+      "mixamorig:RightForeArm",
+      "mixamorig:RightHand",
+      "mixamorig:RightHandIndex1",
+      "mixamorig:RightHandIndex2",
+      "mixamorig:RightHandIndex3",
+      "mixamorig:RightHandMiddle1",
+      "mixamorig:RightHandMiddle2",
+      "mixamorig:RightHandMiddle3",
+      "mixamorig:RightHandPinky1",
+      "mixamorig:RightHandPinky2",
+      "mixamorig:RightHandPinky3",
+      "mixamorig:RightHandRing1",
+      "mixamorig:RightHandRing2",
+      "mixamorig:RightHandRing3",
+      "mixamorig:RightHandThumb1",
+      "mixamorig:RightHandThumb2",
+      "mixamorig:RightHandThumb3"
     ]
   },
   "source": {
@@ -231,6 +231,7 @@
     "ngons": 0,
     "uv_missing": [],
     "transforms_unapplied": [],
+    "degenerate": 0,
     "animated": [],
     "passed": true,
     "clips": {
@@ -287,7 +288,7 @@
         },
         "shoot": {
           "start_m": 0.0,
-          "drift_m": 0.0064
+          "drift_m": 0.0063
         },
         "jump": {
           "start_m": 0.0,
@@ -299,15 +300,15 @@
         },
         "defeat": {
           "start_m": 0.0,
-          "drift_m": 0.0172
+          "drift_m": 0.0171
         },
         "hit": {
           "start_m": 0.0,
-          "drift_m": 0.0079
+          "drift_m": 0.0072
         },
         "celebrate": {
           "start_m": 0.0,
-          "drift_m": 0.003
+          "drift_m": 0.0025
         },
         "idle_raw": {
           "start_m": 0.0,
@@ -344,9 +345,114 @@
       },
       "start_limit_m": 0.01,
       "passed": true
+    },
+    "anim": {
+      "passed": true,
+      "limits": {
+        "knee_flex": 120.0,
+        "knee_hyper": 5.0,
+        "back_kick": 0.35,
+        "ankle_plantar": 35.0,
+        "ankle_dorsal": 25.0,
+        "wrist_bend": 60.0,
+        "wrist_twist": 45.0,
+        "finger_flex": 50.0,
+        "finger_spread": 10.0,
+        "elbow_hyper": 5.0,
+        "hand_head": 0.01,
+        "hand_torso": 0.01,
+        "leg_leg": 0.01,
+        "shoe_shoe": 0.01,
+        "below_floor": 0.01,
+        "planted": 0.01,
+        "foot_slide": 0.1
+      },
+      "units": {
+        "back_kick": "leg",
+        "hand_head": "m",
+        "hand_torso": "m",
+        "leg_leg": "m",
+        "shoe_shoe": "m",
+        "below_floor": "m",
+        "planted": "m",
+        "foot_slide": "height/s"
+      },
+      "clips": {
+        "idle": {
+          "violations": 0,
+          "checks": {}
+        },
+        "run": {
+          "violations": 0,
+          "checks": {}
+        },
+        "shoot": {
+          "violations": 0,
+          "checks": {}
+        },
+        "jump": {
+          "violations": 0,
+          "checks": {}
+        },
+        "victory": {
+          "violations": 0,
+          "checks": {}
+        },
+        "defeat": {
+          "violations": 0,
+          "checks": {}
+        },
+        "hit": {
+          "violations": 0,
+          "checks": {}
+        },
+        "celebrate": {
+          "violations": 0,
+          "checks": {}
+        }
+      },
+      "reference": {
+        "idle_raw": 238,
+        "run_raw": 357,
+        "shoot_raw": 237,
+        "jump_raw": 341,
+        "victory_raw": 300,
+        "defeat_raw": 178,
+        "hit_raw": 211,
+        "celebrate_raw": 249
+      },
+      "sheets": [
+        "steps/qc-idle.png",
+        "steps/qc-run.png",
+        "steps/qc-shoot.png",
+        "steps/qc-jump.png",
+        "steps/qc-victory.png",
+        "steps/qc-defeat.png",
+        "steps/qc-hit.png",
+        "steps/qc-celebrate.png"
+      ],
+      "rows": [
+        "| idle | 72 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| run | 16 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| shoot | 54 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| jump | 55 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| victory | 61 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| defeat | 63 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| hit | 47 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| celebrate | 76 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| idle_raw | 119 | 0 | 0 | 0 | 0 | 238 | 0 | 0 | 0 | 0 | 238 |",
+        "| run_raw | 89 | 12 | 45 | 28 | 39 | 178 | 0 | 5 | 9 | 41 | 357 |",
+        "| shoot_raw | 89 | 7 | 0 | 31 | 0 | 178 | 0 | 0 | 6 | 15 | 237 |",
+        "| jump_raw | 89 | 36 | 8 | 29 | 13 | 178 | 0 | 26 | 30 | 21 | 341 |",
+        "| victory_raw | 89 | 0 | 0 | 9 | 17 | 178 | 2 | 10 | 24 | 60 | 300 |",
+        "| defeat_raw | 89 | 0 | 0 | 0 | 0 | 178 | 0 | 0 | 0 | 0 | 178 |",
+        "| hit_raw | 59 | 0 | 0 | 8 | 54 | 118 | 0 | 0 | 2 | 29 | 211 |",
+        "| celebrate_raw | 89 | 0 | 0 | 11 | 23 | 178 | 0 | 0 | 2 | 35 | 249 |"
+      ],
+      "header": "| clip | frames | knee | back-kick | ankle | wrist | fingers | elbow | intersect | floor | slide | total |\n|---|---|---|---|---|---|---|---|---|---|---|---|"
     }
   },
-  "made": "2026-10-04T02:58:56Z",
+  "made": "2026-10-04T22:48:45Z",
   "clips_meta": [
     {
       "name": "idle",
@@ -360,8 +466,8 @@
       "fps": 30,
       "loop": true,
       "root_velocity": [
-        -0.0112,
-        -2.5726,
+        -0.0111,
+        -2.5543,
         0.0
       ]
     },
@@ -413,9 +519,9 @@
       "fps": 30,
       "loop": false,
       "root_velocity": [
-        -0.158,
-        -1.331,
-        -0.0
+        -0.1569,
+        -1.3218,
+        0.0
       ]
     },
     {
