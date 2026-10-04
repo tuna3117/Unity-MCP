@@ -1,10 +1,11 @@
 #!/bin/zsh
 # Raw | Stylised proof of an animated character delivery (rig + animation pipeline, 2026-10-04).
 # For every clip: its raw and stylised take filmed with one shared camera (ai_anim_contact_sheet frames_dir + frame_clips),
-# a two-row contact sheet (Ham on top, Stilize below) and one side-by-side video of all clips, played one after another.
+# a two-row contact sheet (Ham on top, Stilize below), a close-up sheet of both hands and both feet (Ham and Stilize rows, the
+# camera following each bone: the quality gate's look at the parts a full view hides) and one side-by-side video of all clips.
 # Usage: Tools/anim_proof.sh <model asset path> <prefab asset path> <out name> CLIP [CLIP ...]
 #   CLIP is "name" (raw take "name_raw", stylised "name") or "title:raw:stylised".
-# Writes docs/screenshots/<out name>-<title>-sheet.jpg and docs/screenshots/<out name>-side.mp4; frames in Temp/anim_proof/<out name>/.
+# Writes docs/screenshots/<out name>-<title>-{sheet,closeups}.jpg and docs/screenshots/<out name>-side.mp4; frames in Temp/anim_proof/<out name>/.
 # Never brings Unity to the front: everything goes through the MCP bridge in Edit Mode.
 set -eu
 ROOT="${0:A:h:h}"
@@ -33,7 +34,30 @@ for spec in "$@"; do
     tool "{$common,\"frames_dir\":\"$OUT/$title/$v\",\"size\":540}"
     echo '{"start": 0.0}' > "$OUT/$title/$v/events.json"
     tool "{$common,\"frames\":8,\"size\":256,\"out_path\":\"$OUT/$title/$v.png\"}"
+    for bone in LeftHand RightHand LeftFoot RightFoot; do
+      size=0.12; [[ $bone == *Foot ]] && size=0.16
+      tool "{$common,\"frames\":8,\"size\":256,\"focus_bone\":\"$bone\",\"focus_size\":$size,\"out_path\":\"$OUT/$title/$v-$bone.png\"}"
+    done
   done
+  $UV run -q --with pillow python - "$OUT/$title" "$title" "docs/screenshots/$NAME-$title-closeups.jpg" <<'PY'
+import sys
+from PIL import Image, ImageDraw, ImageFont
+folder, title, out = sys.argv[1:4]
+font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 22)
+rows = [(f"{part} · {label}", Image.open(f"{folder}/{v}-{bone}.png").convert("RGB"))
+        for bone, part in (("LeftHand", "Sol el"), ("RightHand", "Sağ el"), ("LeftFoot", "Sol ayak"), ("RightFoot", "Sağ ayak"))
+        for v, label in (("raw", "Ham"), ("styl", "Stilize"))]
+label_w, w = 210, max(im.width for _, im in rows)
+sheet = Image.new("RGB", (label_w + w, sum(im.height for _, im in rows)), (18, 22, 30))
+draw, y = ImageDraw.Draw(sheet), 0
+for label, im in rows:
+    sheet.paste(im, (label_w, y))
+    draw.text((12, y + 12), title, fill=(240, 240, 240), font=font)
+    draw.text((12, y + im.height // 2), label, fill=(255, 200, 60), font=font)
+    y += im.height
+sheet.save(out, quality=82)
+print(out)
+PY
   $UV run -q --with pillow python - "$OUT/$title" "$title" "docs/screenshots/$NAME-$title-sheet.jpg" <<'PY'
 import sys
 from PIL import Image, ImageDraw, ImageFont

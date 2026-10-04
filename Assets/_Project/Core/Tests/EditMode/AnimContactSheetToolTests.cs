@@ -77,5 +77,29 @@ namespace Project.Tests
             var first = Directory.GetFiles(b, "f_0000_*.png").Single();
             CollectionAssert.AreEqual(File.ReadAllBytes(files[0]), File.ReadAllBytes(first), "same camera for raw | stylised");
         }
+    
+        [Test]
+        public void FocusBone_FillsTheFrameWithThatBonesSurroundings()
+        {
+            ImportAssetTool.Import(ClipsFixture, Root + "/focus");
+            string fbx = Root + "/focus/handoff-rig-clips.fbx";
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(fbx);
+            var bend = AnimContactSheetTool.FindClip(fbx, "bend");
+            string full = Path.GetFullPath("Temp/contact_focus_full.png"), close = Path.GetFullPath("Temp/contact_focus_close.png");
+            AnimContactSheetTool.Render(model, bend, 1, 90f, 96, full);
+            AnimContactSheetTool.Render(model, bend, 1, 90f, 96, close, focusBone: "tip", focusSize: 0.08f);
+            Assert.Greater(Covered(close), Covered(full) * 2, "the close-up is much tighter than the full view");
+            Assert.Throws<System.ArgumentException>(() => AnimContactSheetTool.Render(model, bend, 1, 90f, 96, close, focusBone: "NoSuchBone"));
+        }
+
+        private static int Covered(string png)
+        {
+            var t = new Texture2D(2, 2);
+            t.LoadImage(File.ReadAllBytes(png));
+            var bg = t.GetPixel(0, 0);
+            int n = t.GetPixels().Count(c => Mathf.Abs(c.r - bg.r) + Mathf.Abs(c.g - bg.g) + Mathf.Abs(c.b - bg.b) > 0.1f);
+            Object.DestroyImmediate(t);
+            return n;
+        }
     }
 }

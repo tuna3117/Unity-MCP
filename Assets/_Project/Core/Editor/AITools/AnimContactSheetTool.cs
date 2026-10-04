@@ -19,7 +19,8 @@ namespace Project.Editor.AITools
         "as a contact sheet PNG: `frames` evenly spaced samples (default 8), `angle_deg` camera yaw (0 = front, 180 = back). " +
         "Returns the written path (default Temp/mcp_out/<clip>.contact.png). clip_name picks a clip of a multi-clip model; frames_dir writes " +
         "every frame at `fps` (default 30) as f_<n>_t<seconds>.png instead of a sheet (for videos); frame_clips frames the camera over those " +
-        "clips too, so two clips (raw | stylised) are filmed with the same camera.")]
+        "clips too, so two clips (raw | stylised) are filmed with the same camera. focus_bone (e.g. LeftHand, RightFoot) follows that bone " +
+        "in close-up (focus_size m around it, default 0.14) to check hands and feet.")]
     public static class AnimContactSheetTool
     {
         public class Parameters
@@ -34,6 +35,8 @@ namespace Project.Editor.AITools
             [ToolParameter("Write every frame as PNG into this folder instead of a sheet", Required = false)] public string frames_dir { get; set; }
             [ToolParameter("Frames per second for frames_dir (default 30)", Required = false)] public int? fps { get; set; }
             [ToolParameter("Other clip names of the same model to include in the camera framing", Required = false)] public string[] frame_clips { get; set; }
+            [ToolParameter("Close-up on this bone (name or suffix, e.g. LeftHand, RightFoot); the camera follows it", Required = false)] public string focus_bone { get; set; }
+            [ToolParameter("Close-up half-size around the bone in metres (default 0.14)", Required = false)] public float? focus_size { get; set; }
         }
 
         public static object HandleCommand(JObject p)
@@ -60,7 +63,8 @@ namespace Project.Editor.AITools
             string outPath = AIToolsCommon.GetString(p, "out_path");
             if (string.IsNullOrEmpty(outPath)) outPath = $"Temp/mcp_out/{clip.name}.contact.png";
 
-            string result = Render(model, clip, frames, yaw, size, outPath, framesDir, frameWith);
+            string result = Render(model, clip, frames, yaw, size, outPath, framesDir, frameWith,
+                AIToolsCommon.GetString(p, "focus_bone"), AIToolsCommon.GetFloat(p, "focus_size", 0.14f));
             AIToolsCommon.Log(result);
             return new SuccessResponse(result, new { path = outPath, clip = clip.name, length = clip.length, frames });
         }
@@ -74,7 +78,7 @@ namespace Project.Editor.AITools
         }
 
         public static string Render(GameObject model, AnimationClip clip, int frames, float yaw, int size, string outPath,
-            string framesDir = null, IList<AnimationClip> frameWith = null)
+            string framesDir = null, IList<AnimationClip> frameWith = null, string focusBone = null, float focusSize = 0.14f)
         {
             bool perFrame = !string.IsNullOrEmpty(framesDir);
             var root = new GameObject("__contact_root");
@@ -88,6 +92,13 @@ namespace Project.Editor.AITools
             root.hideFlags = HideFlags.HideAndDontSave;
 
             var animator = inst.GetComponentInChildren<Animator>();
+            Transform focus = null;
+            if (!string.IsNullOrEmpty(focusBone))
+            {
+                foreach (var t in inst.GetComponentsInChildren<Transform>(true))
+                    if (t.name == focusBone || t.name.EndsWith(":" + focusBone) || t.name.EndsWith(focusBone)) { focus = t; break; }
+                if (focus == null) { Object.DestroyImmediate(root); throw new System.ArgumentException($"No bone '{focusBone}' in {model.name}."); }
+            }
             if (animator == null) animator = inst.AddComponent<Animator>();
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
@@ -192,6 +203,14 @@ namespace Project.Editor.AITools
                         skinned.BakeMesh(mesh, true);
                         mesh.RecalculateBounds();
                         proxy.SetPositionAndRotation(skinned.transform.position, skinned.transform.rotation);
+                    }
+                    if (focus != null)
+                    {
+                        // Close-up: follow the bone (hand, foot) from the same side as the full view.
+                        var dirF = Quaternion.Euler(8f, yaw, 0f) * Vector3.forward;
+                        float distF = focusSize / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                        camGo.transform.position = focus.position + dirF * distF;
+                        camGo.transform.LookAt(focus.position);
                     }
                     cam.Render();
                     RenderTexture.active = rt;
