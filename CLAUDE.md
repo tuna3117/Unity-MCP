@@ -164,6 +164,8 @@ _Son güncelleme: 2026-10-04 (stüdyo tamamlama: araç backlog'u, efekt kiti, is
   - `apply_text_edits` için önce `get_sha` ile `precondition_sha256` al.
   - Konsolda tekrar eden `currentFileSystemTime.ticks != 0 ... FSTimeGet` hatası Unity/macOS kaynaklı gürültü; `.meta` dosyalarına 2262 tarihli mtime yazıyor, işlevsel etkisi görülmedi.
   - `defaults write` ile dışarıdan yazılan EditorPrefs'i çalışan Unity görmüyor; ayarları Unity içinden (script/menü) set et.
+  - **Karakter/animasyon işini "bitti" demeden yakın planda kontrol et (2026-10-04, Tuna: "baya kötü, eller bozuk, ayaklar saçma"):** 256 px tam boy levhada el ~10 px; `Tools/anim_proof.sh` klip başına el ve ayak yakın plan levhası (`…-closeups.jpg`, kamera kemiği dışarıdan izler) üretir, ona tam boy bak; Blender'ın `qc_model`/`qc_anim` kapıları geçmeden teslim gelmez, `ai_import_asset` `checks.passed: false` teslimi uyumsuz sayar. Spec `docs/superpowers/specs/2026-10-04-character-quality-gate-design.md`.
+  - Unity'nin FBX içe aktarıcısı sıfır alanlı üçgenleri atar: manifest ile Unity'nin üçgen sayısı tutmazsa önce dejenere üçgene bak (kahraman v3: 14 124 vs 14 122; Blender artık eritiyor).
   - `EditorSceneManager.NewScene` kullanılmayan asset'leri boşaltır: ondan **önce** yüklenmiş bir asset referansı yok edilmiş nesne olur ve sahneye boş kaydedilir (vitrin sahnesinin kütüphanesi, 2026-10-04). Asset'i yeni sahneyi açtıktan sonra yükle.
 - **Yazılmış AITools** (Core, `Assets/_Project/Core/Editor/AITools/`, hem menü hem MCP özel aracı, hepsi test edildi):
   - `ai_bulk_rename` — desenli toplu yeniden adlandırma (`{name}`, `{i}`, `{i:00}`)
