@@ -1,0 +1,48 @@
+{
+  "id": "handoff-textured",
+  "game": "_fixtures",
+  "kind": "prop",
+  "version": 1,
+  "files": {
+    "glb": "handoff-textured.glb",
+    "fbx": "handoff-textured.fbx",
+    "previews": []
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 12,
+    "materials": 1,
+    "textures": [
+      {
+        "name": "base",
+        "size": [
+          4,
+          4
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0.5,
+      0.5,
+      0.5
+    ]
+  },
+  "source": {
+    "recipe": "textured 0.5 m cube, glb + fbx (fixture: toon texture from the glb sibling)",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-10-04T00:00:00Z"
+}

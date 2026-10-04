@@ -65,6 +65,18 @@ namespace Project.Tests
         }
 
         [Test]
+        public void ToonTexture_ComesFromTheDeliverysGlb_WhenTheFbxHasNone()
+        {
+            string fixture = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Tools", "fixtures", "handoff-textured", "manifest.json"));
+            ImportAssetTool.Import(fixture, Root + "/tex");
+            string fbx = Root + "/tex/handoff-textured.fbx", glb = Root + "/tex/handoff-textured.glb";
+            Assert.AreEqual(glb, CharacterPrefabTool.TexturedModel(fbx));
+            Assert.AreEqual(glb, CharacterPrefabTool.TexturedModel(glb));
+            var r = CharacterPrefabTool.Build(fbx, Root + "/Tex.prefab", toon: true, squash: false);
+            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<Material>(r.material).GetTexture("_BaseMap"), "the hero is not white");
+        }
+
+        [Test]
         public void Showcase_SavesTheCharacterAndItsAnimator()
         {
             var r = CharacterPrefabTool.Build(Model(), Root + "/Hero.prefab", toon: false);

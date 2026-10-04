@@ -57,6 +57,19 @@ namespace Project.Editor.AITools
             }
         }
 
+        /// <summary>
+        /// The model whose base-colour texture the toon material takes: the model itself, else a sibling of the same delivery
+        /// (the workshop's FBX carries no usable texture in Unity, its glb does; 2026-10-04 the hero came out white).
+        /// </summary>
+        public static string TexturedModel(string modelPath)
+        {
+            bool Textured(string path) => AssetDatabase.LoadAllAssetsAtPath(path).OfType<Material>().Any(m => ToonMaterialTool.BaseTexture(m) != null);
+            if (Textured(modelPath)) return modelPath;
+            string folder = Path.GetDirectoryName(modelPath).Replace('\\', '/'), id = Path.GetFileNameWithoutExtension(modelPath);
+            return new[] { ".glb", ".gltf", ".fbx" }.Select(ext => $"{folder}/{id}{ext}")
+                .FirstOrDefault(path => path != modelPath && File.Exists(path) && Textured(path));
+        }
+
         public static Result Build(string modelPath, string prefabPath = null, bool toon = true, bool squash = true)
         {
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath) ?? throw new ArgumentException($"No model at '{modelPath}'.");
@@ -112,8 +125,7 @@ namespace Project.Editor.AITools
             }
             if (toon)
             {
-                bool textured = AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<Material>().Any(m => ToonMaterialTool.BaseTexture(m) != null);
-                var mat = ToonMaterialTool.Apply(prefabPath, null, textured ? modelPath : null);
+                var mat = ToonMaterialTool.Apply(prefabPath, null, TexturedModel(modelPath));
                 r.material = AssetDatabase.GetAssetPath(mat);
             }
             AssetDatabase.SaveAssets();
