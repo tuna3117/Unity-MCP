@@ -124,8 +124,63 @@ namespace Project.Editor.AITools
             }
             r.main = $"{r.folder}/{mainName}";
             if (flipbook) ConfigureSheet(r.main, fb.Value<bool?>("linear") ?? false);
+            string fbx = files.Value<string>("fbx");
+            if (!flipbook && !string.IsNullOrEmpty(fbx)) ConfigureModel($"{r.folder}/{fbx}", m, r);
             Check(r, m, flipbook);
             return r;
+        }
+
+        /// <summary>
+        /// FBX model import settings from the manifest (backlog U1): rig type from <c>import.rig</c> (generic by default when the
+        /// delivery has bones — Generic keeps bone scale curves for squash/stretch; humanoid builds an avatar from the model) and
+        /// one clip per <c>clips_meta</c> entry, named as the manifest names it, with its loop flag. glb keeps glTFast's defaults.
+        /// </summary>
+        private static void ConfigureModel(string path, JObject m, Result r)
+        {
+            if (!(AssetImporter.GetAtPath(path) is ModelImporter imp)) return;
+            var stats = m["stats"] as JObject;
+            int bones = stats?.Value<int?>("bones") ?? 0;
+            string rig = (m["import"] as JObject)?.Value<string>("rig") ?? (bones > 0 ? "generic" : "none");
+            switch (rig)
+            {
+                case "generic": imp.animationType = ModelImporterAnimationType.Generic; break;
+                case "humanoid":
+                    imp.animationType = ModelImporterAnimationType.Human;
+                    imp.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+                    break;
+                case "none": imp.animationType = ModelImporterAnimationType.None; break;
+                default: throw new ArgumentException($"import.rig must be generic, humanoid or none (got '{rig}').");
+            }
+            var meta = m["clips_meta"] as JArray;
+            imp.importAnimation = rig != "none" && (meta?.Count > 0 || (stats?["clips"] as JArray)?.Count > 0);
+            if (imp.importAnimation && meta != null && meta.Count > 0)
+            {
+                var takes = imp.defaultClipAnimations;
+                var clips = new List<ModelImporterClipAnimation>();
+                foreach (var entry in meta.OfType<JObject>())
+                {
+                    string name = entry.Value<string>("name");
+                    // Blender names FBX takes "<armature>|<action>"; the manifest names the action.
+                    var take = takes.FirstOrDefault(t => t.takeName == name || t.name == name || t.takeName.EndsWith("|" + name) || t.name.EndsWith("|" + name));
+                    if (take == null)
+                    {
+                        r.differences.Add($"clip '{name}' of clips_meta is not in {Path.GetFileName(path)}");
+                        continue;
+                    }
+                    take.name = name;
+                    take.loopTime = entry.Value<bool?>("loop") ?? false;
+                    take.loopPose = false;
+                    clips.Add(take);
+                }
+                imp.clipAnimations = clips.ToArray();
+            }
+            imp.SaveAndReimport();
+            if (rig == "humanoid")
+            {
+                var avatar = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Avatar>().FirstOrDefault();
+                if (avatar == null || !avatar.isValid || !avatar.isHuman)
+                    r.differences.Add($"{Path.GetFileName(path)}: no valid humanoid avatar (bone names or T-pose)");
+            }
         }
 
         /// <summary>
@@ -201,7 +256,7 @@ namespace Project.Editor.AITools
             {
                 string path = $"{r.folder}/{name}";
                 if (path != r.main && AssetDatabase.LoadMainAssetAtPath(path) == null) continue;   // Verify on a folder that dropped the fbx
-                r.models.Add(Measure(path, name));
+                r.models.Add(Measure(path, name, m["stats"] as JObject));
             }
             var main = r.models.First(s => $"{r.folder}/{s.file}" == r.main);
             r.unityTris = main.tris;
@@ -245,13 +300,19 @@ namespace Project.Editor.AITools
         private static void ConfigureSheet(string path, bool linear)
         {
             var imp = (TextureImporter)AssetImporter.GetAtPath(path);
-            imp.textureType = TextureImporterType.Default;
-            imp.alphaSource = TextureImporterAlphaSource.FromInput;
-            imp.alphaIsTransparency = true;
-            imp.wrapMode = TextureWrapMode.Clamp;
-            imp.mipmapEnabled = true;
-            imp.sRGBTexture = !linear;
-            imp.npotScale = TextureImporterNPOTScale.None;
+            // A game may turn a delivered still into a UI sprite (Pota's menu clouds and tutorial hand): re-imports and
+            // reapply keep the consumer's type and settings and only add the phone compression (2026-10-04: resetting them
+            // dropped the sprites and the menu clouds stopped).
+            if (imp.textureType != TextureImporterType.Sprite)
+            {
+                imp.textureType = TextureImporterType.Default;
+                imp.alphaSource = TextureImporterAlphaSource.FromInput;
+                imp.alphaIsTransparency = true;
+                imp.wrapMode = TextureWrapMode.Clamp;
+                imp.mipmapEnabled = true;
+                imp.sRGBTexture = !linear;
+                imp.npotScale = TextureImporterNPOTScale.None;
+            }
             imp.textureCompression = TextureImporterCompression.Uncompressed;
             foreach (string platform in PhonePlatforms)
             {
@@ -275,7 +336,7 @@ namespace Project.Editor.AITools
                 r.differences.Add($"sheet manifest {r.manifestSheetSize[0]}x{r.manifestSheetSize[1]} vs Unity {tex.width}x{tex.height}");
         }
 
-        private static ModelStats Measure(string path, string file)
+        private static ModelStats Measure(string path, string file, JObject stats)
         {
             var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (root == null) throw new IOException("Unity imported no model from " + path);
@@ -285,10 +346,25 @@ namespace Project.Editor.AITools
                 file = file,
                 tris = root.GetComponentsInChildren<MeshFilter>(true).Select(f => f.sharedMesh)
                     .Concat(skinned.Select(s => s.sharedMesh)).Where(mesh => mesh != null).Sum(Triangles),
-                bones = skinned.SelectMany(s => s.bones).Where(b => b != null).Distinct().Count(),
+                bones = skinned.Length > 0 ? skinned.SelectMany(s => s.bones).Where(b => b != null).Distinct().Count()
+                    : SkeletonBones(root, stats),
                 clips = AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>()
                     .Where(c => !c.name.StartsWith("__preview__")).Select(c => c.name).OrderBy(n => n).ToList(),
             };
+        }
+
+        /// <summary>
+        /// Bones of a delivery without a skinned mesh (an animation-only skeleton, backlog U4): the transforms named in the
+        /// manifest's <c>stats.bone_names</c>, else everything below the armature node(s) (the import root's direct children).
+        /// A delivery the manifest says has no bones counts 0.
+        /// </summary>
+        private static int SkeletonBones(GameObject root, JObject stats)
+        {
+            if ((stats?.Value<int?>("bones") ?? 0) == 0) return 0;
+            var below = root.GetComponentsInChildren<Transform>(true).Where(t => t != root.transform).ToList();
+            var names = (stats["bone_names"] as JArray)?.Select(t => t.ToString()).ToList();
+            if (names != null && names.Count > 0) return below.Count(t => names.Contains(t.name));
+            return below.Count(t => t.parent != root.transform);
         }
 
         private static int Triangles(Mesh mesh)

@@ -119,6 +119,47 @@ namespace Project.Tests
             Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/stale/handoff-rig-fbx.glb"));
         }
 
+        private static string Fixture2(string name) => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Tools", "fixtures",
+            name, "manifest.json"));
+
+        [Test]
+        public void AnimatedFbx_ImportsGeneric_WithTheManifestsClipNamesAndLoops()
+        {
+            var r = ImportAssetTool.Import(Fixture2("handoff-rig-clips"), Root + "/clips");
+            Assert.IsTrue(r.matches, string.Join("; ", r.differences));
+            var imp = (ModelImporter)AssetImporter.GetAtPath(Root + "/clips/handoff-rig-clips.fbx");
+            Assert.AreEqual(ModelImporterAnimationType.Generic, imp.animationType);
+            var clips = imp.clipAnimations;
+            CollectionAssert.AreEquivalent(new[] { "bend", "twist" }, System.Array.ConvertAll(clips, c => c.name));
+            Assert.IsFalse(System.Array.Find(clips, c => c.name == "bend").loopTime);
+            Assert.IsTrue(System.Array.Find(clips, c => c.name == "twist").loopTime);
+            CollectionAssert.AreEquivalent(new[] { "bend", "twist" }, r.unityClips);
+            var twist = System.Array.Find(AssetDatabase.LoadAllAssetsAtPath(Root + "/clips/handoff-rig-clips.fbx"),
+                a => a is AnimationClip c && c.name == "twist") as AnimationClip;
+            Assert.IsTrue(twist.isLooping);
+        }
+
+        [Test]
+        public void AnimationOnlyFbx_CountsTheBonesOfTheSkeleton()
+        {
+            var r = ImportAssetTool.Import(Fixture2("handoff-anim-only"), Root + "/anim");
+            Assert.IsTrue(r.matches, string.Join("; ", r.differences));
+            Assert.AreEqual(3, r.unityBones, "no skinned mesh: bones are counted on the skeleton itself");
+            Assert.AreEqual(1, r.unityClips.Count);
+        }
+
+        [Test]
+        public void ARigTheManifestDoesNotKnow_IsRefused()
+        {
+            string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Temp", "handoff-rig-badrig"));
+            Directory.CreateDirectory(dir);
+            string src = Path.GetDirectoryName(Fixture2("handoff-rig-clips"));
+            File.Copy(Path.Combine(src, "handoff-rig-clips.fbx"), Path.Combine(dir, "handoff-rig-clips.fbx"), true);
+            File.WriteAllText(Path.Combine(dir, "manifest.json"),
+                File.ReadAllText(Fixture2("handoff-rig-clips")).Replace("\"rig\": \"generic\"", "\"rig\": \"robot\""));
+            Assert.Throws<ArgumentException>(() => ImportAssetTool.Import(Path.Combine(dir, "manifest.json"), Root + "/badrig"));
+        }
+
         [Test]
         public void Redelivery_KeepsFilesTheManifestNeverListed()
         {
@@ -194,6 +235,24 @@ namespace Project.Tests
                 Assert.AreEqual(TextureImporterFormat.ASTC_6x6, s.format, platform);
             }
             Assert.AreEqual(TextureImporterCompression.Uncompressed, imp.textureCompression, "the editor keeps the exact sheet");
+        }
+
+        [Test]
+        public void ASheetAGameTurnedIntoASprite_StaysASprite_OnRedeliveryAndReapply()
+        {
+            ImportAssetTool.Import(FlipbookFixture, Root + "/ui");
+            string sheet = Root + "/ui/fixture-flipbook.png";
+            var imp = (TextureImporter)AssetImporter.GetAtPath(sheet);
+            imp.textureType = TextureImporterType.Sprite;   // what a UI tool does with a still (menu clouds, tutorial hand)
+            imp.mipmapEnabled = false;
+            imp.SaveAndReimport();
+            ImportAssetTool.Import(FlipbookFixture, Root + "/ui");
+            ImportAssetTool.ReapplySheetSettings(Root + "/ui");
+            imp = (TextureImporter)AssetImporter.GetAtPath(sheet);
+            Assert.AreEqual(TextureImporterType.Sprite, imp.textureType, "the consumer's sprite survives");
+            Assert.IsFalse(imp.mipmapEnabled);
+            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<Sprite>(sheet));
+            Assert.AreEqual(TextureImporterFormat.ASTC_6x6, imp.GetPlatformTextureSettings("iPhone").format, "phones still compress it");
         }
 
         [Test]

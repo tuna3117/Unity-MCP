@@ -1,0 +1,65 @@
+{
+  "id": "handoff-rig-clips",
+  "game": "_fixtures",
+  "kind": "character",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": "handoff-rig-clips.fbx",
+    "previews": []
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 164,
+    "materials": 0,
+    "textures": [],
+    "bones": 3,
+    "clips": [
+      "bend",
+      "twist"
+    ],
+    "size_m": [
+      0.2,
+      0.2,
+      1.2
+    ],
+    "bone_names": [
+      "root",
+      "mid",
+      "tip"
+    ]
+  },
+  "source": {
+    "recipe": "handoff-rig.glb + a second 'twist' action, FBX with all actions (fixture for U1)",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {}
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [],
+    "transforms_unapplied": [],
+    "passed": true
+  },
+  "made": "2026-09-29T10:35:10Z",
+  "clips_meta": [
+    {
+      "name": "bend",
+      "frames": 20,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "twist",
+      "frames": 31,
+      "fps": 30,
+      "loop": true
+    }
+  ],
+  "import": {
+    "rig": "generic"
+  }
+}
