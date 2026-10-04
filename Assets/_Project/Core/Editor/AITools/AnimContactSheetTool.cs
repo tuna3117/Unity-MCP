@@ -17,7 +17,9 @@ namespace Project.Editor.AITools
     [McpForUnityTool("ai_anim_contact_sheet", Description =
         "Render a model (fbx/glb/prefab asset path) playing an AnimationClip (asset path; defaults to the first clip inside model_path) " +
         "as a contact sheet PNG: `frames` evenly spaced samples (default 8), `angle_deg` camera yaw (0 = front, 180 = back). " +
-        "Returns the written path (default Temp/mcp_out/<clip>.contact.png).")]
+        "Returns the written path (default Temp/mcp_out/<clip>.contact.png). clip_name picks a clip of a multi-clip model; frames_dir writes " +
+        "every frame at `fps` (default 30) as f_<n>_t<seconds>.png instead of a sheet (for videos); frame_clips frames the camera over those " +
+        "clips too, so two clips (raw | stylised) are filmed with the same camera.")]
     public static class AnimContactSheetTool
     {
         public class Parameters
@@ -28,6 +30,10 @@ namespace Project.Editor.AITools
             [ToolParameter("Camera yaw in degrees, 0 = front (default 30)", Required = false)] public float? angle_deg { get; set; }
             [ToolParameter("Output png path (default Temp/mcp_out/<clip>.contact.png)", Required = false)] public string out_path { get; set; }
             [ToolParameter("Frame size in pixels (default 256)", Required = false)] public int? size { get; set; }
+            [ToolParameter("Clip name inside clip_path/model_path (multi-clip deliveries)", Required = false)] public string clip_name { get; set; }
+            [ToolParameter("Write every frame as PNG into this folder instead of a sheet", Required = false)] public string frames_dir { get; set; }
+            [ToolParameter("Frames per second for frames_dir (default 30)", Required = false)] public int? fps { get; set; }
+            [ToolParameter("Other clip names of the same model to include in the camera framing", Required = false)] public string[] frame_clips { get; set; }
         }
 
         public static object HandleCommand(JObject p)
@@ -38,24 +44,39 @@ namespace Project.Editor.AITools
             if (model == null) return new ErrorResponse($"No GameObject asset at '{modelPath}'.");
 
             string clipPath = AIToolsCommon.GetString(p, "clip_path", modelPath);
-            AnimationClip clip = null;
-            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(clipPath))
-                if (o is AnimationClip c && !c.name.StartsWith("__preview")) { clip = c; break; }
-            if (clip == null) return new ErrorResponse($"No AnimationClip found in '{clipPath}'.");
+            string clipName = AIToolsCommon.GetString(p, "clip_name");
+            AnimationClip clip = FindClip(clipPath, clipName);
+            if (clip == null) return new ErrorResponse($"No AnimationClip {(clipName == null ? "" : $"'{clipName}' ")}found in '{clipPath}'.");
+            var frameWith = new List<AnimationClip>();
+            foreach (string other in AIToolsCommon.GetStringList(p, "frame_clips") ?? new List<string>())
+                frameWith.Add(FindClip(clipPath, other) ?? throw new System.ArgumentException($"No clip '{other}' in '{clipPath}'."));
+            string framesDir = AIToolsCommon.GetString(p, "frames_dir");
+            int fps = Mathf.Clamp(AIToolsCommon.GetInt(p, "fps", 30), 1, 120);
 
-            int frames = Mathf.Clamp(AIToolsCommon.GetInt(p, "frames", 8), 1, 32);
+            int frames = string.IsNullOrEmpty(framesDir) ? Mathf.Clamp(AIToolsCommon.GetInt(p, "frames", 8), 1, 32)
+                : Mathf.Clamp(Mathf.RoundToInt(clip.length * fps) + 1, 1, 1800);
             float yaw = AIToolsCommon.GetFloat(p, "angle_deg", 30f);
             int size = Mathf.Clamp(AIToolsCommon.GetInt(p, "size", 256), 64, 1024);
             string outPath = AIToolsCommon.GetString(p, "out_path");
             if (string.IsNullOrEmpty(outPath)) outPath = $"Temp/mcp_out/{clip.name}.contact.png";
 
-            string result = Render(model, clip, frames, yaw, size, outPath);
+            string result = Render(model, clip, frames, yaw, size, outPath, framesDir, frameWith);
             AIToolsCommon.Log(result);
             return new SuccessResponse(result, new { path = outPath, clip = clip.name, length = clip.length, frames });
         }
 
-        public static string Render(GameObject model, AnimationClip clip, int frames, float yaw, int size, string outPath)
+        /// <summary>The clip named <paramref name="name"/> in an asset (null name: the first clip).</summary>
+        public static AnimationClip FindClip(string assetPath, string name)
         {
+            foreach (var o in AssetDatabase.LoadAllAssetsAtPath(assetPath))
+                if (o is AnimationClip c && !c.name.StartsWith("__preview") && (name == null || c.name == name)) return c;
+            return null;
+        }
+
+        public static string Render(GameObject model, AnimationClip clip, int frames, float yaw, int size, string outPath,
+            string framesDir = null, IList<AnimationClip> frameWith = null)
+        {
+            bool perFrame = !string.IsNullOrEmpty(framesDir);
             var root = new GameObject("__contact_root");
             root.transform.position = new Vector3(5000f, 5000f, 5000f);
             var inst = (GameObject)PrefabUtility.InstantiatePrefab(model);
@@ -105,7 +126,7 @@ namespace Project.Editor.AITools
 
             var rt = new RenderTexture(size, size, 24, RenderTextureFormat.ARGB32);
             cam.targetTexture = rt;
-            var sheet = new Texture2D(size * frames, size, TextureFormat.RGB24, false);
+            var sheet = new Texture2D(perFrame ? size : size * frames, size, TextureFormat.RGB24, false);
 
             var graph = PlayableGraph.Create("__contact_graph");
             graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
@@ -118,10 +139,19 @@ namespace Project.Editor.AITools
                 // t=0 was used), then keep that framing for all frames.
                 float len = Mathf.Max(clip.length, 0.001f);
                 Bounds b = default;
-                for (int i = 0; i < frames; i++)
+                bool first = true;
+                // Framing: this clip, plus the clips it is compared with (same camera for raw | stylised).
+                // The same sample count for every clip, so A framed with B and B framed with A get the very same camera.
+                var framing = new List<(AnimationClipPlayable playable, float length, int samples)>
+                    { (playable, len, frameWith != null && frameWith.Count > 0 ? 24 : Mathf.Min(frames, 48)) };
+                foreach (var other in frameWith ?? new List<AnimationClip>())
+                    framing.Add((AnimationClipPlayable.Create(graph, other), Mathf.Max(other.length, 0.001f), 24));
+                foreach (var (fp, flen, samples) in framing)
+                for (int i = 0; i < samples; i++)
                 {
+                    output.SetSourcePlayable(fp);
                     inst.transform.localPosition = Vector3.zero; inst.transform.localRotation = Quaternion.identity;
-                    playable.SetTime(frames == 1 ? 0f : len * i / (frames - 1));
+                    fp.SetTime(samples == 1 ? 0f : flen * i / (samples - 1));
                     graph.Evaluate(0f);
                     foreach (var (skinned, proxy, mesh) in proxies)
                     {
@@ -135,8 +165,10 @@ namespace Project.Editor.AITools
                         pose = proxies[0].proxy.GetComponent<MeshRenderer>().bounds;
                         foreach (var (_, proxy, _) in proxies) pose.Encapsulate(proxy.GetComponent<MeshRenderer>().bounds);
                     }
-                    if (i == 0) b = pose; else b.Encapsulate(pose);
+                    if (first) b = pose; else b.Encapsulate(pose);
+                    first = false;
                 }
+                output.SetSourcePlayable(playable);
                 float radius = Mathf.Max(b.extents.magnitude, 0.5f);
                 Vector3 look = b.center;
                 float dist = radius / Mathf.Sin(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 0.95f;
@@ -145,9 +177,10 @@ namespace Project.Editor.AITools
                 camGo.transform.LookAt(look);
 
                 var table = new System.Text.StringBuilder("t | hips_y | head_y | lhand_y | rhand_y | lfoot_y\n");
+                if (perFrame) Directory.CreateDirectory(framesDir);
                 for (int i = 0; i < frames; i++)
                 {
-                    float t = frames == 1 ? 0f : len * i / (frames - 1);
+                    float t = perFrame ? Mathf.Min(len, i / (float)Mathf.Max(1, frames - 1) * len) : frames == 1 ? 0f : len * i / (frames - 1);
                     inst.transform.localPosition = Vector3.zero; inst.transform.localRotation = Quaternion.identity; // no root-motion drift between samples
                     playable.SetTime(t);
                     graph.Evaluate(0f);
@@ -162,13 +195,19 @@ namespace Project.Editor.AITools
                     }
                     cam.Render();
                     RenderTexture.active = rt;
-                    sheet.ReadPixels(new Rect(0, 0, size, size), size * i, 0);
+                    sheet.ReadPixels(new Rect(0, 0, size, size), perFrame ? 0 : size * i, 0);
+                    if (perFrame)
+                    {
+                        sheet.Apply();
+                        File.WriteAllBytes(Path.Combine(framesDir, $"f_{i:0000}_t{t.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)}.png"), sheet.EncodeToPNG());
+                    }
                 }
                 RenderTexture.active = null;
+                LastTable = table.ToString();
+                if (perFrame) return $"Frames '{clip.name}' ({clip.length:0.00}s, {frames} frames, yaw {yaw}) -> {framesDir}\n{LastTable}";
                 sheet.Apply();
                 Directory.CreateDirectory(Path.GetDirectoryName(outPath) ?? ".");
                 File.WriteAllBytes(outPath, sheet.EncodeToPNG());
-                LastTable = table.ToString();
                 return $"Contact sheet '{clip.name}' ({clip.length:0.00}s, {frames} frames, yaw {yaw}) -> {outPath}\n{LastTable}";
             }
             finally

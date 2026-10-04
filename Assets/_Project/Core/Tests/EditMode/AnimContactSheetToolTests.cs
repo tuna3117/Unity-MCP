@@ -51,5 +51,31 @@ namespace Project.Tests
             Assert.Greater(either, 50, "nothing rendered");
             Assert.Less((float)both / either, 0.9f, "first and middle frame look the same: the mesh did not follow the bones");
         }
+    
+        private static string ClipsFixture => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Tools", "fixtures",
+            "handoff-rig-clips", "manifest.json"));
+
+        [Test]
+        public void PerFrameMode_WritesEveryFrame_AndSharedFramingFilmsTwoClipsTheSame()
+        {
+            ImportAssetTool.Import(ClipsFixture, Root + "/clips");
+            string fbx = Root + "/clips/handoff-rig-clips.fbx";
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(fbx);
+            var bend = AnimContactSheetTool.FindClip(fbx, "bend");
+            var twist = AnimContactSheetTool.FindClip(fbx, "twist");
+            Assert.IsNotNull(bend);
+            Assert.IsNotNull(twist);
+            string a = Path.GetFullPath("Temp/contact_frames_bend"), b = Path.GetFullPath("Temp/contact_frames_twist");
+            foreach (var d in new[] { a, b }) if (Directory.Exists(d)) Directory.Delete(d, true);
+            int framesA = Mathf.RoundToInt(bend.length * 30) + 1;
+            AnimContactSheetTool.Render(model, bend, framesA, 90f, 96, null, a, new[] { twist });
+            AnimContactSheetTool.Render(model, twist, Mathf.RoundToInt(twist.length * 30) + 1, 90f, 96, null, b, new[] { bend });
+            var files = Directory.GetFiles(a, "f_*.png").OrderBy(f => f).ToArray();
+            Assert.AreEqual(framesA, files.Length);
+            StringAssert.Contains("_t0.000", Path.GetFileName(files[0]));
+            // Both clips start at the rest pose: with one shared camera their first frames are the same picture.
+            var first = Directory.GetFiles(b, "f_0000_*.png").Single();
+            CollectionAssert.AreEqual(File.ReadAllBytes(files[0]), File.ReadAllBytes(first), "same camera for raw | stylised");
+        }
     }
 }
