@@ -99,6 +99,9 @@ namespace Project.Editor.AITools
                     if (t.name == focusBone || t.name.EndsWith(":" + focusBone) || t.name.EndsWith(focusBone)) { focus = t; break; }
                 if (focus == null) { Object.DestroyImmediate(root); throw new System.ArgumentException($"No bone '{focusBone}' in {model.name}."); }
             }
+            Transform hips = null;
+            foreach (var t in inst.GetComponentsInChildren<Transform>(true))
+                if (t.name.EndsWith("Hips")) { hips = t; break; }
             if (animator == null) animator = inst.AddComponent<Animator>();
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
@@ -206,8 +209,13 @@ namespace Project.Editor.AITools
                     }
                     if (focus != null)
                     {
-                        // Close-up: follow the bone (hand, foot) from the same side as the full view.
+                        // Close-up: follow the bone (hand, foot) from the outside of the body (a camera on the front side sat
+                        // inside the torso whenever a hand went behind it), leaning towards the full view's side.
                         var dirF = Quaternion.Euler(8f, yaw, 0f) * Vector3.forward;
+                        var centre = hips != null ? hips.position : inst.transform.position;
+                        var outward = focus.position - centre;
+                        outward.y = 0f;
+                        if (outward.sqrMagnitude > 1e-6f) dirF = (dirF + outward.normalized * 1.2f).normalized;
                         float distF = focusSize / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
                         camGo.transform.position = focus.position + dirF * distF;
                         camGo.transform.LookAt(focus.position);
