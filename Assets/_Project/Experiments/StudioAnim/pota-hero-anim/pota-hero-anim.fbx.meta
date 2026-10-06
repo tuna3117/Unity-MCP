@@ -123,7 +123,7 @@ ModelImporter:
       takeName: Armature|jump
       internalID: 7238280004761517075
       firstFrame: 0
-      lastFrame: 54
+      lastFrame: 43
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -152,7 +152,7 @@ ModelImporter:
       takeName: Armature|victory
       internalID: 155323657473332376
       firstFrame: 0
-      lastFrame: 60
+      lastFrame: 65
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -181,7 +181,7 @@ ModelImporter:
       takeName: Armature|defeat
       internalID: -1139559589974317326
       firstFrame: 0
-      lastFrame: 62
+      lastFrame: 50
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -239,7 +239,7 @@ ModelImporter:
       takeName: Armature|celebrate
       internalID: 4706597715606132796
       firstFrame: 0
-      lastFrame: 75
+      lastFrame: 68
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -326,7 +326,7 @@ ModelImporter:
       takeName: Armature|shoot_raw
       internalID: -2562793907604740309
       firstFrame: 0
-      lastFrame: 88
+      lastFrame: 73
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -355,7 +355,7 @@ ModelImporter:
       takeName: Armature|jump_raw
       internalID: -3738949174896804240
       firstFrame: 0
-      lastFrame: 88
+      lastFrame: 58
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

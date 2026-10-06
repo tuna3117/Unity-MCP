@@ -2,7 +2,7 @@
   "id": "pota-hero-anim",
   "game": "Pota",
   "kind": "character",
-  "version": 2,
+  "version": 3,
   "files": {
     "glb": "pota-hero-anim.glb",
     "fbx": "pota-hero-anim.fbx",
@@ -60,9 +60,9 @@
       "victory_raw"
     ],
     "size_m": [
-      0.5348,
+      0.5402,
       0.3661,
-      1.0258
+      1.0251
     ],
     "bone_names": [
       "squash",
@@ -288,19 +288,19 @@
         },
         "shoot": {
           "start_m": 0.0,
-          "drift_m": 0.0063
+          "drift_m": 0.0093
         },
         "jump": {
           "start_m": 0.0,
-          "drift_m": 0.0
+          "drift_m": 0.0031
         },
         "victory": {
           "start_m": 0.0,
-          "drift_m": 0.0054
+          "drift_m": 0.0048
         },
         "defeat": {
           "start_m": 0.0,
-          "drift_m": 0.0171
+          "drift_m": 0.0044
         },
         "hit": {
           "start_m": 0.0,
@@ -363,6 +363,7 @@
         "hand_torso": 0.01,
         "leg_leg": 0.01,
         "shoe_shoe": 0.01,
+        "hand_face": 0.0,
         "below_floor": 0.01,
         "planted": 0.01,
         "foot_slide": 0.1
@@ -373,6 +374,7 @@
         "hand_torso": "m",
         "leg_leg": "m",
         "shoe_shoe": "m",
+        "hand_face": "m short of FACE_CLEAR",
         "below_floor": "m",
         "planted": "m",
         "foot_slide": "height/s"
@@ -412,14 +414,14 @@
         }
       },
       "reference": {
-        "idle_raw": 238,
-        "run_raw": 357,
-        "shoot_raw": 237,
-        "jump_raw": 341,
-        "victory_raw": 300,
-        "defeat_raw": 178,
-        "hit_raw": 211,
-        "celebrate_raw": 249
+        "idle_raw": 119,
+        "run_raw": 266,
+        "shoot_raw": 209,
+        "jump_raw": 104,
+        "victory_raw": 214,
+        "defeat_raw": 95,
+        "hit_raw": 152,
+        "celebrate_raw": 161
       },
       "sheets": [
         "steps/qc-idle.png",
@@ -432,27 +434,27 @@
         "steps/qc-celebrate.png"
       ],
       "rows": [
-        "| idle | 72 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| run | 16 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| shoot | 54 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| jump | 55 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| victory | 61 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| defeat | 63 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| hit | 47 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| celebrate | 76 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| idle_raw | 119 | 0 | 0 | 0 | 0 | 238 | 0 | 0 | 0 | 0 | 238 |",
-        "| run_raw | 89 | 12 | 45 | 28 | 39 | 178 | 0 | 5 | 9 | 41 | 357 |",
-        "| shoot_raw | 89 | 7 | 0 | 31 | 0 | 178 | 0 | 0 | 6 | 15 | 237 |",
-        "| jump_raw | 89 | 36 | 8 | 29 | 13 | 178 | 0 | 26 | 30 | 21 | 341 |",
-        "| victory_raw | 89 | 0 | 0 | 9 | 17 | 178 | 2 | 10 | 24 | 60 | 300 |",
-        "| defeat_raw | 89 | 0 | 0 | 0 | 0 | 178 | 0 | 0 | 0 | 0 | 178 |",
-        "| hit_raw | 59 | 0 | 0 | 8 | 54 | 118 | 0 | 0 | 2 | 29 | 211 |",
-        "| celebrate_raw | 89 | 0 | 0 | 11 | 23 | 178 | 0 | 0 | 2 | 35 | 249 |"
+        "| idle | 72 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| run | 16 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| shoot | 54 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| jump | 44 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| victory | 66 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| defeat | 51 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| hit | 47 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| celebrate | 69 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+        "| idle_raw | 119 | 0 | 0 | 0 | 0 | 119 | 0 | 0 | 0 | 0 | 0 | 119 |",
+        "| run_raw | 89 | 12 | 45 | 28 | 39 | 89 | 0 | 2 | 1 | 9 | 41 | 266 |",
+        "| shoot_raw | 74 | 0 | 10 | 28 | 52 | 74 | 0 | 0 | 20 | 5 | 20 | 209 |",
+        "| jump_raw | 59 | 2 | 9 | 18 | 4 | 59 | 0 | 1 | 2 | 2 | 7 | 104 |",
+        "| victory_raw | 89 | 0 | 0 | 9 | 17 | 89 | 2 | 3 | 10 | 24 | 60 | 214 |",
+        "| defeat_raw | 89 | 0 | 0 | 0 | 0 | 89 | 0 | 0 | 0 | 6 | 0 | 95 |",
+        "| hit_raw | 59 | 0 | 0 | 8 | 54 | 59 | 0 | 0 | 0 | 2 | 29 | 152 |",
+        "| celebrate_raw | 89 | 0 | 0 | 11 | 23 | 89 | 0 | 0 | 1 | 2 | 35 | 161 |"
       ],
-      "header": "| clip | frames | knee | back-kick | ankle | wrist | fingers | elbow | intersect | floor | slide | total |\n|---|---|---|---|---|---|---|---|---|---|---|---|"
+      "header": "| clip | frames | knee | back-kick | ankle | wrist | fingers | elbow | intersect | face | floor | slide | total |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|"
     }
   },
-  "made": "2026-10-04T22:48:45Z",
+  "made": "2026-10-06T11:14:18Z",
   "clips_meta": [
     {
       "name": "idle",
@@ -479,19 +481,19 @@
     },
     {
       "name": "jump",
-      "frames": 55,
+      "frames": 44,
       "fps": 30,
       "loop": false
     },
     {
       "name": "victory",
-      "frames": 61,
+      "frames": 66,
       "fps": 30,
       "loop": false
     },
     {
       "name": "defeat",
-      "frames": 63,
+      "frames": 51,
       "fps": 30,
       "loop": false
     },
@@ -503,7 +505,7 @@
     },
     {
       "name": "celebrate",
-      "frames": 76,
+      "frames": 69,
       "fps": 30,
       "loop": false
     },
@@ -526,13 +528,13 @@
     },
     {
       "name": "shoot_raw",
-      "frames": 89,
+      "frames": 74,
       "fps": 30,
       "loop": false
     },
     {
       "name": "jump_raw",
-      "frames": 89,
+      "frames": 59,
       "fps": 30,
       "loop": false
     },
