@@ -193,8 +193,8 @@ Tasarım `docs/superpowers/specs/2026-10-01-colorhunt-special-balls-fx-design.md
   `SpecialRulesFixtureTests`). Bölüm 20'de kapalı (`ColorHuntSettings.Specials`); engeller, güçlendiriciler, bonus, özel hedefler U25'te.
 - **Görünüm seçimi:** `ColorHuntSettings.SpecialLook` = Pota / Royal (1) / Court (2); kod `Scripts/ColorHunt/Specials/`
   (`ISpecialStyle`, `SpecialSchedule`, `GoldenPath`, `PotaSpecials`, `RoyalSpecials`, `CourtSpecials`, `GateRings`).
-- **Vitrin:** `Scenes/Specials.unity` (`ai_specials_build_scene`): senaryo düğmeleri (Doğuş, Çizgi, Bomba, Zincir, Altın, Serbest),
-  görünüm düğmeleri (Pota | 1 | 2), Tekrar.
+- **Vitrin:** `Scenes/Specials.unity` (`ai_specials_build_scene`): senaryo düğmeleri (Doğuş, Çizgi, Bomba, Zincir, Altın, Serbest,
+  Bekleme), görünüm düğmeleri (Pota | 1 | 2), Tekrar, bekleme düğmeleri (Görünüm · A–E, 2026-10-07).
 - **Blender varlıkları:** `vfx-fire-toon`, `vfx-flame-jet`, `vfx-dust-ring`, `vfx-speed-lines`, `vfx-floor-crack`, `vfx-letter-*`,
   `vfx-ball-halves`, `vfx-bomb-shell`, `vfx-coin`, `vfx-basketball` → `Art/VFX/<id>/` (`ai_studio_import`).
 - **Kayıt:** `ai_colorhunt_record` `{"scene":"Specials","scenario":...,"special_look":...}` (`scenario` birth/line/bomb/chain/golden,
@@ -210,6 +210,23 @@ Tasarım `docs/superpowers/specs/2026-10-01-colorhunt-special-balls-fx-design.md
   kare üstünde doldurma bloklarının görünmesi (Pota'da da var, U47); Royal'ın zincirinin üçüncü ateşe dokunuştan 0,64 sn sonra
   ulaşması (kayıt saatinde — kombo yavaş çekimi ve dip'ler yüzünden; oyun-içi zaman sınırı 0,6 sn hâlâ tutuyor, bu bir saat
   eseri, düzeltme gerekmiyor).
+
+### Özel top bekleme alternatifleri (2026-10-07)
+
+Tuna Build 68'deki Royal beklemesine "çok dikkat dağıtıyor" dedi; spec `docs/superpowers/specs/2026-10-07-special-idle-alternatives.md`,
+rapor `docs/reports/2026-10-07-idle-alternatives-report.md`. Pota'ya dokunulmadı; seçilen ayrı bir işte taşınır.
+
+- **Anahtar:** `ColorHuntSettings.SpecialIdle` = Görünüm (seçili özel görünümün kendi beklemesi, birebir) · A Breath · B Glint · C Rim ·
+  D Twinkle · E Sway; sayılar `ColorHuntSettings.Idle` (`IdleTuning`). Oyunda `ColorHuntGame.SetSpecialIdle`. Kod
+  `Specials/SpecialIdleFx.cs` (A/E yalnız `BlockView.IdleScale`/`StickerSpin`; B/C/D topun çıkartmasının önünde tek havuzlu quad,
+  `Shaders/PotaGlint.shader`, LateUpdate'te çizilir). Blender stilleri `vfx-glint-streak`, `vfx-rim-ring`, `vfx-twinkle-star`
+  (`ai_studio_import`; `StudioImportTool.WireIdleStills`).
+- **Vitrin:** Specials sahnesinde üçüncü düğme satırı "Görünüm · A · B · C · D · E" ve senaryo düğmesi **Bekleme** (bomba, iki çizgi,
+  altın, ortadaki 24. hücrenin dört yanında; dokunuş yok).
+- **Kayıt:** `ai_colorhunt_record` `{"scene":"Specials","scenario":"idle","special_look":"royal","special_idle":"glint","zoom":2.4}`
+  (`special_idle` look/breath(a)/glint(b)/rim(c)/twinkle(d)/sway(e), kayıttan sonra eskisine döner; `idle` 6 sn, odak 24; `closeup`
+  olmadan verilen `zoom` normal hızda yaklaştırır). Levha `Tools/frame_sheet.py … --transpose` (seçenekler sütunda), video `seq_video.py`.
+- **Teslim:** `docs/screenshots/2026-10-07-idle-alternatives-{sheet.jpg,.mp4}`.
 
 ## Oyun içi his katmanı (2026-10-03)
 
