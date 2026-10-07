@@ -102,3 +102,8 @@ Kayıt komutu (Specials Play'deyken):
 
 Tuna levha + videoyla seçer ("hangisi?"); seçilen ayrı işte Pota'ya taşınır (`OZEL_AN.bekleme`, `gorselleriIlerlet`, gerekirse
 `yapbozSahne` parıltı katmanı). Seçilen burada varsayılan da yapılabilir (`ColorHuntSettings.SpecialIdle`).
+
+## Karar (2026-10-07)
+
+Tuna levha ve videoya bakıp **A "Sakin nefes"** dedi ("a'yı yapalım"). Pota'ya taşındı (`~/projects/Pota` dal `guc-paketi`: `OZEL_AN.bekleme = { nefes: 0.02, nefesHz: 0.8 }`,
+halka/kıvılcım/parlama kaldırıldı). B–E Unity'de referans olarak duruyor; dal `special-idle` main'e birleştirilmedi.
