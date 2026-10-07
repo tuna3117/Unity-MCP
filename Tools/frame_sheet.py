@@ -2,10 +2,12 @@
 """Contact sheet from recorded frame folders: one row per folder, one column per time.
 
 Usage: uv run --with pillow Tools/frame_sheet.py OUT.jpg LABEL=DIR [LABEL=DIR ...] [--times 0.2,0.8,1.3,1.8,2.3,2.6] [--height 480]
-       [--labels "A|B|…"] [--corner TEXT] [--anchor MARKER]
+       [--labels "A|B|…"] [--corner TEXT] [--anchor MARKER] [--transpose]
 --anchor MARKER: times are relative to each folder's events.json marker (e.g. tap), so rows whose moments differ in absolute time line up.
 Frames are PNGs named ..._t<seconds>... (ai_potaflow_record, ai_basket_record, or renamed ffmpeg output). Columns are labelled by
 their time unless --labels gives one label per time ('|'-separated); --corner writes a note in the top-left cell.
+--transpose: one column per folder (its label on top) and one row per time (the time labels on the left), for comparing many
+options side by side at a few moments.
 """
 import os
 import re
@@ -39,6 +41,7 @@ def column_labels(times, labels):
 # and longer labels wrap onto more lines instead of running under the first frame.
 FONT = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 MIN_LABEL_W, MAX_LABEL_W, LABEL_PAD = 150, 360, 24
+GAP = 14                                                  # --transpose: dark gap between columns, so similar frames stay apart
 
 
 def label_width(labels, font):
@@ -71,8 +74,16 @@ def load_frames(folder):
     return out
 
 
+def cell_origin(r, c, label_w, head_h, w, height, transpose):
+    """Top-left pixel of folder r's frame at time c: folders are rows (default) or columns (--transpose)."""
+    if transpose:
+        return label_w + r * (w + GAP), head_h + c * height
+    return label_w + c * w, head_h + r * height
+
+
 def main(argv):
     times, height, rows, out, labels, corner, anchor = [0.2, 0.8, 1.3, 1.8, 2.3, 2.6], 480, [], None, None, None, None
+    transpose = False
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -96,6 +107,10 @@ def main(argv):
             anchor = argv[i + 1]
             i += 2
             continue
+        if a == "--transpose":
+            transpose = True
+            i += 1
+            continue
         if out is None:
             out = a
         else:
@@ -114,19 +129,32 @@ def main(argv):
         small = ImageFont.truetype(FONT, 20)
     except OSError:
         font = small = ImageFont.load_default()
-    label_w, head_h = label_width([label for label, _, _ in rows], font), 44
-    sheet = Image.new("RGB", (label_w + w * len(times), head_h + height * len(rows)), (18, 22, 30))
+    if transpose:
+        # folders across the top (wrapped to the frame width), times down the left
+        label_w = label_width(heads, font)
+        head_h = 44 + 34 * (max(len(wrap(label, font, w - 16)) for label, _, _ in rows) - 1)
+        sheet = Image.new("RGB", (label_w + (w + GAP) * len(rows) - GAP, head_h + height * len(times)), (18, 22, 30))
+    else:
+        label_w, head_h = label_width([label for label, _, _ in rows], font), 44
+        sheet = Image.new("RGB", (label_w + w * len(times), head_h + height * len(rows)), (18, 22, 30))
     draw = ImageDraw.Draw(sheet)
     for c, head in enumerate(heads):
-        draw.text((label_w + c * w + 10, 8), head, fill=(240, 240, 240), font=font)
+        if transpose:
+            draw.text((12, head_h + c * height + height // 2 - 17), head, fill=(240, 240, 240), font=font)
+        else:
+            draw.text((label_w + c * w + 10, 8), head, fill=(240, 240, 240), font=font)
     if corner:
         draw.text((12, 12), corner, fill=(255, 200, 60), font=small)
     for r, (label, frames, folder) in enumerate(rows):
-        y = head_h + r * height
-        lines = wrap(label, font, label_w - LABEL_PAD)
-        line_h = 34
-        for k, line in enumerate(lines):
-            draw.text((12, y + height // 2 - line_h * len(lines) // 2 + k * line_h), line, fill=(255, 200, 60), font=font)
+        if transpose:
+            for k, line in enumerate(wrap(label, font, w - 16)):
+                draw.text((label_w + r * (w + GAP) + 10, 8 + k * 34), line, fill=(255, 200, 60), font=font)
+        else:
+            y = head_h + r * height
+            lines = wrap(label, font, label_w - LABEL_PAD)
+            line_h = 34
+            for k, line in enumerate(lines):
+                draw.text((12, y + height // 2 - line_h * len(lines) // 2 + k * line_h), line, fill=(255, 200, 60), font=font)
         offset = 0.0
         if anchor:
             import json
@@ -136,9 +164,10 @@ def main(argv):
             offset = float(events[anchor])
         for c, t in enumerate(times):
             img = Image.open(nearest(frames, t + offset)).convert("RGB").resize((w, height), Image.LANCZOS)
-            sheet.paste(img, (label_w + c * w, y))
+            sheet.paste(img, cell_origin(r, c, label_w, head_h, w, height, transpose))
     sheet.save(out, quality=85)
-    print(f"{out}: {len(rows)} rows × {len(times)} times, {sheet.width}×{sheet.height}")
+    shape = f"{len(rows)} columns × {len(times)} times" if transpose else f"{len(rows)} rows × {len(times)} times"
+    print(f"{out}: {shape}, {sheet.width}×{sheet.height}")
 
 
 if __name__ == "__main__":

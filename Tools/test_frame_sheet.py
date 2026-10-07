@@ -41,3 +41,27 @@ def test_label_lines_fit_inside_the_label_column():
     lines = fs.wrap(long_label, font, width - 24)
     assert len(lines) > 1 and " ".join(lines) == long_label
     assert all(font.getlength(line) <= width - 24 for line in lines)
+
+
+def test_transpose_puts_folders_in_columns_and_times_in_rows():
+    assert fs.cell_origin(0, 0, 150, 44, 200, 300, False) == (150, 44)
+    assert fs.cell_origin(2, 1, 150, 44, 200, 300, False) == (150 + 200, 44 + 600), "default: folder = row, time = column"
+    assert fs.cell_origin(2, 1, 150, 44, 200, 300, True) == (150 + 2 * (200 + fs.GAP), 44 + 300), "transposed: folder = column, time = row"
+
+
+def test_transpose_end_to_end(tmp_path):
+    from PIL import Image
+    for name, colour in (("a", (255, 0, 0)), ("b", (0, 0, 255))):
+        d = tmp_path / name
+        d.mkdir()
+        for t in (0.0, 1.0):
+            Image.new("RGB", (40, 40), colour).save(d / f"f_0000_t{t:.3f}.png")
+    out = tmp_path / "sheet.jpg"
+    fs.main([str(out), f"A={tmp_path / 'a'}", f"B={tmp_path / 'b'}", "--times", "0,1", "--height", "60", "--transpose"])
+    img = Image.open(out)
+    label_w = fs.label_width(["0.0 s", "1.0 s"], __import__("PIL.ImageFont", fromlist=["x"]).truetype(fs.FONT, 28))
+    assert img.size == (label_w + 2 * 60 + fs.GAP, 44 + 2 * 60)
+    r, g, b = img.convert("RGB").getpixel((label_w + 30, 44 + 90))
+    assert r > 200 and b < 60, "column A is the red folder at the second time"
+    r, g, b = img.convert("RGB").getpixel((label_w + 60 + fs.GAP + 30, 44 + 30))
+    assert b > 200 and r < 60, "column B is the blue one"
