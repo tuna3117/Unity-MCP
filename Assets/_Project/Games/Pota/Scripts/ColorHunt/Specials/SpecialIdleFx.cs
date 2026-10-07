@@ -158,6 +158,9 @@ namespace Project.ColorHunt
             public float Phase, T, Next, Age = -1f, Angle;
             public int Frame;
             public bool Spun;
+            /// <summary>B, C, D: draw this frame (in LateUpdate, once the view has its final transform) at U (B, D: age / time) or Alpha (C).</summary>
+            public bool Draw;
+            public float U, Alpha;
             public MeshRenderer Quad;
         }
 
@@ -254,17 +257,18 @@ namespace Project.ColorHunt
                     break;
                 case SpecialIdle.Glint:
                     Event(st, dt, tune.GlintEvery, tune.GlintJitter, tune.GlintTime);
-                    if (st.Age >= 0f) DrawGlint(v, st, kind, st.Age / Mathf.Max(1e-3f, tune.GlintTime));
-                    else Hide(st);
+                    st.Draw = st.Age >= 0f;
+                    st.U = st.Age / Mathf.Max(1e-3f, tune.GlintTime);
                     break;
                 case SpecialIdle.Rim:
-                    DrawRim(v, st, kind, IdleCurves.RimAlpha(t, st.Phase, tune.RimPeak, tune.RimHz));
+                    st.Draw = true;
+                    st.Alpha = IdleCurves.RimAlpha(t, st.Phase, tune.RimPeak, tune.RimHz);
                     break;
                 case SpecialIdle.Twinkle:
                     if (Event(st, dt, tune.TwinkleEvery, tune.TwinkleJitter, tune.TwinkleLife))
                         st.Angle = IdleCurves.TwinkleAngle(_rng, tune.TwinkleAngleMin, tune.TwinkleAngleMax);
-                    if (st.Age >= 0f) DrawTwinkle(v, st, golden, st.Age / Mathf.Max(1e-3f, tune.TwinkleLife));
-                    else Hide(st);
+                    st.Draw = st.Age >= 0f;
+                    st.U = st.Age / Mathf.Max(1e-3f, tune.TwinkleLife);
                     break;
             }
         }
@@ -293,6 +297,7 @@ namespace Project.ColorHunt
             st.Phase = IdleCurves.Phase(v.Cell);
             st.T = 0f;
             st.Age = -1f;
+            st.Draw = false;
             var tune = Tune;
             st.Next = mode == SpecialIdle.Glint ? IdleCurves.FirstDelay(v.Cell, tune.GlintEvery)
                 : mode == SpecialIdle.Twinkle ? IdleCurves.FirstDelay(v.Cell, tune.TwinkleEvery) : 0f;
@@ -406,13 +411,23 @@ namespace Project.ColorHunt
             q.SetPropertyBlock(_mpb);
         }
 
+        /// <summary>
+        /// C, D: the block's own squash follows the ball (the smaller of its two axes), but never past 1: a landing's wide bounce or a
+        /// look's birth pop (Royal 1.2) must not push the ring or the star into a neighbour cell.
+        /// </summary>
+        private static float Fit(BlockView v)
+        {
+            var s = v.transform.localScale;
+            return Mathf.Min(1f, Mathf.Min(s.x, s.y));
+        }
+
         /// <summary>C: a ring at the ball's edge, its own colour per kind, on a quad just inside the cell.</summary>
         private void DrawRim(BlockView v, State st, SpecialKind kind, float alpha)
         {
             if (!_built || !Has(SpecialIdle.Rim) || !Frame(out float cell, out var lift)) { Hide(st); return; }
             var tune = Tune;
             var q = Show(v, st, _rimMat);
-            float k = v.transform.localScale.x;                                  // the block's own squash and swell
+            float k = Fit(v);
             Place(q.transform, v.Sticker.position + lift, Quaternion.identity, RimQuad * k * cell);
             var c = (kind == SpecialKind.Bomb ? tune.RimBomb : kind == SpecialKind.Golden ? tune.RimGolden : tune.RimLine).linear;
             q.GetPropertyBlock(_mpb);
@@ -430,7 +445,7 @@ namespace Project.ColorHunt
             if (!_built || !Has(SpecialIdle.Twinkle) || !Frame(out float cell, out var lift)) { Hide(st); return; }
             var tune = Tune;
             var q = Show(v, st, _starMat);
-            float k = v.transform.localScale.x, a = st.Angle * Mathf.Deg2Rad;
+            float k = Fit(v), a = st.Angle * Mathf.Deg2Rad;
             var edge = new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0f) * (tune.TwinkleRadius * k * cell);
             Place(q.transform, v.Sticker.position + lift * 1.5f + edge, Quaternion.Euler(0f, 0f, 15f * u),
                 tune.TwinkleSize * IdleCurves.TwinkleScale(u) * cell);
@@ -440,14 +455,25 @@ namespace Project.ColorHunt
             q.SetPropertyBlock(_mpb);
         }
 
-        /// <summary>A ball the game stopped idling this frame without a Release (it left the board's views): hide and forget it.</summary>
+        /// <summary>
+        /// Draws B, C, D on the views' final transforms (the game ticks a view right after its idle: placing the quad there would lag a
+        /// frame behind a landing), and forgets a ball the game stopped idling without a Release (it left the board's views).
+        /// </summary>
         private void LateUpdate()
         {
             if (_states.Count == 0) return;
             int frame = Time.frameCount;
             _stale.Clear();
             foreach (var kv in _states)
-                if (kv.Value.Frame != frame || kv.Key == null || !kv.Key.isActiveAndEnabled) _stale.Add(kv.Key);
+            {
+                var v = kv.Key;
+                var st = kv.Value;
+                if (st.Frame != frame || v == null || !v.isActiveAndEnabled) { _stale.Add(v); continue; }
+                if (!st.Draw) { Hide(st); continue; }
+                if (st.Mode == SpecialIdle.Glint) DrawGlint(v, st, st.Kind, st.U);
+                else if (st.Mode == SpecialIdle.Rim) DrawRim(v, st, st.Kind, st.Alpha);
+                else if (st.Mode == SpecialIdle.Twinkle) DrawTwinkle(v, st, st.Kind == SpecialKind.Golden, st.U);
+            }
             foreach (var v in _stale)
             {
                 Forget(v, _states[v]);
