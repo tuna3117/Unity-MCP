@@ -8,7 +8,8 @@ namespace Project.ColorHunt
 {
     /// <summary>
     /// The special-balls showcase (Scenes/Specials.unity, spec §1.3): a row of scenario buttons (Doğuş, Çizgi, Bomba, Zincir, Altın,
-    /// Serbest), a row of look buttons (Pota | 1 | 2) with "Tekrar", and a label (look · scenario · golden balls in the hoop), bottom-left,
+    /// Serbest, Bekleme), a row of look buttons (Pota | 1 | 2) with "Tekrar", a row of idle buttons (Bekleme: Görünüm · A · B · C · D · E,
+    /// spec 2026-10-07) and a label (look · scenario · idle · golden balls in the hoop), bottom-left,
     /// clear of the rotate arrows. Play stages the scenario's preset and, when auto, taps its script one move at a time, each after the
     /// board has settled plus <see cref="Beat"/> (game time, so the frame recorder can step it). Built in code at runtime in ColorHuntHud's
     /// style: listeners added in Edit Mode are not saved with a scene.
@@ -40,6 +41,7 @@ namespace Project.ColorHunt
         private bool _finished = true, _pending, _shownAny;
         private int _shownLanded;
         private SpecialLook _shownLook;
+        private SpecialIdle _shownIdle;
         private SpecialScenario _shownScenario;
         private Text _label;
         private Canvas _canvas;
@@ -47,8 +49,26 @@ namespace Project.ColorHunt
         private Sprite _face, _faceOn;
         private readonly Dictionary<SpecialScenario, Image> _scenarioButtons = new Dictionary<SpecialScenario, Image>();
         private readonly Dictionary<SpecialLook, Image> _lookButtons = new Dictionary<SpecialLook, Image>();
+        private readonly Dictionary<SpecialIdle, Image> _idleButtons = new Dictionary<SpecialIdle, Image>();
 
         public static string LookTitle(SpecialLook look) => look == SpecialLook.Royal ? "1 · Royal" : look == SpecialLook.Court ? "2 · Basketbol" : "Pota";
+
+        /// <summary>The idle row's names (spec 2026-10-07); Look = the special look's own idle.</summary>
+        public static string IdleTitle(SpecialIdle idle)
+        {
+            switch (idle)
+            {
+                case SpecialIdle.Breath: return "A Sakin nefes";
+                case SpecialIdle.Glint: return "B Parıltı süpürmesi";
+                case SpecialIdle.Rim: return "C Kenar nabzı";
+                case SpecialIdle.Twinkle: return "D Tek yıldızcık";
+                case SpecialIdle.Sway: return "E Hafif sallantı";
+                default: return "Görünüm";
+            }
+        }
+
+        /// <summary>The idle buttons' faces: "Görünüm", then the letters.</summary>
+        public static string IdleButton(SpecialIdle idle) => idle == SpecialIdle.Look ? "Görünüm" : IdleTitle(idle).Substring(0, 1);
 
         private void Start()
         {
@@ -75,6 +95,14 @@ namespace Project.ColorHunt
         public void SetLook(SpecialLook look)
         {
             if (Game != null) Game.SetSpecialLook(look);
+            _shownAny = false;
+            RefreshLabel();
+        }
+
+        /// <summary>The idle row (spec 2026-10-07): how the resting specials idle, whatever the scenario.</summary>
+        public void SetIdle(SpecialIdle idle)
+        {
+            if (Game != null) Game.SetSpecialIdle(idle);
             _shownAny = false;
             RefreshLabel();
         }
@@ -131,14 +159,17 @@ namespace Project.ColorHunt
         private void RefreshLabel()
         {
             if (Game == null || _label == null) return;
-            if (_shownAny && _shownLanded == Game.GoldenLanded && _shownLook == Game.SpecialLook && _shownScenario == Current) return;
+            if (_shownAny && _shownLanded == Game.GoldenLanded && _shownLook == Game.SpecialLook && _shownScenario == Current
+                && _shownIdle == Game.SpecialIdle) return;
             _shownAny = true;
             _shownLanded = Game.GoldenLanded;
             _shownLook = Game.SpecialLook;
             _shownScenario = Current;
-            _label.text = $"{LookTitle(_shownLook)}  ·  {SpecialScenarios.Title(Current)}  ·  sepette {_shownLanded}";
+            _shownIdle = Game.SpecialIdle;
+            _label.text = $"{LookTitle(_shownLook)}  ·  {SpecialScenarios.Title(Current)}  ·  bekleme {IdleTitle(_shownIdle)}  ·  sepette {_shownLanded}";
             foreach (var kv in _scenarioButtons) kv.Value.sprite = kv.Key == Current ? _faceOn : _face;
             foreach (var kv in _lookButtons) kv.Value.sprite = kv.Key == _shownLook ? _faceOn : _face;
+            foreach (var kv in _idleButtons) kv.Value.sprite = kv.Key == _shownIdle ? _faceOn : _face;
         }
 
         // ---------- UI (Pota CSS px on a 390-px-wide phone, ColorHuntHud.Css canvas units each) ----------
@@ -179,7 +210,17 @@ namespace Project.ColorHunt
                 _lookButtons[l] = MakeButton(root, "Look" + l, names[i], new Vector2(14f + i * 50f, 54f), new Vector2(46f, 34f), font, () => SetLook(l));
             }
             MakeButton(root, "Replay", "Tekrar", new Vector2(14f + 3 * 50f + 8f, 54f), new Vector2(78f, 34f), font, () => Play(Current, true));
-            _label = MakeText(root, "Label", new Vector2(14f, 96f), new Vector2(300f, 20f), font, TextAnchor.MiddleLeft);
+            // spec 2026-10-07: "Bekleme: Görünüm · A · B · C · D · E", above the look row in the same style
+            var idles = (SpecialIdle[])Enum.GetValues(typeof(SpecialIdle));
+            float x = 14f;
+            foreach (var idle in idles)
+            {
+                var i = idle;
+                float w = i == SpecialIdle.Look ? 78f : 38f;
+                _idleButtons[i] = MakeButton(root, "Idle" + i, IdleButton(i), new Vector2(x, 94f), new Vector2(w, 34f), font, () => SetIdle(i));
+                x += w + 4f;
+            }
+            _label = MakeText(root, "Label", new Vector2(14f, 136f), new Vector2(300f, 20f), font, TextAnchor.MiddleLeft);
         }
 
         private Image MakeButton(RectTransform root, string name, string text, Vector2 posCss, Vector2 sizeCss, Font font, UnityAction onClick)

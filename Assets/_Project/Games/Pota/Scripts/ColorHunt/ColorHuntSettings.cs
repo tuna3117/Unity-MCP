@@ -11,6 +11,12 @@ namespace Project.ColorHunt
     /// </summary>
     public enum SpecialLook { Pota, Royal, Court }
 
+    /// <summary>
+    /// How a resting special ball idles (spec 2026-10-07, Tuna: Build 68's Royal idle "çok dikkat dağıtıyor"): Look = the special look's
+    /// own idle, exactly as before; A Breath, B Glint, C Rim, D Twinkle, E Sway = the calm alternatives (<see cref="SpecialIdleFx"/>).
+    /// </summary>
+    public enum SpecialIdle { Look, Breath, Glint, Rim, Twinkle, Sway }
+
     /// <summary>Every tunable number of the colour-hunt scene. Edit in the Inspector; nothing is hard-coded elsewhere.</summary>
     [CreateAssetMenu(menuName = "Project/Color Hunt/Settings", fileName = "ColorHuntSettings")]
     public class ColorHuntSettings : ScriptableObject
@@ -28,6 +34,11 @@ namespace Project.ColorHunt
         public SpecialLook SpecialLook = SpecialLook.Pota;
         [Tooltip("1 · Royal: every number of the Royal special look (timing, birth, idle, rockets, bomb, 2+ specials, golden landing, ink).")]
         public RoyalTuning Royal = new RoyalTuning();
+        [Tooltip("Özel top beklemesi (spec 2026-10-07): Görünüm = seçili özel görünümün kendi beklemesi (bugünkü, birebir); A Sakin nefes, " +
+                 "B Parıltı süpürmesi, C Kenar nabzı, D Tek yıldızcık, E Hafif sallantı. Specials sahnesinde düğmelerle değişir.")]
+        public SpecialIdle SpecialIdle = SpecialIdle.Look;
+        [Tooltip("Every number of the five calm idles A–E (game seconds, board cells).")]
+        public IdleTuning Idle = new IdleTuning();
 
         [Header("Feel layer (spec 2026-10-03: level intro, ammo tension, leftover finale, words, hint, bounce, clip, sky, lose)")]
         [Tooltip("Off = today's behaviour exactly (for the Pota | before | after recordings).")]
@@ -113,6 +124,8 @@ namespace Project.ColorHunt
         public Material ToonTemplate;
         [Tooltip("Project/PotaStencilMask: F7's invisible stencil quad over the frame's inside (BoardClip).")]
         public Material StencilMaskTemplate;
+        [Tooltip("Project/PotaGlint: the calm idles' overlays (B glint, C rim, D twinkle; spec 2026-10-07).")]
+        public Material GlintTemplate;
 
         [Header("Studio looks (Blender hand-offs, ai_studio_import)")]
         [Tooltip("A: vfx_flipbook puff_toon, 4×4 frames of 256 px.")]
@@ -148,6 +161,14 @@ namespace Project.ColorHunt
         public GameObject RoyalCoin;
         [Tooltip("2 Court: vfx_mesh basketball, a 0.45 m low-poly ball in Pota's classic skin.")]
         public GameObject CourtBall;
+
+        [Header("Calm idles (Blender hand-offs, ai_studio_import; spec 2026-10-07)")]
+        [Tooltip("B: vfx_flipbook glint_streak, a 256² still: a thin white horizontal streak with soft ends, its core 0.10 of the frame high.")]
+        public Texture2D IdleStreak;
+        [Tooltip("C: vfx_flipbook rim_ring, a 256² still: a thin soft white ring, centre line at 0.40 of the frame, core 0.043 wide.")]
+        public Texture2D IdleRing;
+        [Tooltip("D: vfx_flipbook twinkle_star, a 256² still: four rays tapering to needle tips over a small soft core.")]
+        public Texture2D IdleStar;
 
         [Header("Feel layer props (Blender hand-offs, ai_studio_import; spec 2026-10-03 F8, F11)")]
         [Tooltip("F11: vfx_flipbook lettering style miss, \"KAÇTI!\" 512×256 still (red, navy outline).")]

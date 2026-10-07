@@ -1,6 +1,6 @@
 namespace Project.ColorHunt
 {
-    public enum SpecialScenario { Birth, Line, Bomb, Chain, Golden, Free }
+    public enum SpecialScenario { Birth, Line, Bomb, Chain, Golden, Free, Idle }
 
     /// <summary>A hand-authored board (the demo's scenarios, tests): turned into a Board by ColorHuntRules.FromPreset.</summary>
     public sealed class BoardPreset
@@ -22,7 +22,7 @@ namespace Project.ColorHunt
     }
 
     /// <summary>
-    /// The demo's six boards (spec §1.3) and their scripted taps. Every grid is the base pattern (2r + c) mod 5 — no two neighbours alike,
+    /// The demo's boards (spec §1.3; Bekleme from spec 2026-10-07) and their scripted taps. Every grid is the base pattern (2r + c) mod 5 — no two neighbours alike,
     /// so nothing matches unless designed — with its specials (-1) and, for Birth, designed runs. The outcomes were checked against Pota's
     /// own src/renkAvi.ts (rng 1) and are pinned by SpecialScenariosTests.
     /// </summary>
@@ -106,6 +106,25 @@ namespace Project.ColorHunt
              2,  3,  4,  0,  1,  2,  3,
         };
 
+        /// <summary>
+        /// Bekleme (spec 2026-10-07): the calm idles' stage — a bomb (3, 2) and a LineV (3, 4) either side of the centre, a golden ball
+        /// (2, 3) above it over gate 3, a LineH (4, 3) below. Every special touches the centre cell, so a close-up on cell 24 shows all four
+        /// and whether anything spills into a neighbour. No script: they just rest.
+        /// </summary>
+        private static readonly int[] IdleGrid =
+        {
+             0,  1,  2,  3,  4,  0,  1,
+             2,  3,  4,  0,  1,  2,  3,
+             4,  0,  1, -1,  3,  4,  0,
+             1,  2, -1,  4, -1,  1,  2,
+             3,  4,  0, -1,  2,  3,  4,
+             0,  1,  2,  3,  4,  0,  1,
+             2,  3,  4,  0,  1,  2,  3,
+        };
+
+        /// <summary>The Bekleme board's centre cell (3, 3): the idle recordings zoom on it.</summary>
+        public const int IdleFocus = 24;
+
         public static string Title(SpecialScenario s)
         {
             switch (s)
@@ -115,6 +134,7 @@ namespace Project.ColorHunt
                 case SpecialScenario.Bomb: return "Bomba";
                 case SpecialScenario.Chain: return "Zincir";
                 case SpecialScenario.Golden: return "Altın";
+                case SpecialScenario.Idle: return "Bekleme";
                 default: return "Serbest";
             }
         }
@@ -129,6 +149,7 @@ namespace Project.ColorHunt
                 case SpecialScenario.Bomb: return Preset(BombGrid, new int[0], (24, SpecialKind.Bomb), (48, SpecialKind.Bomb));
                 case SpecialScenario.Chain: return Preset(ChainGrid, new int[0], (21, SpecialKind.LineH), (25, SpecialKind.Bomb), (19, SpecialKind.LineV));
                 case SpecialScenario.Golden: return Preset(GoldenGrid, new[] { 3, 5 }, (38, SpecialKind.Golden), (47, SpecialKind.Golden));
+                case SpecialScenario.Idle: return Preset(IdleGrid, new[] { 3 }, (23, SpecialKind.Bomb), (25, SpecialKind.LineV), (17, SpecialKind.Golden), (31, SpecialKind.LineH));
                 default: return Preset(FreeGrid, new[] { 4 }, (8, SpecialKind.LineV), (18, SpecialKind.Golden), (24, SpecialKind.Bomb), (40, SpecialKind.LineH));
             }
         }

@@ -1,0 +1,64 @@
+{
+  "id": "vfx-twinkle-star",
+  "game": "Pota",
+  "kind": "vfx-flipbook",
+  "version": 1,
+  "files": {
+    "glb": null,
+    "fbx": null,
+    "sheet": "vfx-twinkle-star.png",
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "flipbook": {
+    "cols": 1,
+    "rows": 1,
+    "frames": 1,
+    "frame_px": 256,
+    "frame_h": 256,
+    "duration_s": 0.35,
+    "linear": false,
+    "loop": false
+  },
+  "units": "px",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 0,
+    "materials": 0,
+    "textures": [
+      {
+        "name": "vfx-twinkle-star.png",
+        "size": [
+          256,
+          256
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0,
+      0,
+      0
+    ]
+  },
+  "source": {
+    "recipe": "vfx_flipbook:twinkle_star",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7,
+      "frames": 1
+    }
+  },
+  "checks": {
+    "frames_empty": [],
+    "coverage": [
+      0.1532
+    ],
+    "passed": true
+  },
+  "made": "2026-10-07T10:44:32Z"
+}

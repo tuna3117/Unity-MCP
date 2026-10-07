@@ -24,19 +24,21 @@ namespace Project.Editor.AITools
         "'cancel'. scene 'ColorHunt' (default, ColorHunt.unity open): script (';'-separated: 'wait S', 'select C|auto', 'tap C|auto', " +
         "'rotate cw|ccw', 'settle'; default: idle, select, tap, settle, rotate, settle, tap, settle), seed (7), ammo (settings), win (false; " +
         "true: one red target block, the first red tap wins), tail (1.5 s). scene 'Specials' (Specials.unity open): scenario " +
-        "(birth|line|bomb|chain|golden), special_look (pota|royal or 1|court or 2; default pota), until (the marker to stop at, default " +
-        "'finish' = the demo's ScenarioFinished; e.g. 'tap2'), tail (0.6 s). Feel layer (spec 2026-10-03): feel (on|off, restored after), " +
+        "(birth|line|bomb|chain|golden|idle; idle = the Bekleme board, nothing tapped, 6 s, zoomed on its centre by zoom), special_look " +
+        "(pota|royal or 1|court or 2; default pota), special_idle (look|breath|glint|rim|twinkle|sway or a-e; default look = the look's own " +
+        "idle; restored after), until (the marker to stop at, default 'finish' = the demo's ScenarioFinished; e.g. 'tap2'), tail (0.6 s; " +
+        "idle 6 s). Feel layer (spec 2026-10-03): feel (on|off, restored after), " +
         "and in scene 'ColorHunt' scenario intro | lowammo | finale | lose | chain | idle (presets of script/ammo/win/tail; markers start, " +
         "result, finale). Both: width (540), aspect (0.5625), look (pota|candy|shatter), " +
-        "closeup (zoom on focus; steps of 0.3× fixedDeltaTime, play the frames back at meta.speed 0.3), zoom (2.4), focus (cell; default the " +
-        "first tap's), name ('colorhunt'). Out: Temp/record/<name>/f_NNNN_tS.SSS.png, events.json {markers in s: tap, tap2…, rotate, win, " +
+        "closeup (zoom on focus; steps of 0.3× fixedDeltaTime, play the frames back at meta.speed 0.3), zoom (2.4; without closeup it zooms at " +
+        "normal speed), focus (cell; default the first tap's, idle 24), name ('colorhunt'). Out: Temp/record/<name>/f_NNNN_tS.SSS.png, events.json {markers in s: tap, tap2…, rotate, win, " +
         "born…, fire…, land…, finish, end; meta {…, speed, step}; sounds: [{id, clip, t, volume, pitch, voice}]}, sounds/<clip>.wav.")]
     public static class ColorHuntRecordTool
     {
         public struct Step { public string Verb; public string Arg; public float Seconds; }
 
         /// <summary>What a start asks for: the ColorHunt scene's script, or a Specials scenario in a special look.</summary>
-        public struct SpecialsRequest { public bool Specials; public SpecialScenario Scenario; public SpecialLook Look; }
+        public struct SpecialsRequest { public bool Specials; public SpecialScenario Scenario; public SpecialLook Look; public SpecialIdle Idle; }
 
         /// <summary>A feel-layer scenario in the ColorHunt scene (spec 2026-10-03 Task 10): the script and the round it needs.</summary>
         public struct FeelPreset { public string Script; public int Ammo; public bool Win; public float Tail; public bool ChainSeed; }
@@ -78,9 +80,10 @@ namespace Project.Editor.AITools
         {
             [ToolParameter("'start' (default), 'status' or 'cancel'", Required = false)] public string action { get; set; }
             [ToolParameter("'ColorHunt' (default) or 'Specials' (the special-balls demo)", Required = false)] public string scene { get; set; }
-            [ToolParameter("Specials: birth | line | bomb | chain | golden. ColorHunt (feel layer): intro | lowammo | finale | lose | chain | idle", Required = false)] public string scenario { get; set; }
+            [ToolParameter("Specials: birth | line | bomb | chain | golden | idle (the Bekleme board). ColorHunt (feel layer): intro | lowammo | finale | lose | chain | idle", Required = false)] public string scenario { get; set; }
             [ToolParameter("Feel layer on|off for the recording (the asset's value is restored after)", Required = false)] public string feel { get; set; }
             [ToolParameter("Specials: pota (default) | royal (1) | court (2)", Required = false)] public string special_look { get; set; }
+            [ToolParameter("Specials: how resting specials idle - look (default: the special look's own) | breath (a) | glint (b) | rim (c) | twinkle (d) | sway (e)", Required = false)] public string special_idle { get; set; }
             [ToolParameter("Specials: the marker to stop at, then the tail (default 'finish'; e.g. 'tap2')", Required = false)] public string until { get; set; }
             [ToolParameter("ColorHunt: script, ';'-separated", Required = false)] public string script { get; set; }
             [ToolParameter("ColorHunt: board seed (default 7)", Required = false)] public int? seed { get; set; }
@@ -92,7 +95,7 @@ namespace Project.Editor.AITools
             [ToolParameter("Folder under Temp/record (default 'colorhunt')", Required = false)] public string name { get; set; }
             [ToolParameter("pota | candy (a) | shatter (b); default: the game's current look", Required = false)] public string look { get; set; }
             [ToolParameter("zoom on the focus cell and record in 0.3× steps (played back slowed)", Required = false)] public bool? closeup { get; set; }
-            [ToolParameter("Close-up zoom (default 2.4)", Required = false)] public float? zoom { get; set; }
+            [ToolParameter("Close-up zoom (default 2.4); without closeup: zoom on the focus at normal speed", Required = false)] public float? zoom { get; set; }
             [ToolParameter("Close-up focus cell (default: the first tap's)", Required = false)] public int? focus { get; set; }
         }
 
@@ -105,13 +108,16 @@ namespace Project.Editor.AITools
         public const float CloseupZoom = 2.4f, CloseupTimeScale = 0.3f;
         /// <summary>Specials: seconds recorded after the stop marker, and the longest a recording may run (recording clock).</summary>
         public const float SpecialsTail = 0.6f, SpecialsTimeout = 40f;
+        /// <summary>Specials "idle" (spec 2026-10-07): seconds of the resting Bekleme board after the demo's (immediate) finish.</summary>
+        public const float IdleTail = 6f;
         /// <summary>Specials: the longest the recorder steps (uncaptured, unscaled s) waiting for the demo's start-up scenario to settle.</summary>
         public const float SettleTimeout = 20f;
-        private const string ScenarioList = "birth, line, bomb, chain, golden";
+        private const string ScenarioList = "birth, line, bomb, chain, golden, idle";
 
         private static PuzzleLook _previousLook;
         private static SpecialLook _previousSpecialLook;
-        private static bool _closeup, _restoreLook, _specials;
+        private static SpecialIdle _previousSpecialIdle;
+        private static bool _closeup, _zoomOnly, _restoreLook, _specials;
         private static SpecialsRequest _request;
         private static SpecialsDemo _demo;
         private static ColorHuntGame _hooked;
@@ -143,6 +149,7 @@ namespace Project.Editor.AITools
                 case "bomb": scenario = SpecialScenario.Bomb; return true;
                 case "chain": scenario = SpecialScenario.Chain; return true;
                 case "golden": scenario = SpecialScenario.Golden; return true;
+                case "idle": case "bekleme": scenario = SpecialScenario.Idle; return true;
                 default: scenario = SpecialScenario.Birth; return false;
             }
         }
@@ -159,11 +166,30 @@ namespace Project.Editor.AITools
             }
         }
 
+        /// <summary>"look" | "breath" / "a" | "glint" / "b" | "rim" / "c" | "twinkle" / "d" | "sway" / "e", any case (spec 2026-10-07).</summary>
+        public static bool TrySpecialIdle(string s, out SpecialIdle idle)
+        {
+            switch ((s ?? "").Trim().ToLowerInvariant())
+            {
+                case "look": idle = SpecialIdle.Look; return true;
+                case "breath": case "a": idle = SpecialIdle.Breath; return true;
+                case "glint": case "b": idle = SpecialIdle.Glint; return true;
+                case "rim": case "c": idle = SpecialIdle.Rim; return true;
+                case "twinkle": case "d": idle = SpecialIdle.Twinkle; return true;
+                case "sway": case "e": idle = SpecialIdle.Sway; return true;
+                default: idle = SpecialIdle.Look; return false;
+            }
+        }
+
+        public static string ParseRequest(string scene, string scenario, string specialLook, bool scripted, out SpecialsRequest request) =>
+            ParseRequest(scene, scenario, specialLook, null, scripted, out request);
+
         /// <summary>
-        /// Reads scene / scenario / special_look. Null when the request is fine, else the refusal (the tool returns it as the error).
-        /// <paramref name="scripted"/>: a script or win was given (ColorHunt only: the Specials scene plays the scenario's own taps).
+        /// Reads scene / scenario / special_look / special_idle. Null when the request is fine, else the refusal (the tool returns it as
+        /// the error). <paramref name="scripted"/>: a script or win was given (ColorHunt only: the Specials scene plays the scenario's own taps).
         /// </summary>
-        public static string ParseRequest(string scene, string scenario, string specialLook, bool scripted, out SpecialsRequest request)
+        public static string ParseRequest(string scene, string scenario, string specialLook, string specialIdle, bool scripted,
+            out SpecialsRequest request)
         {
             request = new SpecialsRequest { Look = SpecialLook.Pota };
             string sc = (scene ?? "").Trim();
@@ -171,8 +197,10 @@ namespace Project.Editor.AITools
             if (sc.Length > 0 && !specials && !sc.Equals("colorhunt", StringComparison.OrdinalIgnoreCase))
                 return $"unknown scene '{scene}' (ColorHunt, Specials)";
             bool hasScenario = !string.IsNullOrWhiteSpace(scenario), hasLook = !string.IsNullOrWhiteSpace(specialLook);
+            bool hasIdle = !string.IsNullOrWhiteSpace(specialIdle);
             if (!specials)
             {
+                if (hasIdle) return "special_idle needs scene 'Specials'";
                 if (hasScenario && TryFeelScenario(scenario, out _)) return hasLook ? "special_look needs scene 'Specials'" : null;
                 return hasScenario || hasLook ? "scenario and special_look need scene 'Specials' (Specials.unity open); ColorHunt scenarios: intro, lowammo, finale, lose, chain, idle" : null;
             }
@@ -181,7 +209,10 @@ namespace Project.Editor.AITools
             if (!TryScenario(scenario, out var s)) return $"unknown scenario '{scenario}' ({ScenarioList}; 'free' has no script to record)";
             var look = SpecialLook.Pota;
             if (hasLook && !TrySpecialLook(specialLook, out look)) return $"unknown special_look '{specialLook}' (pota, royal/1, court/2)";
-            request = new SpecialsRequest { Specials = true, Scenario = s, Look = look };
+            var idle = SpecialIdle.Look;
+            if (hasIdle && !TrySpecialIdle(specialIdle, out idle))
+                return $"unknown special_idle '{specialIdle}' (look, breath/a, glint/b, rim/c, twinkle/d, sway/e)";
+            request = new SpecialsRequest { Specials = true, Scenario = s, Look = look, Idle = idle };
             return null;
         }
 
@@ -266,7 +297,8 @@ namespace Project.Editor.AITools
             if (game == null) return new ErrorResponse("No ColorHuntGame in the running scene.");
             _win = p["win"] != null && p["win"].Type == JTokenType.Boolean && p["win"].Value<bool>();
             string refusal = ParseRequest(AIToolsCommon.GetString(p, "scene", null), AIToolsCommon.GetString(p, "scenario", null),
-                AIToolsCommon.GetString(p, "special_look", null), p["script"] != null || _win, out _request);
+                AIToolsCommon.GetString(p, "special_look", null), AIToolsCommon.GetString(p, "special_idle", null), p["script"] != null || _win,
+                out _request);
             if (refusal != null) return new ErrorResponse(refusal);
             _specials = _request.Specials;
             _demo = null;
@@ -303,10 +335,13 @@ namespace Project.Editor.AITools
             if (_specials)
             {
                 _previousSpecialLook = game.SpecialLook;
+                _previousSpecialIdle = game.SpecialIdle;
                 _demo.SetLook(_request.Look);
+                _demo.SetIdle(_request.Idle);
                 if (_request.Look != SpecialLook.Pota && game.Specials is PotaSpecials)
                 {
                     _demo.SetLook(_previousSpecialLook);
+                    _demo.SetIdle(_previousSpecialIdle);
                     return new ErrorResponse($"The {_request.Look} special look fell back to Pota (missing assets: run ai_studio_import); nothing recorded.");
                 }
             }
@@ -314,6 +349,7 @@ namespace Project.Editor.AITools
             _restoreLook = true;
             if (!string.IsNullOrEmpty(lookArg) && TryLook(lookArg, out var look)) game.SetLook(look);
             _closeup = AIToolsCommon.GetBool(p, "closeup", false);
+            _zoomOnly = !_closeup && p["zoom"] != null;                 // a zoom without closeup frames tighter at normal speed
             // the unscaled base step: a dip of the demo's start-up scenario may be running (TimeScaleController sets fixedDeltaTime = base × scale)
             _previousFixed = Time.timeScale > 1e-3f ? Time.fixedDeltaTime / Time.timeScale : Time.fixedDeltaTime;
             _gaps.Clear();
@@ -325,7 +361,8 @@ namespace Project.Editor.AITools
             _ammo = AIToolsCommon.GetInt(p, "ammo", _presetName.Length > 0 && _preset.Ammo >= 0 ? _preset.Ammo : game.S.Ammo);
             _width = Mathf.Clamp(AIToolsCommon.GetInt(p, "width", 540), 120, 2160);
             _aspect = Mathf.Clamp(AIToolsCommon.GetFloat(p, "aspect", 0.5625f), 0.3f, 3f);
-            _tail = Mathf.Max(0f, AIToolsCommon.GetFloat(p, "tail", _specials ? SpecialsTail : _presetName.Length > 0 ? _preset.Tail : 1.5f));
+            float tailDefault = _specials ? (_request.Scenario == SpecialScenario.Idle ? IdleTail : SpecialsTail) : _presetName.Length > 0 ? _preset.Tail : 1.5f;
+            _tail = Mathf.Max(0f, AIToolsCommon.GetFloat(p, "tail", tailDefault));
             _dir = "Temp/record/" + (AIToolsCommon.GetString(p, "name", "colorhunt") ?? "colorhunt");
             if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
             Directory.CreateDirectory(_dir);
@@ -364,6 +401,7 @@ namespace Project.Editor.AITools
             {
                 meta["scenario"] = _request.Scenario.ToString().ToLowerInvariant();
                 meta["special_look"] = _request.Look.ToString().ToLowerInvariant();
+                meta["special_idle"] = _request.Idle.ToString().ToLowerInvariant();
             }
             else if (_presetName.Length > 0) meta["scenario"] = _presetName;
             if (game != null && _restoreFeel && game.S != null && game.S.Feel != null) game.S.Feel.Enabled = _previousFeel;
@@ -374,6 +412,7 @@ namespace Project.Editor.AITools
                 if (_specials && _demo != null)
                 {
                     _demo.SetLook(_previousSpecialLook);
+                    _demo.SetIdle(_previousSpecialIdle);
                     _demo.ShowUi(true);
                 }
                 var fit = game.Cam != null ? game.Cam.GetComponent<ColorHuntCamera>() : null;
@@ -382,6 +421,7 @@ namespace Project.Editor.AITools
             }
             if (wasRunning) Time.fixedDeltaTime = _previousFixed;
             _closeup = false;
+            _zoomOnly = false;
             _restoreLook = false;
             _running = false;
             _result = why;
@@ -493,6 +533,7 @@ namespace Project.Editor.AITools
                 _demo.Play(_request.Scenario, true);           // stages the preset now (the board root exists); the demo taps its script
                 var taps = SpecialScenarios.Taps(_request.Scenario);
                 if (focus < 0 && taps.Length > 0) focus = taps[0];
+                if (focus < 0 && _request.Scenario == SpecialScenario.Idle) focus = SpecialScenarios.IdleFocus;
                 _landed = game.GoldenLanded;
             }
             else
@@ -503,7 +544,7 @@ namespace Project.Editor.AITools
                 game.StartIntro();                                  // studio looks deal like NewRound
                 game.Begin();
             }
-            if (_closeup)
+            if (_closeup || _zoomOnly)
             {
                 if (focus < 0) focus = Cell(game, FirstTap(_steps));
                 var fit = game.Cam.GetComponent<ColorHuntCamera>();
@@ -642,7 +683,7 @@ namespace Project.Editor.AITools
         private static object Status() => new
         {
             running = _running, scene = _specials ? "Specials" : "ColorHunt", scenario = _specials ? _request.Scenario.ToString() : "",
-            special_look = _specials ? _request.Look.ToString() : "", until = _until, step = _index, steps = _steps?.Count ?? 0,
+            special_look = _specials ? _request.Look.ToString() : "", special_idle = _specials ? _request.Idle.ToString() : "", until = _until, step = _index, steps = _steps?.Count ?? 0,
             frames = _captured, dir = _dir, result = _result, events = _events, look = Object.FindAnyObjectByType<ColorHuntGame>()?.Look.ToString(),
             closeup = _closeup, gameTime = Time.time, frameCount = Time.frameCount, timeScale = Time.timeScale, captureDeltaTime = Time.captureDeltaTime,
         };

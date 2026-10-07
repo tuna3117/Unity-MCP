@@ -40,6 +40,11 @@ namespace Project.ColorHunt
         public float Bob;
         /// <summary>Style-driven idle turn: degrees added to the sticker's angle; 0 under the Pota look.</summary>
         public float StickerSpin;
+        /// <summary>
+        /// A calm idle's breath (spec 2026-10-07 A/E): a factor on the whole block, apart from <see cref="Scale"/> so a look's birth pop or
+        /// an entrance that owns Scale is never overwritten; 1 when the special look's own idle plays.
+        /// </summary>
+        public float IdleScale = 1f;
 
         /// <summary>Studio press: the finger is on this block (the game sets it only for looks other than Pota).</summary>
         public bool Pressed;
@@ -61,6 +66,7 @@ namespace Project.ColorHunt
             Wiggle = 0f;
             Bob = 0f;
             StickerSpin = 0f;
+            IdleScale = 1f;
             _press = 0f;
             _release = -1f;
             PressScale = 1f;
@@ -71,6 +77,9 @@ namespace Project.ColorHunt
         private ColorHuntSettings _s;
 
         private static Mesh Quad => _quad != null ? _quad : (_quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx"));
+
+        /// <summary>The sticker quad (the special's ball, a block's item): the calm idles' overlays copy its world placement.</summary>
+        public Transform Sticker => _item != null ? _item.transform : transform;
 
         /// <summary>yapbozSahne.ts renkliMat: white MeshStandard, roughness 0.16, metalness 0.02; the tone comes per block.</summary>
         public static Material BodyMaterial()
@@ -179,7 +188,7 @@ namespace Project.ColorHunt
                 if (_release >= 1f) { _press = 0f; _release = -1f; press = 1f; }
             }
             PressScale = press;
-            float s = Mathf.Max(0.001f, own * Scale * press);
+            float s = Mathf.Max(0.001f, own * Scale * press * IdleScale);
             var bounce = Vector2.one;
             if (Bounce >= 0f)
             {

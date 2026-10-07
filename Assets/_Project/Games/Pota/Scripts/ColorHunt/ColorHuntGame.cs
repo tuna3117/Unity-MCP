@@ -141,6 +141,7 @@ namespace Project.ColorHunt
             if (Salvo != null) Salvo.Board = BoardRoot;
             SetLook(S != null ? S.Look : PuzzleLook.Pota);
             SetSpecialLook(S != null ? S.SpecialLook : SpecialLook.Pota);
+            SpecialIdle = S != null ? S.SpecialIdle : SpecialIdle.Look;
             if (AutoStart) NewRound();
         }
 
@@ -184,6 +185,7 @@ namespace Project.ColorHunt
             Fx?.SetBoard(BoardRoot);
             Fx?.Clear();
             _style?.Clear();
+            _idleFx?.Clear();
             ResetSpecials();                            // the special style, golden balls and gate rings start over (shows Board.Gates)
             DisplayedAmmo = Board.Ammo;
             Current = State.Idle;
@@ -350,11 +352,18 @@ namespace Project.ColorHunt
             _clock += dt;
             float pulse = PotaLook.GoldenPulse(_clock);
             var specials = Specials;
+            var idle = SpecialIdle;
+            bool calm = idle != SpecialIdle.Look && !_introOn;           // spec 2026-10-07: a calm idle instead of the look's own
             foreach (var v in _views.Values)
             {
                 bool resting = !v.Exploding && !_drops.ContainsKey(v);
                 v.Pulse = v.Block.Special == SpecialKind.Golden && resting ? pulse : 0f;
-                if (v.Block.IsSpecial && resting) specials.Idle(v, dt);
+                if (v.Block.IsSpecial)
+                {
+                    if (idle == SpecialIdle.Look) { if (resting) specials.Idle(v, dt); }
+                    else if (calm && resting) IdleFx.Idle(v, dt, v.Block.Special, idle);
+                    else _idleFx?.Release(v);
+                }
                 v.Tick(dt);
             }
             foreach (var v in _loose)
@@ -643,6 +652,46 @@ namespace Project.ColorHunt
         public const float GatherGrace = 3f;
 
         private ISpecialStyle _special;
+
+        /// <summary>How resting specials idle (spec 2026-10-07): Look = the special look's own idle; A–E = <see cref="IdleFx"/>.</summary>
+        public SpecialIdle SpecialIdle { get; private set; } = SpecialIdle.Look;
+        public event Action SpecialIdleChanged;
+        /// <summary>The calm idles A–E (built on first use; never while Look is chosen).</summary>
+        public SpecialIdleFx IdleFx
+        {
+            get
+            {
+                if (_idleFx != null) return _idleFx;
+                var go = new GameObject("SpecialIdleFx");               // AddSpecialStyle's pattern: a child of the game root
+                go.transform.SetParent(transform, false);
+                _idleFx = go.AddComponent<SpecialIdleFx>();
+                _idleFx.Build(this);
+                return _idleFx;
+            }
+        }
+        private SpecialIdleFx _idleFx;
+
+        /// <summary>
+        /// Switches the resting specials' idle (the demo's third row, the record tool). What the old idle left on a resting special is put
+        /// back: the calm idles' overlays, breath and rock; a look idle's hop and turn (Court), breath (Royal) — v.Pulse is the game's
+        /// golden pulse again on the next frame anyway.
+        /// </summary>
+        public void SetSpecialIdle(SpecialIdle idle)
+        {
+            if (idle == SpecialIdle) return;
+            var old = SpecialIdle;
+            SpecialIdle = idle;
+            _idleFx?.Clear();
+            if (old == SpecialIdle.Look)
+                foreach (var v in _views.Values)
+                    if (v.Block.IsSpecial && !v.Exploding && !_drops.ContainsKey(v))
+                    {
+                        v.Bob = 0f;
+                        v.StickerSpin = 0f;
+                        v.Scale = 1f;
+                    }
+            Raise(SpecialIdleChanged);
+        }
         private readonly Dictionary<SpecialLook, ISpecialStyle> _specialStyles = new Dictionary<SpecialLook, ISpecialStyle>();
         private class GoldenState { public int Col; public bool Passed; public float Age, Life; }
         /// <summary>One gather's identity: a late "arrived" checks it owns the view's current ticket before touching it (a pooled view

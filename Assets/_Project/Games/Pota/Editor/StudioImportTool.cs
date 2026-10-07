@@ -17,7 +17,8 @@ namespace Project.Editor.AITools
     [McpForUnityTool("ai_studio_import", Description =
         "Import the Blender hand-offs of the studio looks (vfx-puff-toon, vfx-ring-toon, vfx-smoke-lit, vfx-shock-ring, " +
         "vfx-pillow-shatter) and the special-ball looks (vfx-fire-toon, vfx-flame-jet, vfx-dust-ring, vfx-speed-lines, " +
-        "vfx-floor-crack, vfx-letter-slam/-swish/-combo, vfx-ball-halves, vfx-bomb-shell, vfx-coin, vfx-basketball) into " +
+        "vfx-floor-crack, vfx-letter-slam/-swish/-combo, vfx-ball-halves, vfx-bomb-shell, vfx-coin, vfx-basketball), the feel and menu " +
+        "props and the calm idles' stills (vfx-glint-streak, vfx-rim-ring, vfx-twinkle-star) into " +
         "Games/Pota/Art/VFX and wire them into ColorHuntSettings. Params: workshop (default ~/projects/Blender MCP).")]
     public static class StudioImportTool
     {
@@ -30,6 +31,7 @@ namespace Project.Editor.AITools
             "vfx-ball-halves", "vfx-bomb-shell", "vfx-coin", "vfx-basketball",
             "vfx-letter-miss", "cloud-set", "bird-flock", "city-band",             // feel layer (spec 2026-10-03)
             "vfx-hand-pointer", "vfx-cloud-still",                                  // menu/reward layer (M11 hand, M7 clouds)
+            "vfx-glint-streak", "vfx-rim-ring", "vfx-twinkle-star",                 // calm idles B, C, D (spec 2026-10-07)
         };
 
         public class Parameters
@@ -92,6 +94,7 @@ namespace Project.Editor.AITools
             s.Birds = Prop("bird-flock");
             s.BirdFlap = Clip("bird-flock", "flap");
             s.CityBand = Prop("city-band");
+            report.Add(WireIdleStills(s));
             EditorUtility.SetDirty(s);
             var basket = AssetDatabase.LoadAssetAtPath<Project.Basket.BasketSettings>("Assets/_Project/Games/Pota/Settings/BasketSettings.asset");
             if (basket != null)
@@ -117,6 +120,16 @@ namespace Project.Editor.AITools
                        $"halves={s.RoyalHalves != null} shell={s.RoyalShell != null} coin={s.RoyalCoin != null} ball={s.CourtBall != null}");
             report.AddRange(PotaMaterialTemplates.Ensure());
             return report;
+        }
+
+        /// <summary>The calm idles' Blender stills (spec 2026-10-07) → ColorHuntSettings.IdleStreak / IdleRing / IdleStar.</summary>
+        public static string WireIdleStills(ColorHuntSettings s)
+        {
+            s.IdleStreak = Sheet("vfx-glint-streak");
+            s.IdleRing = Sheet("vfx-rim-ring");
+            s.IdleStar = Sheet("vfx-twinkle-star");
+            EditorUtility.SetDirty(s);
+            return $"idle stills: streak={s.IdleStreak != null} ring={s.IdleRing != null} star={s.IdleStar != null}";
         }
 
         private static Texture2D Sheet(string id) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{Folder(id)}/{id}.png");

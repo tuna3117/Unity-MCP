@@ -73,6 +73,36 @@ MonoBehaviour:
     CoinCells: 0.42
     LandStars: 10
     InkWidth: 0.022
+  SpecialIdle: 0
+  Idle:
+    BreathAmount: 0.02
+    BreathHz: 0.8
+    GlintTime: 0.35
+    GlintWidth: 0.12
+    GlintAngle: 35
+    GlintBrightness: 0.8
+    GlintEvery: 2.5
+    GlintJitter: 0.4
+    RimRadius: 0.36
+    RimThickness: 0.05
+    RimPeak: 0.5
+    RimHz: 1
+    RimBomb: {r: 1, g: 0.58, b: 0.2, a: 1}
+    RimLine: {r: 0.55, g: 0.84, b: 1, a: 1}
+    RimGolden: {r: 1, g: 0.85, b: 0.3, a: 1}
+    TwinkleSize: 0.22
+    TwinkleLife: 0.35
+    TwinkleEvery: 1.8
+    TwinkleJitter: 0.5
+    TwinkleAngleMin: 20
+    TwinkleAngleMax: 70
+    TwinkleRadius: 0.36
+    TwinkleBrightness: 1
+    TwinkleColor: {r: 1, g: 1, b: 1, a: 1}
+    TwinkleGolden: {r: 1, g: 0.93, b: 0.66, a: 1}
+    SwayHz: 0.5
+    SwayDegrees: 5
+    SwayBreath: 0.01
   Feel:
     Enabled: 1
     WordFromDepth: 3
@@ -172,6 +202,7 @@ MonoBehaviour:
   ShockTemplate: {fileID: 2100000, guid: c8dd69970afd14801b723a17f8026f7d, type: 2}
   ToonTemplate: {fileID: 2100000, guid: 986432fda363b48febb4d4d3b99a4bbb, type: 2}
   StencilMaskTemplate: {fileID: 2100000, guid: 3e07dccf775144fc5b0d2a3fe83503b4, type: 2}
+  GlintTemplate: {fileID: 2100000, guid: 75d6679b60cbd4bdb8118ed9fc5afc30, type: 2}
   CandyPuff: {fileID: 2800000, guid: 99e14e3d9b28a4425b8c078e73370b6e, type: 3}
   CandyRing: {fileID: 2800000, guid: 8adca5aa811f4435c8e05f6ba8416b6e, type: 3}
   ShatterSmoke: {fileID: 2800000, guid: 933ce353e632d41f8b96a3d33743e6be, type: 3}
@@ -189,6 +220,9 @@ MonoBehaviour:
   RoyalShell: {fileID: 8771091787928289351, guid: 1ec93853afd9241adb30b40227665592, type: 3}
   RoyalCoin: {fileID: -6485194804514954509, guid: a0a11a05da298471fb3dbc6a211b5167, type: 3}
   CourtBall: {fileID: 2037331516835740624, guid: cf5836ce8c1ce40b9a904aea663709b2, type: 3}
+  IdleStreak: {fileID: 2800000, guid: 91f3edbf0355d49398cddf981d8c4245, type: 3}
+  IdleRing: {fileID: 2800000, guid: f75cab1aeafd64cf0805dd543dde62f2, type: 3}
+  IdleStar: {fileID: 2800000, guid: 16d42536a4c0d453ea833627fc0d95f9, type: 3}
   LetterMiss: {fileID: 2800000, guid: 50d53deb1e22a4950873abf1f124364f, type: 3}
   Clouds: {fileID: 8771091787928289351, guid: dffb45637e3ad4a819e2e5c23425e8a2, type: 3}
   Birds: {fileID: 8771091787928289351, guid: 66b373c90d4cf4ba283a5ac2de209e63, type: 3}
