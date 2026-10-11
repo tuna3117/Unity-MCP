@@ -18,6 +18,7 @@ MonoBehaviour:
     Line: 0
     Bomb: 0
     Golden: 0
+    Pass: 0
   SpecialLook: 0
   Royal:
     LineLead: 0.06
@@ -103,6 +104,40 @@ MonoBehaviour:
     SwayHz: 0.5
     SwayDegrees: 5
     SwayBreath: 0.01
+  PassLook: 0
+  PassLookA:
+    Timing:
+      Takeoff: 0.1
+      Speed: 14
+      MinFlight: 0.2
+      MaxFlight: 0.45
+      Hang: 0
+    Hop: 0.18
+    Spin: 14
+    Arc: 0.6
+    Trail: 1
+    TrailEvery: 0.5
+    ImpactFlash: 1.6
+    Shake: 0.1
+  PassLookB:
+    Timing:
+      Takeoff: 0.2
+      Speed: 12
+      MinFlight: 0.25
+      MaxFlight: 0.5
+      Hang: 0.08
+    Rise: 0.55
+    Spin: 9
+    Propeller: 40
+    Arc: 1.6
+    Dive: 0.35
+    ImpactFlash: 1.9
+    Shake: 0.14
+    Dust: 2.6
+    ModelScale: 2
+    Tilt: 35
+  PassSprite: {fileID: 2800000, guid: e2f35e102450545b9a64f3f92c4d9d25, type: 3}
+  PassModel: {fileID: 8771091787928289351, guid: f4e05209387ab4e99b7d65bc89ffc4c4, type: 3}
   Feel:
     Enabled: 1
     WordFromDepth: 3

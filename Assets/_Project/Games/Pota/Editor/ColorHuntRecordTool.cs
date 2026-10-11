@@ -24,21 +24,27 @@ namespace Project.Editor.AITools
         "'cancel'. scene 'ColorHunt' (default, ColorHunt.unity open): script (';'-separated: 'wait S', 'select C|auto', 'tap C|auto', " +
         "'rotate cw|ccw', 'settle'; default: idle, select, tap, settle, rotate, settle, tap, settle), seed (7), ammo (settings), win (false; " +
         "true: one red target block, the first red tap wins), tail (1.5 s). scene 'Specials' (Specials.unity open): scenario " +
-        "(birth|line|bomb|chain|golden|idle; idle = the Bekleme board, nothing tapped, 6 s, zoomed on its centre by zoom), special_look " +
+        "(birth|line|bomb|chain|golden|idle|pass|passBomb; idle = the Bekleme board, nothing tapped, 6 s, zoomed on its centre by zoom; " +
+        "pass/passBomb = the pass ball, Pota spec 2026-10-11), pass_look (a = A Pas | b = B Pervane; default the game's; restored after), special_look " +
         "(pota|royal or 1|court or 2; default pota), special_idle (look|breath|glint|rim|twinkle|sway or a-e; default look = the look's own " +
         "idle; restored after), until (the marker to stop at, default 'finish' = the demo's ScenarioFinished; e.g. 'tap2'), tail (0.6 s; " +
         "idle 6 s). Feel layer (spec 2026-10-03): feel (on|off, restored after), " +
         "and in scene 'ColorHunt' scenario intro | lowammo | finale | lose | chain | idle (presets of script/ammo/win/tail; markers start, " +
         "result, finale). Both: width (540), aspect (0.5625), look (pota|candy|shatter), " +
         "closeup (zoom on focus; steps of 0.3× fixedDeltaTime, play the frames back at meta.speed 0.3), zoom (2.4; without closeup it zooms at " +
-        "normal speed), focus (cell; default the first tap's, idle 24), name ('colorhunt'). Out: Temp/record/<name>/f_NNNN_tS.SSS.png, events.json {markers in s: tap, tap2…, rotate, win, " +
-        "born…, fire…, land…, finish, end; meta {…, speed, step}; sounds: [{id, clip, t, volume, pitch, voice}]}, sounds/<clip>.wav.")]
+        "normal speed), focus (cell; default the first tap's, idle 24, pass 30, passBomb 24), name ('colorhunt'). Out: Temp/record/<name>/f_NNNN_tS.SSS.png, events.json {markers in s: tap, tap2…, rotate, win, " +
+        "born…, fire…, land…, hit… (a pass ball landed), finish, end; meta {…, speed, step}; sounds: [{id, clip, t, volume, pitch, voice}]}, sounds/<clip>.wav.")]
     public static class ColorHuntRecordTool
     {
         public struct Step { public string Verb; public string Arg; public float Seconds; }
 
         /// <summary>What a start asks for: the ColorHunt scene's script, or a Specials scenario in a special look.</summary>
-        public struct SpecialsRequest { public bool Specials; public SpecialScenario Scenario; public SpecialLook Look; public SpecialIdle Idle; }
+        public struct SpecialsRequest
+        {
+            public bool Specials; public SpecialScenario Scenario; public SpecialLook Look; public SpecialIdle Idle;
+            /// <summary>pass_look given: the pass ball's look for the recording (else the game's stays).</summary>
+            public bool HasPassLook; public PassLook PassLook;
+        }
 
         /// <summary>A feel-layer scenario in the ColorHunt scene (spec 2026-10-03 Task 10): the script and the round it needs.</summary>
         public struct FeelPreset { public string Script; public int Ammo; public bool Win; public float Tail; public bool ChainSeed; }
@@ -80,7 +86,8 @@ namespace Project.Editor.AITools
         {
             [ToolParameter("'start' (default), 'status' or 'cancel'", Required = false)] public string action { get; set; }
             [ToolParameter("'ColorHunt' (default) or 'Specials' (the special-balls demo)", Required = false)] public string scene { get; set; }
-            [ToolParameter("Specials: birth | line | bomb | chain | golden | idle (the Bekleme board). ColorHunt (feel layer): intro | lowammo | finale | lose | chain | idle", Required = false)] public string scenario { get; set; }
+            [ToolParameter("Specials: birth | line | bomb | chain | golden | idle (the Bekleme board) | pass | passBomb. ColorHunt (feel layer): intro | lowammo | finale | lose | chain | idle", Required = false)] public string scenario { get; set; }
+            [ToolParameter("Specials: the pass ball's look - a (A Pas) | b (B Pervane); default: the game's", Required = false)] public string pass_look { get; set; }
             [ToolParameter("Feel layer on|off for the recording (the asset's value is restored after)", Required = false)] public string feel { get; set; }
             [ToolParameter("Specials: pota (default) | royal (1) | court (2)", Required = false)] public string special_look { get; set; }
             [ToolParameter("Specials: how resting specials idle - look (default: the special look's own) | breath (a) | glint (b) | rim (c) | twinkle (d) | sway (e)", Required = false)] public string special_idle { get; set; }
@@ -112,11 +119,12 @@ namespace Project.Editor.AITools
         public const float IdleTail = 6f;
         /// <summary>Specials: the longest the recorder steps (uncaptured, unscaled s) waiting for the demo's start-up scenario to settle.</summary>
         public const float SettleTimeout = 20f;
-        private const string ScenarioList = "birth, line, bomb, chain, golden, idle";
+        private const string ScenarioList = "birth, line, bomb, chain, golden, idle, pass, passBomb";
 
         private static PuzzleLook _previousLook;
         private static SpecialLook _previousSpecialLook;
         private static SpecialIdle _previousSpecialIdle;
+        private static PassLook _previousPassLook;
         private static bool _closeup, _zoomOnly, _restoreLook, _specials;
         private static SpecialsRequest _request;
         private static SpecialsDemo _demo;
@@ -150,6 +158,8 @@ namespace Project.Editor.AITools
                 case "chain": scenario = SpecialScenario.Chain; return true;
                 case "golden": scenario = SpecialScenario.Golden; return true;
                 case "idle": case "bekleme": scenario = SpecialScenario.Idle; return true;
+                case "pass": case "pas": scenario = SpecialScenario.Pass; return true;
+                case "passbomb": case "pass_bomb": case "pasbomba": scenario = SpecialScenario.PassBomb; return true;
                 default: scenario = SpecialScenario.Birth; return false;
             }
         }
@@ -184,11 +194,25 @@ namespace Project.Editor.AITools
         public static string ParseRequest(string scene, string scenario, string specialLook, bool scripted, out SpecialsRequest request) =>
             ParseRequest(scene, scenario, specialLook, null, scripted, out request);
 
-        /// <summary>
-        /// Reads scene / scenario / special_look / special_idle. Null when the request is fine, else the refusal (the tool returns it as
-        /// the error). <paramref name="scripted"/>: a script or win was given (ColorHunt only: the Specials scene plays the scenario's own taps).
-        /// </summary>
         public static string ParseRequest(string scene, string scenario, string specialLook, string specialIdle, bool scripted,
+            out SpecialsRequest request) => ParseRequest(scene, scenario, specialLook, specialIdle, null, scripted, out request);
+
+        /// <summary>"a" | "pas" → A, "b" | "pervane" → B (any case).</summary>
+        public static bool TryPassLook(string s, out PassLook look)
+        {
+            switch ((s ?? "").Trim().ToLowerInvariant())
+            {
+                case "a": case "pas": look = PassLook.A; return true;
+                case "b": case "pervane": look = PassLook.B; return true;
+                default: look = PassLook.A; return false;
+            }
+        }
+
+        /// <summary>
+        /// Reads scene / scenario / special_look / special_idle / pass_look. Null when the request is fine, else the refusal (the tool returns
+        /// it as the error). <paramref name="scripted"/>: a script or win was given (ColorHunt only: the Specials scene plays the scenario's own taps).
+        /// </summary>
+        public static string ParseRequest(string scene, string scenario, string specialLook, string specialIdle, string passLook, bool scripted,
             out SpecialsRequest request)
         {
             request = new SpecialsRequest { Look = SpecialLook.Pota };
@@ -197,10 +221,11 @@ namespace Project.Editor.AITools
             if (sc.Length > 0 && !specials && !sc.Equals("colorhunt", StringComparison.OrdinalIgnoreCase))
                 return $"unknown scene '{scene}' (ColorHunt, Specials)";
             bool hasScenario = !string.IsNullOrWhiteSpace(scenario), hasLook = !string.IsNullOrWhiteSpace(specialLook);
-            bool hasIdle = !string.IsNullOrWhiteSpace(specialIdle);
+            bool hasIdle = !string.IsNullOrWhiteSpace(specialIdle), hasPass = !string.IsNullOrWhiteSpace(passLook);
             if (!specials)
             {
                 if (hasIdle) return "special_idle needs scene 'Specials'";
+                if (hasPass) return "pass_look needs scene 'Specials'";
                 if (hasScenario && TryFeelScenario(scenario, out _)) return hasLook ? "special_look needs scene 'Specials'" : null;
                 return hasScenario || hasLook ? "scenario and special_look need scene 'Specials' (Specials.unity open); ColorHunt scenarios: intro, lowammo, finale, lose, chain, idle" : null;
             }
@@ -212,7 +237,9 @@ namespace Project.Editor.AITools
             var idle = SpecialIdle.Look;
             if (hasIdle && !TrySpecialIdle(specialIdle, out idle))
                 return $"unknown special_idle '{specialIdle}' (look, breath/a, glint/b, rim/c, twinkle/d, sway/e)";
-            request = new SpecialsRequest { Specials = true, Scenario = s, Look = look, Idle = idle };
+            var pass = PassLook.A;
+            if (hasPass && !TryPassLook(passLook, out pass)) return $"unknown pass_look '{passLook}' (a/pas, b/pervane)";
+            request = new SpecialsRequest { Specials = true, Scenario = s, Look = look, Idle = idle, HasPassLook = hasPass, PassLook = pass };
             return null;
         }
 
@@ -297,8 +324,8 @@ namespace Project.Editor.AITools
             if (game == null) return new ErrorResponse("No ColorHuntGame in the running scene.");
             _win = p["win"] != null && p["win"].Type == JTokenType.Boolean && p["win"].Value<bool>();
             string refusal = ParseRequest(AIToolsCommon.GetString(p, "scene", null), AIToolsCommon.GetString(p, "scenario", null),
-                AIToolsCommon.GetString(p, "special_look", null), AIToolsCommon.GetString(p, "special_idle", null), p["script"] != null || _win,
-                out _request);
+                AIToolsCommon.GetString(p, "special_look", null), AIToolsCommon.GetString(p, "special_idle", null),
+                AIToolsCommon.GetString(p, "pass_look", null), p["script"] != null || _win, out _request);
             if (refusal != null) return new ErrorResponse(refusal);
             _specials = _request.Specials;
             _demo = null;
@@ -336,12 +363,15 @@ namespace Project.Editor.AITools
             {
                 _previousSpecialLook = game.SpecialLook;
                 _previousSpecialIdle = game.SpecialIdle;
+                _previousPassLook = game.PassLook;
                 _demo.SetLook(_request.Look);
                 _demo.SetIdle(_request.Idle);
+                if (_request.HasPassLook) _demo.SetPassLook(_request.PassLook);
                 if (_request.Look != SpecialLook.Pota && game.Specials is PotaSpecials)
                 {
                     _demo.SetLook(_previousSpecialLook);
                     _demo.SetIdle(_previousSpecialIdle);
+                    _demo.SetPassLook(_previousPassLook);
                     return new ErrorResponse($"The {_request.Look} special look fell back to Pota (missing assets: run ai_studio_import); nothing recorded.");
                 }
             }
@@ -402,6 +432,7 @@ namespace Project.Editor.AITools
                 meta["scenario"] = _request.Scenario.ToString().ToLowerInvariant();
                 meta["special_look"] = _request.Look.ToString().ToLowerInvariant();
                 meta["special_idle"] = _request.Idle.ToString().ToLowerInvariant();
+                if (game != null) meta["pass_look"] = game.PassLook.ToString().ToLowerInvariant();
             }
             else if (_presetName.Length > 0) meta["scenario"] = _presetName;
             if (game != null && _restoreFeel && game.S != null && game.S.Feel != null) game.S.Feel.Enabled = _previousFeel;
@@ -413,6 +444,7 @@ namespace Project.Editor.AITools
                 {
                     _demo.SetLook(_previousSpecialLook);
                     _demo.SetIdle(_previousSpecialIdle);
+                    _demo.SetPassLook(_previousPassLook);
                     _demo.ShowUi(true);
                 }
                 var fit = game.Cam != null ? game.Cam.GetComponent<ColorHuntCamera>() : null;
@@ -532,8 +564,8 @@ namespace Project.Editor.AITools
                 Hook(game);
                 _demo.Play(_request.Scenario, true);           // stages the preset now (the board root exists); the demo taps its script
                 var taps = SpecialScenarios.Taps(_request.Scenario);
+                if (focus < 0) focus = SpecialScenarios.Focus(_request.Scenario);   // Bekleme 24, Pas 30, Pas→Bomba 24
                 if (focus < 0 && taps.Length > 0) focus = taps[0];
-                if (focus < 0 && _request.Scenario == SpecialScenario.Idle) focus = SpecialScenarios.IdleFocus;
                 _landed = game.GoldenLanded;
             }
             else
@@ -592,6 +624,7 @@ namespace Project.Editor.AITools
             _hooked = game;
             game.SpecialBorn += OnBorn;
             game.SpecialFired += OnFired;
+            game.PassLanded += OnPassLanded;
             if (_demo == null) return;
             _demo.Tapped += OnTapped;
             _demo.ScenarioFinished += OnFinished;
@@ -603,6 +636,7 @@ namespace Project.Editor.AITools
             {
                 _hooked.SpecialBorn -= OnBorn;
                 _hooked.SpecialFired -= OnFired;
+                _hooked.PassLanded -= OnPassLanded;
                 _hooked = null;
             }
             if (_demo == null) return;
@@ -613,6 +647,7 @@ namespace Project.Editor.AITools
         private static void OnTapped(int cell) => Mark("tap");
         private static void OnBorn(SpecialKind kind, int cell) => Mark("born");
         private static void OnFired(SpecialFire fire) => Mark("fire");
+        private static void OnPassLanded(int cell, int target) => Mark("hit");
 
         private static void OnFinished()
         {
@@ -683,7 +718,8 @@ namespace Project.Editor.AITools
         private static object Status() => new
         {
             running = _running, scene = _specials ? "Specials" : "ColorHunt", scenario = _specials ? _request.Scenario.ToString() : "",
-            special_look = _specials ? _request.Look.ToString() : "", special_idle = _specials ? _request.Idle.ToString() : "", until = _until, step = _index, steps = _steps?.Count ?? 0,
+            special_look = _specials ? _request.Look.ToString() : "", special_idle = _specials ? _request.Idle.ToString() : "",
+            pass_look = Object.FindAnyObjectByType<ColorHuntGame>()?.PassLook.ToString(), until = _until, step = _index, steps = _steps?.Count ?? 0,
             frames = _captured, dir = _dir, result = _result, events = _events, look = Object.FindAnyObjectByType<ColorHuntGame>()?.Look.ToString(),
             closeup = _closeup, gameTime = Time.time, frameCount = Time.frameCount, timeScale = Time.timeScale, captureDeltaTime = Time.captureDeltaTime,
         };

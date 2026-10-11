@@ -1,0 +1,68 @@
+{
+  "id": "pas-topu",
+  "game": "Pota",
+  "kind": "vfx-mesh",
+  "version": 1,
+  "files": {
+    "glb": "pas-topu.glb",
+    "fbx": null,
+    "previews": [
+      "preview.png"
+    ]
+  },
+  "units": "m",
+  "up": "+Y",
+  "scale_applied": true,
+  "stats": {
+    "tris": 1056,
+    "materials": 3,
+    "textures": [
+      {
+        "name": "basketball_skin",
+        "size": [
+          512,
+          256
+        ]
+      }
+    ],
+    "bones": 0,
+    "clips": [],
+    "size_m": [
+      0.45,
+      0.45,
+      0.492
+    ]
+  },
+  "source": {
+    "recipe": "vfx_mesh:pass_ball",
+    "copy_provenance": null,
+    "inputs": [],
+    "params": {
+      "seed": 7
+    }
+  },
+  "checks": {
+    "non_manifold": 0,
+    "ngons": 0,
+    "uv_missing": [
+      "Propeller"
+    ],
+    "transforms_unapplied": [],
+    "degenerate": 0,
+    "animated": [],
+    "passed": true,
+    "mesh": {
+      "objects": [
+        "Basketball",
+        "Propeller"
+      ],
+      "tris": {
+        "Basketball": 960,
+        "Propeller": 96
+      },
+      "open_edges": 0,
+      "passed": true
+    }
+  },
+  "made": "2026-10-11T13:40:26Z"
+}

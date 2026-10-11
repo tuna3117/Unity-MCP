@@ -37,7 +37,7 @@ namespace Project.ColorHunt
         public GateRings Gates { get; private set; }
         /// <summary>Taps wait: a job, the salvo, a loose swell, the intro, a golden ball or a gathered block on its way (until it arrives).</summary>
         public bool Busy => _jobs.Count > 0 || (Salvo != null && Salvo.Busy) || _swells.AnyLoose || _introOn || _goldens.Count > 0
-                            || _gathering.Count > 0;
+                            || _gathering.Count > 0 || _flying.Count > 0 || (_passFlight != null && _passFlight.InFlight > 0);
 
         private float _intro = -1f, _idle, _hintT = -1f;
         private float _introSpeed = 1f;
@@ -84,6 +84,8 @@ namespace Project.ColorHunt
             public Action Peak;
             public readonly List<PendingSwell> Pending = new List<PendingSwell>();
             public readonly HashSet<int> Consumed = new HashSet<int>();
+            /// <summary>Pass targets already burst (Plan.Hits).</summary>
+            public readonly HashSet<int> HitDone = new HashSet<int>();
         }
         private class PendingSwell { public int Cell; public BlockView View; public float At; }
         private class RotateJob : Job { public float Angle; public Board Rotated; }
@@ -102,7 +104,7 @@ namespace Project.ColorHunt
         private class DropState { public float StartY, Distance, T; public bool Landed; }
 
         private Mesh _blockMesh;
-        private Material _blockMat, _labelMat;
+        private Material _blockMat, _labelMat, _passMat;
         private readonly Dictionary<int, int> _shown = new Dictionary<int, int>();
         private int _flights, _flightGen;
         private bool _targetsPending;
@@ -126,6 +128,8 @@ namespace Project.ColorHunt
             _blockMesh = PillowBlockMesh.Create();
             _blockMat = BlockView.BodyMaterial();
             _labelMat = BlockView.LabelMaterial(S.LabelTemplate, S.LabelAtlas);
+            _passMat = S.PassSprite != null ? BlockView.LabelMaterial(S.LabelTemplate, S.PassSprite) : null;
+            PassLook = S.PassLook;
 
 
             _selectionRing = RimMeshBuilder.MeshObject("SelectionRing", BoardRoot, RimMeshBuilder.Torus(0.46f, 0.055f, 26, 8), BlockView.RingMaterial(S.SelectionTemplate));
@@ -327,6 +331,7 @@ namespace Project.ColorHunt
             }
             float dt = Mathf.Min(Time.deltaTime, 0.05f);
             Salvo?.Tick(dt);
+            _passFlight?.Tick(dt);                     // before the jobs: a flight launched this frame starts on the step's clock next frame
             AdvanceJobs(dt);
             TickGoldens(dt);
             TickGathers(dt);
@@ -372,6 +377,11 @@ namespace Project.ColorHunt
                 v.Tick(dt);
             }
             foreach (var v in _gathering.Keys)
+            {
+                v.Pulse = 0f;
+                v.Tick(dt);
+            }
+            foreach (var v in _flying)
             {
                 v.Pulse = 0f;
                 v.Tick(dt);
@@ -692,6 +702,81 @@ namespace Project.ColorHunt
                     }
             Raise(SpecialIdleChanged);
         }
+        // ---------- the pass ball (Pota spec 2026-10-11 §3: two looks, Tuna picks) ----------
+
+        /// <summary>How a pass ball flies: A Pas (its own block), B Pervane (the Blender ball). Switch with <see cref="SetPassLook"/>.</summary>
+        public PassLook PassLook { get; private set; } = PassLook.A;
+        public event Action PassLookChanged;
+        /// <summary>A pass ball landed (its cell at the fire, its target; −1: none) — the recorder's "hit" marker.</summary>
+        public event Action<int, int> PassLanded;
+        /// <summary>The pass flights (built on first use, a child of the game root like the special styles).</summary>
+        public PassFlight PassFlights
+        {
+            get
+            {
+                if (_passFlight != null) return _passFlight;
+                var go = new GameObject("PassFlight");
+                go.transform.SetParent(transform, false);
+                _passFlight = go.AddComponent<PassFlight>();
+                _passFlight.Build(this);
+                return _passFlight;
+            }
+        }
+        private PassFlight _passFlight;
+        /// <summary>Pass balls' blocks in the air (look A): out of the board's views, ticked here, recycled at the hit.</summary>
+        private readonly HashSet<BlockView> _flying = new HashSet<BlockView>();
+
+        /// <summary>The trigger plan and the flight read the same numbers: the chosen look's PassTiming.</summary>
+        public PassTiming PassTimingNow => S == null ? PassTiming.A : PassLook == PassLook.B ? S.PassLookB.Timing : S.PassLookA.Timing;
+
+        /// <summary>The demo's pass row and the record tool: flights already in the air keep their look; the next fire takes the new one.</summary>
+        public void SetPassLook(PassLook look)
+        {
+            if (look == PassLook) return;
+            PassLook = look;
+            Raise(PassLookChanged);
+        }
+
+        /// <summary>
+        /// renkAviFaz.ts pasAtesle: the ball's block leaves its cell (out of the views, so the drops do not take it), its target is the step's
+        /// PassHit, the flight lasts PassTiming.Arrival — the plan bursts a normal target (HitBurst) or fires a special one at that same moment
+        /// on the step's clock. The flight starts as old as the step is past the fire. The look's Fire still runs (Royal: COMBO! on the 2nd).
+        /// </summary>
+        private void LaunchPass(StepJob st, SpecialFire f)
+        {
+            int n = Board.Size, target = -1;
+            foreach (var p in st.Step.Passes) if (p.Cell == f.Cell) { target = p.Target; break; }
+            var view = ViewAt(f.Cell);
+            if (view != null) { _views.Remove(f.Cell); _flying.Add(view); }
+            Vector2 from = view != null ? view.Pos : f.At;
+            Vector2? to = null;
+            if (target >= 0)
+            {
+                var tv = ViewAt(target);
+                to = tv != null ? tv.Pos : BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, target), ColorHuntRules.Col(n, target));
+            }
+            var timing = PassTimingNow;
+            float duration = target >= 0 ? timing.Arrival(n, f.Cell, target) : timing.Takeoff;
+            int gen = _specialGen, cell = f.Cell;
+            st.Peak?.Invoke();
+            RaiseCellBurst(f.Cell);
+            // ozelAtesle: zamanDusur(hitStop) at every fire but the 2nd special's (PotaSpecials.Fire already dips for every kind)
+            if (f.Order != 1 && !(Specials is PotaSpecials)) Juice?.TimeCtl?.Dip(S.HitStopTapScale, PassHitStop);
+            PassFlights.Fly(PassLook, from, to, duration, Mathf.Max(0f, st.T - f.Time), view, landed =>
+            {
+                if (landed != null && _flying.Remove(landed)) Recycle(landed);
+                if (gen != _specialGen) return;
+                try { PassLanded?.Invoke(cell, target); }
+                catch (Exception e) { Debug.LogException(e); }
+            });
+            Specials.Fire(f);
+            try { SpecialFired?.Invoke(f); }
+            catch (Exception e) { Debug.LogException(e); }
+        }
+
+        /// <summary>OZEL_AN.hitStop: the dip at a special's fire (Pota 0.06 s).</summary>
+        public const float PassHitStop = 0.06f;
+
         private readonly Dictionary<SpecialLook, ISpecialStyle> _specialStyles = new Dictionary<SpecialLook, ISpecialStyle>();
         private class GoldenState { public int Col; public bool Passed; public float Age, Life; }
         /// <summary>One gather's identity: a late "arrived" checks it owns the view's current ticket before touching it (a pooled view
@@ -1015,19 +1100,54 @@ namespace Project.ColorHunt
             }
             if (st.Plan == null) return;
             while (st.NextFire < st.Plan.Fires.Count && st.Plan.Fires[st.NextFire].Time <= st.T) FireSpecial(st, st.Plan.Fires[st.NextFire++]);
+            if (st.Plan.Hits.Count == 0) return;
+            foreach (var kv in st.Plan.Hits) if (kv.Value <= st.T && st.HitDone.Add(kv.Key)) _hitsDue.Add(kv.Key);
+            FlushHits(st);
         }
 
         /// <summary>The drops start: every special that has not fired fires, every swell that has not started bursts now (End covers both; a long frame may not).</summary>
         private void FlushPlan(StepJob st)
         {
             if (st.Plan != null)
+            {
                 while (st.NextFire < st.Plan.Fires.Count) FireSpecial(st, st.Plan.Fires[st.NextFire++]);
+                foreach (var kv in st.Plan.Hits) if (st.HitDone.Add(kv.Key)) _hitsDue.Add(kv.Key);
+                FlushHits(st);
+            }
             foreach (var p in st.Pending) StartBurstSwell(st, p.Cell, p.View, 0f);   // StartDrops' End() bursts them at once
             st.Pending.Clear();
         }
 
+        private readonly List<int> _hitsDue = new List<int>();
+
+        private void FlushHits(StepJob st)
+        {
+            if (_hitsDue.Count == 0) return;
+            _hitsDue.Sort();
+            var due = _hitsDue.ToArray();
+            _hitsDue.Clear();
+            foreach (int cell in due) HitBurst(st, cell);
+        }
+
+        /// <summary>
+        /// renkAviFaz.ts pasVurdu, a normal target: no swell — at the hit it goes like a tapped block, a puff (carpmaPuf 0.9), eight hot points
+        /// and its sticker flying to the target panel. The ball's own flash, shake and carpma are PassFlight's (the same frame).
+        /// </summary>
+        private void HitBurst(StepJob st, int cell)
+        {
+            var v = ViewAt(cell);
+            if (v == null || !v.gameObject.activeSelf) return;
+            st.Peak?.Invoke();
+            Fx?.Puff(v.Pos, PassFlight.EmptyPuff);
+            Fx?.Particles(v.Pos, BurstTone(v.Block), 8, 2.4f, 0.1f);
+            CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
+            RaiseCellBurst(cell);
+            v.gameObject.SetActive(false);                         // the drops recycle the view
+        }
+
         private void FireSpecial(StepJob st, SpecialFire f)
         {
+            if (f.Kind == SpecialKind.Pass) { LaunchPass(st, f); return; }
             if (st.Consumed.Contains(f.Cell))
             {
                 var v = ViewAt(f.Cell);
@@ -1151,9 +1271,10 @@ namespace Project.ColorHunt
             if (gathered.Count > 0) st.SwellEnd = Mathf.Max(st.SwellEnd, GatherDuration());
             if (st.Step.Triggered.Count > 0)
             {
-                st.Plan = SpecialSchedule.Plan(Board.Size, st.Step, st.Origin, Specials.Timing, S.ChainTime);
+                st.Plan = SpecialSchedule.Plan(Board.Size, st.Step, st.Origin, Specials.Timing, S.ChainTime, PassTimingNow);
                 st.SwellEnd = Mathf.Max(st.SwellEnd, st.Plan.End);
-                if (Specials.ConsumesSpecialView) foreach (var f in st.Plan.Fires) st.Consumed.Add(f.Cell);
+                foreach (var f in st.Plan.Fires)
+                    if (Specials.ConsumesSpecialView || f.Kind == SpecialKind.Pass) st.Consumed.Add(f.Cell);   // a pass ball's block flies (A) or hides (B)
                 Specials.TriggerStep(st.Plan.Fires.Count, centre);
             }
             foreach (int i in st.Step.Exploded)
@@ -1164,6 +1285,7 @@ namespace Project.ColorHunt
                 if (first == null) first = v;
                 v.Exploding = true;
                 if (st.Consumed.Contains(i)) continue;              // a firing special the look draws itself
+                if (st.Plan != null && st.Plan.Hits.ContainsKey(i)) continue;   // a pass ball's target bursts at the hit (HitBurst)
                 float at = st.Plan != null && st.Plan.Start.TryGetValue(i, out float planned) ? planned : 0f;
                 st.Pending.Add(new PendingSwell { Cell = i, View = v, At = at });
             }
@@ -1287,7 +1409,7 @@ namespace Project.ColorHunt
                 var go = new GameObject("Block");
                 go.transform.SetParent(_blocksRoot, false);
                 v = go.AddComponent<BlockView>();
-                v.Init(S, _blockMesh, _blockMat, _labelMat);
+                v.Init(S, _blockMesh, _blockMat, _labelMat, _passMat);
             }
             Clip?.Assign(v.gameObject);                                // F7: the board layer while clipping is on (pooled views too)
             v.Home = home; v.Pos = home; v.Scale = 1f; v.Flash = 0f; v.Squash = 0f; v.Shiver = 0f; v.Exploding = false; v.Dim = false; v.Swell = -1f; v.LabelAngle = 0f; v.Pulse = 0f;
@@ -1384,6 +1506,9 @@ namespace Project.ColorHunt
             _loose.Clear();
             foreach (var v in _gathering.Keys) Recycle(v);
             _gathering.Clear();
+            _passFlight?.Clear();
+            foreach (var v in _flying) { v.Lift = 0f; v.Roll = 0f; Recycle(v); }
+            _flying.Clear();
             _disperse = -1f;
             _intro = -1f; _introOn = false; _introSpeed = 1f; StopHint(); _idle = 0f;
             _jobs.Clear();

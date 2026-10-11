@@ -8,8 +8,9 @@ namespace Project.ColorHunt
 {
     /// <summary>
     /// The special-balls showcase (Scenes/Specials.unity, spec §1.3): a row of scenario buttons (Doğuş, Çizgi, Bomba, Zincir, Altın,
-    /// Serbest, Bekleme), a row of look buttons (Pota | 1 | 2) with "Tekrar", a row of idle buttons (Bekleme: Görünüm · A · B · C · D · E,
-    /// spec 2026-10-07) and a label (look · scenario · idle · golden balls in the hoop), bottom-left,
+    /// Serbest, Bekleme, Pas, Pas→Bomba), a row of look buttons (Pota | 1 | 2) with "Tekrar", a row of idle buttons (Bekleme: Görünüm · A ·
+    /// B · C · D · E, spec 2026-10-07), a pass row (Pas: A Pas · B Pervane, spec 2026-10-11) and a label (look · scenario · idle · pass ·
+    /// golden balls in the hoop), bottom-left,
     /// clear of the rotate arrows. Play stages the scenario's preset and, when auto, taps its script one move at a time, each after the
     /// board has settled plus <see cref="Beat"/> (game time, so the frame recorder can step it). Built in code at runtime in ColorHuntHud's
     /// style: listeners added in Edit Mode are not saved with a scene.
@@ -50,6 +51,11 @@ namespace Project.ColorHunt
         private readonly Dictionary<SpecialScenario, Image> _scenarioButtons = new Dictionary<SpecialScenario, Image>();
         private readonly Dictionary<SpecialLook, Image> _lookButtons = new Dictionary<SpecialLook, Image>();
         private readonly Dictionary<SpecialIdle, Image> _idleButtons = new Dictionary<SpecialIdle, Image>();
+        private readonly Dictionary<PassLook, Image> _passButtons = new Dictionary<PassLook, Image>();
+        private PassLook _shownPass;
+
+        /// <summary>A scenario button's face: the title, "Pas→B" for Pas→Bomba (the row is tight).</summary>
+        public static string ScenarioButton(SpecialScenario s) => s == SpecialScenario.PassBomb ? "Pas→B" : SpecialScenarios.Title(s);
 
         public static string LookTitle(SpecialLook look) => look == SpecialLook.Royal ? "1 · Royal" : look == SpecialLook.Court ? "2 · Basketbol" : "Pota";
 
@@ -67,6 +73,9 @@ namespace Project.ColorHunt
             }
         }
 
+        /// <summary>The pass row's names (Pota spec 2026-10-11 §3).</summary>
+        public static string PassTitle(PassLook look) => look == PassLook.B ? "B Pervane" : "A Pas";
+
         /// <summary>The idle buttons' faces: "Görünüm", then the letters.</summary>
         public static string IdleButton(SpecialIdle idle) => idle == SpecialIdle.Look ? "Görünüm" : IdleTitle(idle).Substring(0, 1);
 
@@ -83,7 +92,7 @@ namespace Project.ColorHunt
             Current = s;
             _taps = SpecialScenarios.Taps(s);
             _next = 0;
-            _wait = Beat;
+            _wait = SpecialScenarios.Beat(s, Beat);
             AutoPlaying = auto && _taps.Length > 0;
             _finished = false;
             _pending = true;
@@ -103,6 +112,14 @@ namespace Project.ColorHunt
         public void SetIdle(SpecialIdle idle)
         {
             if (Game != null) Game.SetSpecialIdle(idle);
+            _shownAny = false;
+            RefreshLabel();
+        }
+
+        /// <summary>The pass row (spec 2026-10-11): how a pass ball flies, whatever the scenario.</summary>
+        public void SetPassLook(PassLook look)
+        {
+            if (Game != null) Game.SetPassLook(look);
             _shownAny = false;
             RefreshLabel();
         }
@@ -132,7 +149,7 @@ namespace Project.ColorHunt
             RefreshLabel();
             if (_finished) return;
             if (Game.Current == ColorHuntGame.State.Ended) { Finish(); return; }
-            if (Game.Current != ColorHuntGame.State.Playing || Game.Busy || Game.ItemsInFlight > 0) { _wait = Beat; return; }
+            if (Game.Current != ColorHuntGame.State.Playing || Game.Busy || Game.ItemsInFlight > 0) { _wait = SpecialScenarios.Beat(Current, Beat); return; }
             if (AutoPlaying && _next < _taps.Length)
             {
                 _wait -= Time.deltaTime;
@@ -142,7 +159,7 @@ namespace Project.ColorHunt
                 if (r != "broken") Debug.LogWarning($"[SpecialsDemo] {Current}: the scripted tap on cell {cell} returned \"{r}\".");
                 try { Tapped?.Invoke(cell); }
                 catch (Exception e) { Debug.LogException(e); }
-                _wait = Beat;
+                _wait = SpecialScenarios.Beat(Current, Beat);
                 return;
             }
             Finish();
@@ -160,16 +177,18 @@ namespace Project.ColorHunt
         {
             if (Game == null || _label == null) return;
             if (_shownAny && _shownLanded == Game.GoldenLanded && _shownLook == Game.SpecialLook && _shownScenario == Current
-                && _shownIdle == Game.SpecialIdle) return;
+                && _shownIdle == Game.SpecialIdle && _shownPass == Game.PassLook) return;
             _shownAny = true;
             _shownLanded = Game.GoldenLanded;
             _shownLook = Game.SpecialLook;
             _shownScenario = Current;
             _shownIdle = Game.SpecialIdle;
-            _label.text = $"{LookTitle(_shownLook)}  ·  {SpecialScenarios.Title(Current)}  ·  bekleme {IdleTitle(_shownIdle)}  ·  sepette {_shownLanded}";
+            _shownPass = Game.PassLook;
+            _label.text = $"{LookTitle(_shownLook)}  ·  {SpecialScenarios.Title(Current)}  ·  bekleme {IdleTitle(_shownIdle)}  ·  pas {PassTitle(_shownPass)}  ·  sepette {_shownLanded}";
             foreach (var kv in _scenarioButtons) kv.Value.sprite = kv.Key == Current ? _faceOn : _face;
             foreach (var kv in _lookButtons) kv.Value.sprite = kv.Key == _shownLook ? _faceOn : _face;
             foreach (var kv in _idleButtons) kv.Value.sprite = kv.Key == _shownIdle ? _faceOn : _face;
+            foreach (var kv in _passButtons) kv.Value.sprite = kv.Key == _shownPass ? _faceOn : _face;
         }
 
         // ---------- UI (Pota CSS px on a 390-px-wide phone, ColorHuntHud.Css canvas units each) ----------
@@ -196,10 +215,11 @@ namespace Project.ColorHunt
                 Mathf.RoundToInt(2f * css), 0f, 0);
             var root = (RectTransform)canvasGo.transform;
             var scenarios = (SpecialScenario[])Enum.GetValues(typeof(SpecialScenario));
+            // Nine scenarios on a 390-px phone: 38 wide at a 40 pitch (the pass pair's titles are the long ones: "Pas→B" on the face)
             for (int i = 0; i < scenarios.Length; i++)
             {
                 var s = scenarios[i];
-                _scenarioButtons[s] = MakeButton(root, "Scenario" + s, SpecialScenarios.Title(s), new Vector2(14f + i * 46f, 14f), new Vector2(42f, 34f), font,
+                _scenarioButtons[s] = MakeButton(root, "Scenario" + s, ScenarioButton(s), new Vector2(14f + i * 40f, 14f), new Vector2(38f, 34f), font,
                     () => Play(s, true));
             }
             var looks = new[] { SpecialLook.Pota, SpecialLook.Royal, SpecialLook.Court };
@@ -220,7 +240,17 @@ namespace Project.ColorHunt
                 _idleButtons[i] = MakeButton(root, "Idle" + i, IdleButton(i), new Vector2(x, 94f), new Vector2(w, 34f), font, () => SetIdle(i));
                 x += w + 4f;
             }
-            _label = MakeText(root, "Label", new Vector2(14f, 136f), new Vector2(300f, 20f), font, TextAnchor.MiddleLeft);
+            // spec 2026-10-11: "Pas: A Pas · B Pervane", above the idle row
+            MakeText(root, "PassCaption", new Vector2(14f, 134f), new Vector2(34f, 34f), font, TextAnchor.MiddleLeft).text = "Pas:";
+            float px = 50f;
+            foreach (var look in new[] { PassLook.A, PassLook.B })
+            {
+                var l = look;
+                float w = l == PassLook.A ? 62f : 90f;
+                _passButtons[l] = MakeButton(root, "Pass" + l, PassTitle(l), new Vector2(px, 134f), new Vector2(w, 34f), font, () => SetPassLook(l));
+                px += w + 4f;
+            }
+            _label = MakeText(root, "Label", new Vector2(14f, 176f), new Vector2(300f, 20f), font, TextAnchor.MiddleLeft);
         }
 
         private Image MakeButton(RectTransform root, string name, string text, Vector2 posCss, Vector2 sizeCss, Font font, UnityAction onClick)

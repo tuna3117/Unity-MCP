@@ -45,6 +45,10 @@ namespace Project.ColorHunt
         /// an entrance that owns Scale is never overwritten; 1 when the special look's own idle plays.
         /// </summary>
         public float IdleScale = 1f;
+        /// <summary>The pass ball's flight (spec 2026-10-11 §3 A): cells toward the camera (Unity −z); 0 on the board.</summary>
+        public float Lift;
+        /// <summary>The pass ball's flight: the whole block's turn in the board plane (degrees), on top of <see cref="Wiggle"/>.</summary>
+        public float Roll;
 
         /// <summary>Studio press: the finger is on this block (the game sets it only for looks other than Pota).</summary>
         public bool Pressed;
@@ -67,6 +71,8 @@ namespace Project.ColorHunt
             Bob = 0f;
             StickerSpin = 0f;
             IdleScale = 1f;
+            Lift = 0f;
+            Roll = 0f;
             _press = 0f;
             _release = -1f;
             PressScale = 1f;
@@ -75,6 +81,7 @@ namespace Project.ColorHunt
         private MeshRenderer _body, _item, _number;
         private MaterialPropertyBlock _bodyMpb, _itemMpb, _numberMpb;
         private ColorHuntSettings _s;
+        private Material _labelMat, _passMat;
 
         private static Mesh Quad => _quad != null ? _quad : (_quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx"));
 
@@ -114,9 +121,12 @@ namespace Project.ColorHunt
             return m;
         }
 
-        public void Init(ColorHuntSettings s, Mesh body, Material bodyMat, Material labelMat)
+        /// <param name="passMat">The pass ball's sticker (PotaLabel on ColorHuntSettings.PassSprite); null: atlas cell 111 (empty in Unity's export).</param>
+        public void Init(ColorHuntSettings s, Mesh body, Material bodyMat, Material labelMat, Material passMat = null)
         {
             _s = s;
+            _labelMat = labelMat;
+            _passMat = passMat;
             gameObject.AddComponent<MeshFilter>().sharedMesh = body;
             _body = gameObject.AddComponent<MeshRenderer>();
             _body.sharedMaterial = bodyMat;
@@ -150,7 +160,9 @@ namespace Project.ColorHunt
             Block = b;
             Cell = cell;
             int sticker = b.IsSpecial ? LabelAtlas.SpecialCell(b.Special) : LabelAtlas.ItemCell(b.Color);
-            _itemMpb.SetVector(UvRectId, LabelAtlas.UvRect(sticker));
+            bool ownSprite = b.Special == SpecialKind.Pass && _passMat != null;
+            if (_item != null) _item.sharedMaterial = ownSprite ? _passMat : _labelMat;
+            _itemMpb.SetVector(UvRectId, ownSprite ? LabelAtlas.PaddedUv : LabelAtlas.UvRect(sticker));
             _numberMpb.SetVector(UvRectId, LabelAtlas.UvRect(LabelAtlas.NumberCell(b.Hp)));
             _number.enabled = !b.IsSpecial;                        // etiketleriYaz: özel top → rakam yok
             Apply();
@@ -170,7 +182,7 @@ namespace Project.ColorHunt
             Shiver = Mathf.Max(0f, Shiver - dt);
             float t = _s.InsufficientShake;
             float shiverX = Shiver > 0f ? Mathf.Sin((t - Shiver) * 68f) * PotaLook.ShiverAmount * (Shiver / t) : 0f;
-            transform.localPosition = new Vector3(Pos.x + shiverX, Pos.y + Bob, 0f);
+            transform.localPosition = new Vector3(Pos.x + shiverX, Pos.y + Bob, -Lift);
             float own = Mathf.Max(0.001f, Swell >= 0f ? Swell : 1f - PotaLook.LandSquash * Squash);
             float press = 1f;
             if (Pressed)
@@ -198,7 +210,7 @@ namespace Project.ColorHunt
                 if (Bounce >= time) { Bounce = -1f; bounce = Vector2.one; }
             }
             transform.localScale = new Vector3(s * bounce.x, s * bounce.y, s * bounce.x);
-            transform.localRotation = Quaternion.Euler(0f, 0f, Wiggle);
+            transform.localRotation = Quaternion.Euler(0f, 0f, Wiggle + Roll);
             PlaceLabels(own);
             Apply();
         }

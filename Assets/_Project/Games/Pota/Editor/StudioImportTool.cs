@@ -16,6 +16,7 @@ namespace Project.Editor.AITools
     /// </summary>
     [McpForUnityTool("ai_studio_import", Description =
         "Import the Blender hand-offs of the studio looks (vfx-puff-toon, vfx-ring-toon, vfx-smoke-lit, vfx-shock-ring, " +
+        "the pass ball pas-topu (+ the Art/Specials/pas-topu-a.png sticker), " +
         "vfx-pillow-shatter) and the special-ball looks (vfx-fire-toon, vfx-flame-jet, vfx-dust-ring, vfx-speed-lines, " +
         "vfx-floor-crack, vfx-letter-slam/-swish/-combo, vfx-ball-halves, vfx-bomb-shell, vfx-coin, vfx-basketball), the feel and menu " +
         "props and the calm idles' stills (vfx-glint-streak, vfx-rim-ring, vfx-twinkle-star) into " +
@@ -32,7 +33,11 @@ namespace Project.Editor.AITools
             "vfx-letter-miss", "cloud-set", "bird-flock", "city-band",             // feel layer (spec 2026-10-03)
             "vfx-hand-pointer", "vfx-cloud-still",                                  // menu/reward layer (M11 hand, M7 clouds)
             "vfx-glint-streak", "vfx-rim-ring", "vfx-twinkle-star",                 // calm idles B, C, D (spec 2026-10-07)
+            "pas-topu",                                                             // pass ball B Pervane (Pota spec 2026-10-11)
         };
+
+        /// <summary>The pass ball's sticker (Pota public/assets/ozel-pasTopu-a.png, candidate a2), copied in by hand: Pota is not a workshop.</summary>
+        public const string PassSpritePath = "Assets/_Project/Games/Pota/Art/Specials/pas-topu-a.png";
 
         public class Parameters
         {
@@ -95,6 +100,7 @@ namespace Project.Editor.AITools
             s.BirdFlap = Clip("bird-flock", "flap");
             s.CityBand = Prop("city-band");
             report.Add(WireIdleStills(s));
+            report.Add(WirePassBall(s));
             EditorUtility.SetDirty(s);
             var basket = AssetDatabase.LoadAssetAtPath<Project.Basket.BasketSettings>("Assets/_Project/Games/Pota/Settings/BasketSettings.asset");
             if (basket != null)
@@ -130,6 +136,44 @@ namespace Project.Editor.AITools
             s.IdleStar = Sheet("vfx-twinkle-star");
             EditorUtility.SetDirty(s);
             return $"idle stills: streak={s.IdleStreak != null} ring={s.IdleRing != null} star={s.IdleStar != null}";
+        }
+
+        /// <summary>
+        /// The pass ball (Pota spec 2026-10-11): its sticker (imported like the label atlas — sRGB, mipmaps, trilinear, CLAMPED so the padded
+        /// art can be drawn past its edges, uncompressed) → ColorHuntSettings.PassSprite; the Blender pass_ball (ai_import_asset, Art/VFX/pas-topu)
+        /// → PassModel.
+        /// </summary>
+        public static string WirePassBall(ColorHuntSettings s)
+        {
+            if (AssetImporter.GetAtPath(PassSpritePath) is TextureImporter imp)
+            {
+                bool dirty = imp.textureType != TextureImporterType.Default || !imp.alphaIsTransparency || imp.wrapMode != TextureWrapMode.Clamp
+                             || !imp.mipmapEnabled || imp.filterMode != FilterMode.Trilinear || imp.textureCompression != TextureImporterCompression.Uncompressed
+                             || !imp.sRGBTexture;
+                if (dirty)
+                {
+                    imp.textureType = TextureImporterType.Default;
+                    imp.alphaIsTransparency = true;
+                    imp.wrapMode = TextureWrapMode.Clamp;
+                    imp.mipmapEnabled = true;
+                    imp.filterMode = FilterMode.Trilinear;
+                    imp.textureCompression = TextureImporterCompression.Uncompressed;
+                    imp.sRGBTexture = true;
+                    imp.SaveAndReimport();
+                }
+            }
+            s.PassSprite = AssetDatabase.LoadAssetAtPath<Texture2D>(PassSpritePath);
+            s.PassModel = Model("pas-topu");
+            EditorUtility.SetDirty(s);
+            return $"pass ball: sprite={s.PassSprite != null} model={s.PassModel != null}";
+        }
+
+        [MenuItem("AI Tools/Color Hunt/Wire Pass Ball")]
+        public static void WirePassBallMenu()
+        {
+            var s = ColorHuntSceneTool.EnsureSettings(new List<string>());
+            AIToolsCommon.Log(WirePassBall(s));
+            AssetDatabase.SaveAssets();
         }
 
         private static Texture2D Sheet(string id) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{Folder(id)}/{id}.png");

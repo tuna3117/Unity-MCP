@@ -40,6 +40,19 @@ namespace Project.ColorHunt
         [Tooltip("Every number of the five calm idles A–E (game seconds, board cells).")]
         public IdleTuning Idle = new IdleTuning();
 
+        [Header("Pass ball (Pota spec 2026-10-11: 2×2 kare → pas topu; two looks, Tuna picks)")]
+        [Tooltip("Pas topu uçuşu: A Pas (topun kendi bloğu zıplar, alçak kavisle uçar, hız çizgileri) · B Pervane (Blender topu + dönen pervane, " +
+                 "yükselir, yüksek kavis, asılı kalıp dalar, toz halkası). Specials sahnesinde düğmelerle değişir.")]
+        public PassLook PassLook = PassLook.A;
+        [Tooltip("A Pas — Pota src/ozelPlan.ts OZEL_ZAMANLAMA pas* (:19-20) + src/ozelAyar.ts OZEL_AN.pasTopu.a (:51).")]
+        public PassTuningA PassLookA = new PassTuningA();
+        [Tooltip("B Pervane — Pota src/ozelPlan.ts PAS_ZAMANLAMA_B (:22) + src/ozelAyar.ts OZEL_AN.pasTopu.b (:52).")]
+        public PassTuningB PassLookB = new PassTuningB();
+        [Tooltip("The pass ball's sticker: Pota public/assets/ozel-pasTopu-a.png (candidate a2, 256², padded) → Art/Specials/pas-topu-a.png.")]
+        public Texture2D PassSprite;
+        [Tooltip("B: the Blender pass_ball delivery (ai_import_asset) — Basketball (960 tris) + Propeller (96 tris, its origin on the ball's up axis).")]
+        public GameObject PassModel;
+
         [Header("Feel layer (spec 2026-10-03: level intro, ammo tension, leftover finale, words, hint, bounce, clip, sky, lose)")]
         [Tooltip("Off = today's behaviour exactly (for the Pota | before | after recordings).")]
         public FeelTuning Feel = new FeelTuning();
