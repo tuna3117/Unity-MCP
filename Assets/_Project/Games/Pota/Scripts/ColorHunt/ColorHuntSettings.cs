@@ -44,9 +44,9 @@ namespace Project.ColorHunt
         [Tooltip("Pas topu uçuşu: A Pas (topun kendi bloğu zıplar, alçak kavisle uçar, hız çizgileri) · B Pervane (Blender topu + dönen pervane, " +
                  "yükselir, yüksek kavis, asılı kalıp dalar, toz halkası). Specials sahnesinde düğmelerle değişir.")]
         public PassLook PassLook = PassLook.A;
-        [Tooltip("A Pas — Pota src/ozelPlan.ts OZEL_ZAMANLAMA pas* (:19-20) + src/ozelAyar.ts OZEL_AN.pasTopu.a (:51).")]
+        [Tooltip("A Pas — Pota src/ozelPlan.ts OZEL_ZAMANLAMA pas* (:16-17) + src/ozelAyar.ts OZEL_AN.pasTopu.a (:51); flight renkAviFaz.ts pasIlerlet.")]
         public PassTuningA PassLookA = new PassTuningA();
-        [Tooltip("B Pervane — Pota src/ozelPlan.ts PAS_ZAMANLAMA_B (:22) + src/ozelAyar.ts OZEL_AN.pasTopu.b (:52).")]
+        [Tooltip("B Pervane — Pota src/ozelPlan.ts PAS_ZAMANLAMA_B (:19) + src/ozelAyar.ts OZEL_AN.pasTopu.b (:52); flight renkAviFaz.ts pasIlerletB, tilt patlamaEfekt.ts PAS_EGIM.")]
         public PassTuningB PassLookB = new PassTuningB();
         [Tooltip("The pass ball's sticker: Pota public/assets/ozel-pasTopu-a.png (candidate a2, 256², padded) → Art/Specials/pas-topu-a.png.")]
         public Texture2D PassSprite;

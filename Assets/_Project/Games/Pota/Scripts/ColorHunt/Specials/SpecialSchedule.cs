@@ -20,12 +20,12 @@ namespace Project.ColorHunt
         [Tooltip("pasEnCok: the longest flight (s).")] public float MaxFlight;
         [Tooltip("pasAsili: seconds over the target before the hit.")] public float Hang;
 
-        /// <summary>ozelPlan.ts OZEL_ZAMANLAMA (:19-20): kalkış 0.1 + uçuş 0.2–0.45 at 14 cells/s → 0.30–0.55 s.</summary>
+        /// <summary>ozelPlan.ts OZEL_ZAMANLAMA (:16-17): kalkış 0.1 + uçuş 0.2–0.45 at 14 cells/s → 0.30–0.55 s.</summary>
         public static readonly PassTiming A = new PassTiming { Takeoff = 0.1f, Speed = 14f, MinFlight = 0.2f, MaxFlight = 0.45f, Hang = 0f };
-        /// <summary>ozelPlan.ts PAS_ZAMANLAMA_B (:22): kalkış 0.2, 12 cells/s, 0.25–0.5, asılı 0.08 → 0.53–0.78 s.</summary>
+        /// <summary>ozelPlan.ts PAS_ZAMANLAMA_B (:19): kalkış 0.2, 12 cells/s, 0.25–0.5, asılı 0.08 → 0.53–0.78 s.</summary>
         public static readonly PassTiming B = new PassTiming { Takeoff = 0.2f, Speed = 12f, MinFlight = 0.25f, MaxFlight = 0.5f, Hang = 0.08f };
 
-        /// <summary>ozelPlan.ts pasVarisi: seconds from the pass ball's fire to its hit on <paramref name="to"/>.</summary>
+        /// <summary>ozelPlan.ts pasVarisi (:22-25): seconds from the pass ball's fire to its hit on <paramref name="to"/>.</summary>
         public float Arrival(int n, int from, int to)
         {
             float d = Mathf.Sqrt(Sq(to / n - from / n) + Sq(to % n - from % n));

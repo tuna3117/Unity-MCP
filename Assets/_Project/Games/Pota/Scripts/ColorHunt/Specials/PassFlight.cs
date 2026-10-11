@@ -19,22 +19,26 @@ namespace Project.ColorHunt
         [Tooltip("sars: the board shake at the hit.")] public float Shake = 0.1f;
     }
 
-    /// <summary>B "Pervane" (OZEL_AN.pasTopu.b, src/ozelAyar.ts:52): the Blender ball rises with its propeller spinning up, a high arc, hangs, dives.</summary>
+    /// <summary>
+    /// B "Pervane" (OZEL_AN.pasTopu.b, src/ozelAyar.ts:52; flight renkAviFaz.ts pasIlerletB / pasPervaneAcisi, efekt patlamaEfekt.ts
+    /// pasTopuGoster, Pota 4052db9): the Blender ball rises with its propeller spinning up, a high arc, hangs over the target, dives.
+    /// </summary>
     [Serializable]
     public class PassTuningB
     {
         public PassTiming Timing = PassTiming.B;
-        [Tooltip("yuksel: cells toward the camera reached during the takeoff (linear).")] public float Rise = 0.55f;
+        [Tooltip("yuksel: cells toward the camera reached during the takeoff (ease-out u·(2 − u)); the hang stays there.")] public float Rise = 0.55f;
         [Tooltip("donus: rad/s; the ball turns about its own up axis at 0.2 × this (Pota pasTopuGoster(…, donme·0.2, …)).")] public float Spin = 9f;
-        [Tooltip("pervane: the propeller's spin (rad/s).")] public float Propeller = 40f;
+        [Tooltip("pervane: the propeller's spin (rad/s), reached linearly over the takeoff (angle w·t²/2k, then w·(t − k/2)).")] public float Propeller = 40f;
         [Tooltip("kavis: the arc over the rise (cells, sin(π·o)).")] public float Arc = 1.6f;
-        [Tooltip("dalis: in OZEL_AN but unused by Pota's B flight (the dive is the hang: rise → 0 over pasAsili); kept for the port.")] public float Dive = 0.35f;
+        [Tooltip("dalis: the dive's share of the flight window (sure − kalkış − asılı): the arc (smoothstep path) takes the rest, then the hang, " +
+                 "then an accelerating dive rise·(1 − u²).")] public float Dive = 0.35f;
         [Tooltip("carpmaFlas: the white flash at the hit.")] public float ImpactFlash = 1.9f;
         [Tooltip("sars: the board shake at the hit.")] public float Shake = 0.14f;
         [Tooltip("toz: the dust ring's size at the hit (cells).")] public float Dust = 2.6f;
         [Tooltip("The GLB ball is 0.45 m: × 2 = the block's 0.9 cell (Pota olcek 2).")] public float ModelScale = 2f;
-        [Tooltip("Unity's own (not in Pota's Task 8 sketch): the ball's top leans this many degrees toward the camera, so the propeller reads " +
-                 "as a turning disc like the icon's; at 0 the camera sees it edge-on (a flickering line).")] public float Tilt = 35f;
+        [Tooltip("patlamaEfekt.ts PAS_EGIM 0.9 rad: the ball's top leans this many degrees toward the camera (after its own turn), so the " +
+                 "propeller reads as a turning disc; at 0 the camera sees it edge-on.")] public float Tilt = 0.9f * Mathf.Rad2Deg;
     }
 
     /// <summary>
@@ -266,25 +270,38 @@ namespace Project.ColorHunt
             }
         }
 
-        /// <summary>renkAviFaz.ts pasIlerletB: rise linearly over the takeoff, the arc over the rise, then over the target the hang dives to 0.</summary>
+        /// <summary>
+        /// renkAviFaz.ts pasIlerletB (Pota 4052db9): the takeoff rises to yuksel easing out; the flight window (sure − kalkış − asılı) is the arc
+        /// (its first 1 − dalis: smoothstep path, yuksel + sin(πo)·kavis) and the dive (the last dalis); the hang over the target sits between.
+        /// </summary>
         private void StepB(Flight f)
         {
             var b = _s.PassLookB;
-            float takeoff = b.Timing.Takeoff, end = f.Duration - b.Timing.Hang;
+            float takeoff = b.Timing.Takeoff, hang = b.Timing.Hang;
             f.Turn = f.T * b.Spin;
-            if (!f.HasTarget || f.T < takeoff) f.Lift = b.Rise * Mathf.Min(1f, f.T / takeoff);
-            else if (f.T < end)
+            if (!f.HasTarget || f.T < takeoff)
             {
-                float o = (f.T - takeoff) / Mathf.Max(1e-3f, end - takeoff);
-                f.Pos = f.From + (f.To - f.From) * o;
+                float u = Mathf.Min(1f, f.T / takeoff);
+                f.Lift = b.Rise * u * (2f - u);
+                return;
+            }
+            float window = Mathf.Max(1e-3f, f.Duration - takeoff - hang);
+            float arcEnd = takeoff + window * (1f - b.Dive), hangEnd = arcEnd + hang;
+            if (f.T < arcEnd)
+            {
+                float o = (f.T - takeoff) / Mathf.Max(1e-3f, arcEnd - takeoff), e = o * o * (3f - 2f * o);
+                f.Pos = f.From + (f.To - f.From) * e;
                 f.Lift = b.Rise + Mathf.Sin(Mathf.PI * o) * b.Arc;
+                return;
             }
-            else
-            {
-                f.Pos = f.To;
-                f.Lift = b.Rise * (1f - Mathf.Min(1f, (f.T - end) / Mathf.Max(1e-3f, b.Timing.Hang)));
-            }
+            f.Pos = f.To;
+            float d = f.T < hangEnd ? 0f : Mathf.Min(1f, (f.T - hangEnd) / Mathf.Max(1e-3f, f.Duration - hangEnd));
+            f.Lift = b.Rise * (1f - d * d);
         }
+
+        /// <summary>renkAviFaz.ts pasPervaneAcisi: the propeller spins up linearly over the takeoff (angle w·t²/2k), then turns at w.</summary>
+        public static float PropellerAngle(float t, float w, float takeoff) =>
+            t < takeoff ? w * t * t / (2f * Mathf.Max(1e-3f, takeoff)) : w * (t - takeoff * 0.5f);
 
         /// <summary>Writes the flight onto its block (A) or its model (B): position, lift toward the camera, turn.</summary>
         private void Place(Flight f)
@@ -300,7 +317,8 @@ namespace Project.ColorHunt
             if (f.Model == null) return;
             f.Model.Root.localPosition = new Vector3(f.Pos.x, f.Pos.y, -f.Lift);
             f.Model.Root.localRotation = Quaternion.Euler(-_s.PassLookB.Tilt, 0f, 0f) * Quaternion.Euler(0f, f.Turn * 0.2f * Mathf.Rad2Deg, 0f);
-            if (f.Model.Propeller != null) f.Model.Propeller.localRotation = Quaternion.Euler(0f, f.T * _s.PassLookB.Propeller * Mathf.Rad2Deg, 0f);
+            if (f.Model.Propeller != null)
+                f.Model.Propeller.localRotation = Quaternion.Euler(0f, PropellerAngle(f.T, _s.PassLookB.Propeller, _s.PassLookB.Timing.Takeoff) * Mathf.Rad2Deg, 0f);
         }
 
         /// <summary>renkAviFaz.ts pasBitti / pasVurdu: a white flash, the shake and carpma at the target (B: + the dust ring); no target: a puff.</summary>

@@ -79,25 +79,40 @@ namespace Project.Tests
             yield return Load(d => demo = d);
             demo.SetLook(SpecialLook.Royal);
             demo.SetPassLook(pass);
-            int landFrame = -1, bombFrame = -1;
-            float launch = -1f, land = -1f;
-            void Landed(int c, int t) { landFrame = Time.frameCount; land = Time.time; }
+            int landFrame = -1, bombFrame = -1, launchFrame = -1;
+            bool done = false;
+            void Landed(int c, int t) => landFrame = Time.frameCount;
             void Fired(SpecialFire f)
             {
                 if (f.Kind == SpecialKind.Bomb) bombFrame = Time.frameCount;
-                if (f.Kind == SpecialKind.Pass) launch = Time.time;
+                if (f.Kind == SpecialKind.Pass) launchFrame = Time.frameCount;
             }
-            demo.Game.PassLanded += Landed;
-            demo.Game.SpecialFired += Fired;
-            yield return PlayToTheEnd(demo, SpecialScenario.PassBomb);
-            demo.Game.PassLanded -= Landed;
-            demo.Game.SpecialFired -= Fired;
+            void Done() => done = true;
+            var game = demo.Game;
+            game.PassLanded += Landed;
+            game.SpecialFired += Fired;
+            demo.ScenarioFinished += Done;
+            demo.Play(SpecialScenario.PassBomb, true);
+            // The game's own clock: Time.deltaTime clamped at 0.05 (ColorHuntGame.Update), at the game's time scale — a slow editor
+            // stretches Time.time but not this. The flight ticks from the frame after its launch up to the landing frame.
+            float flight = 0f, waited = 0f;
+            while (!done && waited < 25f)
+            {
+                yield return null;
+                waited += Time.unscaledDeltaTime;
+                int f = Time.frameCount;
+                if (launchFrame >= 0 && f > launchFrame && (landFrame < 0 || f == landFrame)) flight += Mathf.Min(Time.deltaTime, 0.05f);
+            }
+            game.PassLanded -= Landed;
+            game.SpecialFired -= Fired;
+            demo.ScenarioFinished -= Done;
+            Assert.IsTrue(done, "PassBomb never finished");
             Assert.GreaterOrEqual(landFrame, 0, "the ball landed");
             Assert.AreEqual(landFrame, bombFrame, "the bomb fires the frame the ball lands — never before (altinBomba)");
             var timing = pass == PassLook.A ? PassTiming.A : PassTiming.B;
-            Assert.AreEqual(timing.Arrival(7, 29, 19), land - launch, 0.12f, "the flight lasts pasVarisi (game time; frames and hit-stops blur it)");
-            Assert.AreEqual(1, demo.Game.Board.BombTarget, "the bomb target counted the bomb once");
-            AssertSettled(demo.Game, $"passBomb/{pass}");
+            Assert.AreEqual(timing.Arrival(7, 29, 19), flight, 0.1f, "the flight lasts pasVarisi on the game's clock (± a frame and the fire's hit-stop)");
+            Assert.AreEqual(1, game.Board.BombTarget, "the bomb target counted the bomb once");
+            AssertSettled(game, $"passBomb/{pass}");
         }
 
         [UnityTest]

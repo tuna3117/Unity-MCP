@@ -360,6 +360,16 @@ namespace Project.Tests
         }
 
         [Test]
+        public void Propeller_SpinsUpOverTheTakeoff_ThenTurnsAtPervane()
+        {
+            // renkAviFaz.ts pasPervaneAcisi: t < k ? w·t²/2k : w·(t − k/2), w = 40 rad/s, k = PAS_ZAMANLAMA_B.pasKalkis 0.2
+            Assert.AreEqual(0f, PassFlight.PropellerAngle(0f, 40f, 0.2f), 1e-5f);
+            Assert.AreEqual(1f, PassFlight.PropellerAngle(0.1f, 40f, 0.2f), 1e-5f);
+            Assert.AreEqual(4f, PassFlight.PropellerAngle(0.2f, 40f, 0.2f), 1e-5f, "continuous at the end of the takeoff");
+            Assert.AreEqual(8f, PassFlight.PropellerAngle(0.3f, 40f, 0.2f), 1e-5f);
+        }
+
+        [Test]
         public void PassArrival_IsPotasPasVarisi()
         {
             // ozelPlan.ts pasVarisi: kalkış + clamp(öklid / hız, enAz, enÇok) + asılı. A: 0.1 + [0.2, 0.45] (14 cells/s); B: 0.2 + [0.25, 0.5] (12) + 0.08.
