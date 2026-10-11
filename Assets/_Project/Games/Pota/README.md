@@ -194,7 +194,8 @@ Tasarım `docs/superpowers/specs/2026-10-01-colorhunt-special-balls-fx-design.md
 - **Görünüm seçimi:** `ColorHuntSettings.SpecialLook` = Pota / Royal (1) / Court (2); kod `Scripts/ColorHunt/Specials/`
   (`ISpecialStyle`, `SpecialSchedule`, `GoldenPath`, `PotaSpecials`, `RoyalSpecials`, `CourtSpecials`, `GateRings`).
 - **Vitrin:** `Scenes/Specials.unity` (`ai_specials_build_scene`): senaryo düğmeleri (Doğuş, Çizgi, Bomba, Zincir, Altın, Serbest,
-  Bekleme), görünüm düğmeleri (Pota | 1 | 2), Tekrar, bekleme düğmeleri (Görünüm · A–E, 2026-10-07).
+  Bekleme, Pas, Pas→B), görünüm düğmeleri (Pota | 1 | 2), Tekrar, bekleme düğmeleri (Görünüm · A–E, 2026-10-07), pas satırı (A Pas · B
+  Pervane, 2026-10-11).
 - **Blender varlıkları:** `vfx-fire-toon`, `vfx-flame-jet`, `vfx-dust-ring`, `vfx-speed-lines`, `vfx-floor-crack`, `vfx-letter-*`,
   `vfx-ball-halves`, `vfx-bomb-shell`, `vfx-coin`, `vfx-basketball` → `Art/VFX/<id>/` (`ai_studio_import`).
 - **Kayıt:** `ai_colorhunt_record` `{"scene":"Specials","scenario":...,"special_look":...}` (`scenario` birth/line/bomb/chain/golden,
@@ -227,6 +228,39 @@ rapor `docs/reports/2026-10-07-idle-alternatives-report.md`. Pota'ya dokunulmad�
   (`special_idle` look/breath(a)/glint(b)/rim(c)/twinkle(d)/sway(e), kayıttan sonra eskisine döner; `idle` 6 sn, odak 24; `closeup`
   olmadan verilen `zoom` normal hızda yaklaştırır). Levha `Tools/frame_sheet.py … --transpose` (seçenekler sütunda), video `seq_video.py`.
 - **Teslim:** `docs/screenshots/2026-10-07-idle-alternatives-{sheet.jpg,.mp4}`.
+
+### Pas topu: 2×2 kare → pervane, iki görünüm (2026-10-11)
+
+Pota'nın `pas-topu` dalı (spec `~/projects/Pota-pas/docs/superpowers/specs/2026-10-11-pas-topu-design.md`, Task 9): 2×2 aynı renk kare
+bir eşleşmedir ve **pas topu** doğurur; dokununca (bedava) ya da zincirde ateşlenince TEK bir hedefe uçar ve onu altın vuruşu gibi kırar.
+Unity'de iki koreografi var, Tuna seçecek; seçilenin sayıları Pota'ya satır satır gider.
+
+- **Kurallar** (`ColorHuntRules.Specials.cs`, `ColorHuntRules.cs`): `SpecialKind.Pass = 5`, `Features.Pass` (`Features.Full` = Pota
+  `OZELLIK_TAM`; `Features.All` pas'sız kalır = `OZELLIK_HEPSI`), `FindSquares`, koşu + kare grupları (`GroupShapes`), öncelik altın >
+  bomba (yalnız koşular kesişirse) > çizgi > pas (en alttaki karenin sol-alt hücresi), `PassTarget` (hedefte olan önce, bütün tahta,
+  Chebyshev, indeks; yoksa en yakın normal blok; altın asla), adımın patlamalarından SONRA pas dalgaları (`FlyPasses`: normal blok
+  patlar, özel ateşlenir, alanındaki pas bir sonraki dalgada uçar), `Step.Passes` (`PassHit {Cell, Target}`), `Create` pas açıkken kare
+  reddeder. Pota'nın bomba/çizgi hedefleri `Board.BombTarget` / `LineTarget` (HUD'da yok; pas onlara uçar, tetiklenen sayılır).
+  Engeller (file/buz/hakem) ve Pota'nın yeni altını (doğunca vurur) Unity'de hâlâ yok (U25): pas açık replay'lerde altın kapalı.
+- **Altın kayıt:** `Tools/potalook/pass_fixtures.ts` Pota'nın kendi `src/renkAvi.ts`'iyle `Tests/EditMode/Fixtures/pass-rules.json`
+  yazar (11 eşleşme tahtası, 7 dokunuş tahtası, 5 dağıtım, pas açık 8 rastgele oyun, iki senaryo); `PassRulesTests` her adımı alan
+  alan karşılaştırır (patlayan, tetiklenen sırası, pas vuruşları, doğum, düşüş, dolum, rng, hedef). Pota kuralı değişirse betiği yeniden
+  koş (başlığındaki komut), json'u commit'le.
+- **Plan** (`SpecialSchedule`, Pota `ozelPlani`): pasın vurduğu özel planın KÖKÜ olur, top vardığı an ateşlenir (sıkışmaz); normal
+  hedef şişmez, varışta patlar (`TriggerPlan.Hits`). Varış = `PassTiming.Arrival` (Pota `pasVarisi`). Görünüm aynı saatle uçar:
+  `PassFlight.Tick` oyunun işlerinden önce çağrılır, top hedefin patladığı karede iner ("varış = ateş aynı kare", `PassPlayTests`).
+- **Görünümler** (`ColorHuntSettings.PassLook`, oyunda `ColorHuntGame.SetPassLook`, kod `Specials/PassFlight.cs`, sayılar
+  `PassLookA` / `PassLookB`): **A Pas** — topun kendi bloğu (gök mavisi + `Art/Specials/pas-topu-a.png`, Pota'nın a2 ikonu) kalkışta
+  zıplar ve döner, alçak kavisle uçar, hız çizgileri, varışta flaş + sarsıntı + `carpma`. **B Pervane** — blok gizlenir, Blender
+  `pass_ball` (`Art/VFX/pas-topu`, Basketball 960 + Propeller 96 üçgen, toon + mürekkep) yumuşakça yükselir, pervane kalkışta 40 rad/sn'ye
+  hızlanır, yüksek kavis (yol smoothstep), hedefin üstünde asılı kalıp hızlanarak dalar, toz halkası — Pota'nın `pasIlerletB`'si birebir
+  (4052db9). Top kameraya 0,9 rad (51,6°) eğik (`PassLookB.Tilt` = Pota `PAS_EGIM`; eğimsiz pervane kameradan bıçak gibi ince görünüyor).
+  Kalkışta `pas` sesi (Court'un "vıııt"u), inişte `carpma`.
+- **Vitrin:** Specials sahnesinde senaryo düğmeleri **Pas** (dokunuş → kare → Royal doğuş → 1 sn bekleme → pasa dokunuş → uçuş →
+  çarpma) ve **Pas→B** (pas + uzakta bomba, yalnız bomba hedefi: bomba VARIŞTA patlar); yeni satır "Pas: A Pas · B Pervane".
+- **Kayıt:** `Tools/potalook/record_unity.sh pas-a-pass '{"scene":"Specials","scenario":"pass","pass_look":"a","special_look":"royal",
+  "special_idle":"breath","closeup":true,"zoom":2.0}'` (`passBomb`: `zoom` 1.25); işaretler `tap, born, tap2, fire, hit, fire2, finish`.
+  Kareler `Temp/record/pas-{a,b}-{pass,passBomb}`, levha `docs/screenshots/2026-10-11-pas-ab.jpg`.
 
 ## Oyun içi his katmanı (2026-10-03)
 
