@@ -15,6 +15,7 @@ Options:
   --url URL       MCP endpoint (default: http://localhost:8080/mcp, env UNITY_MCP_URL)
   --out DIR       where to save image results (default: ./Temp/mcp_out)
   --timeout SEC   per-call timeout in seconds (default: 300)
+  --instance NAME  route call/read/list to the editor of this project folder (pins the session with set_active_instance; the instances resource and describe are global) (default: this repo's folder name, env UNITY_MCP_PROJECT; '-' = no routing)
 """
 import argparse
 import asyncio
@@ -43,8 +44,58 @@ def _print_text(text):
         print(text)
 
 
+def pick_instance(doc, name):
+    """Name@hash of the connected editor whose project folder is `name`.
+
+    The bridge serves every open Unity editor on one URL and needs `unity_instance` (Name@hash) on each tool call once
+    two are connected. A call from this repo must never land in another project's editor, so a missing match is an
+    error even when only one (other) editor is connected.
+    """
+    instances = doc.get("instances") or (doc.get("data") or {}).get("instances") or []
+    for inst in instances:
+        if inst.get("name") == name:
+            if inst.get("id"):
+                return inst["id"]
+            if inst.get("hash"):
+                return f"{inst['name']}@{inst['hash']}"
+    names = [i.get("name") for i in instances]
+    raise SystemExit(f"[mcp_call] no Unity editor for project '{name}' (connected: {names}); run Tools/unity_up.sh")
+
+
+INSTANCES_URI = "mcpforunity://instances"
+
+
+def routing_plan(cmd, uri, instance):
+    """True when this command must first find this project's editor and pin the session to it.
+
+    `describe` only lists the server's tool schemas (the same for every editor) and the instances resource is global,
+    so neither is routed; `call`, `read` and `list` are, unless routing is off (instance '-').
+    """
+    if not instance or instance == "-":
+        return False
+    if cmd == "describe":
+        return False
+    if cmd == "read" and uri == INSTANCES_URI:
+        return False
+    return cmd in ("call", "read", "list")
+
+
+async def _pin(client, instance):
+    """Looks up this project's editor and pins the session to it (set_active_instance); returns its Name@hash."""
+    listing = await client.read_resource(INSTANCES_URI)
+    text = next((getattr(b, "text", None) for b in (getattr(listing, "contents", None) or []) if getattr(b, "text", None)), "{}")
+    inst = pick_instance(json.loads(text), instance)
+    res = await client.call_tool("set_active_instance", {"instance": inst})
+    if getattr(res, "is_error", None) or getattr(res, "isError", False):
+        raise SystemExit(f"[mcp_call] set_active_instance failed for {inst}: {[getattr(b, 'text', b) for b in res.content or []]}")
+    return inst
+
+
 async def _run(ns):
     async with Client(ns.url, read_timeout_seconds=ns.timeout) as client:
+        pinned = None
+        if routing_plan(ns.cmd, getattr(ns, "uri", None), ns.instance):
+            pinned = await _pin(client, ns.instance)
         if ns.cmd == "list":
             res = await client.list_tools()
             tools = getattr(res, "tools", res)
@@ -76,7 +127,10 @@ async def _run(ns):
                     print(repr(block))
             return 0
 
-        result = await client.call_tool(ns.tool, _load_args(ns.args), read_timeout_seconds=ns.timeout)
+        args = _load_args(ns.args)
+        if pinned and "unity_instance" not in args:
+            args["unity_instance"] = pinned
+        result = await client.call_tool(ns.tool, args, read_timeout_seconds=ns.timeout)
         os.makedirs(ns.out, exist_ok=True)
         had_text = False
         for i, block in enumerate(result.content or []):
@@ -107,6 +161,8 @@ def main():
     p.add_argument("--url", default=os.environ.get("UNITY_MCP_URL", "http://localhost:8080/mcp"))
     p.add_argument("--out", default="Temp/mcp_out")
     p.add_argument("--timeout", type=float, default=300)
+    default_instance = os.environ.get("UNITY_MCP_PROJECT") or os.path.basename(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    p.add_argument("--instance", default=default_instance)
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list")
     d = sub.add_parser("describe")
