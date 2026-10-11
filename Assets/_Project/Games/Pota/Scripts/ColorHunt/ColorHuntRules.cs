@@ -54,6 +54,8 @@ namespace Project.ColorHunt
         public readonly List<BasketDrop> ToBasket = new List<BasketDrop>();
         /// <summary>Gate columns opened this step (Pota acilan), in opening order.</summary>
         public readonly List<int> Opened = new List<int>();
+        /// <summary>Pass balls that flew in this step (Pota pasTopu), in firing order: each ball's cell and the cell it hit (−1: none).</summary>
+        public readonly List<PassHit> Passes = new List<PassHit>();
     }
 
     public class Match
@@ -96,6 +98,10 @@ namespace Project.ColorHunt
         public List<int> Gates = new List<int>();
         /// <summary>Golden balls that went into the basket (Pota altin).</summary>
         public int Golden;
+        /// <summary>Pota's "bomba" target: bombs still to fire (0 = none). Only the pass ball reads it so far (it flies to a bomb in a target).</summary>
+        public int BombTarget;
+        /// <summary>Pota's "cizgi" target: line balls still to fire (0 = none).</summary>
+        public int LineTarget;
 
         public Board Clone()
         {
@@ -112,6 +118,8 @@ namespace Project.ColorHunt
                 Features = Features,
                 Gates = Gates != null ? new List<int>(Gates) : new List<int>(),
                 Golden = Golden,
+                BombTarget = BombTarget,
+                LineTarget = LineTarget,
             };
         }
     }
@@ -200,14 +208,19 @@ namespace Project.ColorHunt
 
         // ---------- setup ----------
 
-        private static bool MakesTriple(List<Block> cells, int n, int r, int c, int color)
+        /// <summary>Pota eslesmeYapar: the colour would close a triple to the left or above, or (square) a 2×2 with its left, upper and upper-left neighbours.</summary>
+        private static bool MakesMatch(List<Block> cells, int n, int r, int c, int color, bool square)
         {
             if (c >= 2 && cells[Index(n, r, c - 1)].Color == color && cells[Index(n, r, c - 2)].Color == color) return true;
             if (r >= 2 && cells[Index(n, r - 1, c)].Color == color && cells[Index(n, r - 2, c)].Color == color) return true;
-            return false;
+            return square && r >= 1 && c >= 1 && cells[Index(n, r, c - 1)].Color == color && cells[Index(n, r - 1, c)].Color == color
+                   && cells[Index(n, r - 1, c - 1)].Color == color;
         }
 
-        /// <summary>Fills the board without triples (pairs allowed); with 3+ colours there is always a way out. No gates yet.</summary>
+        /// <summary>
+        /// Fills the board without triples (pairs allowed) and, on a Pass level, without 2×2 squares (Pota tahtaKur kareYok); with 3+ colours
+        /// there is always a way out. Without Pass the rng use is exactly the old one. No gates yet.
+        /// </summary>
         public static Board Create(LevelDesign d, int ammo, uint seed)
         {
             int n = d.Size;
@@ -221,7 +234,7 @@ namespace Project.ColorHunt
                     for (int attempt = 0; attempt < 32; attempt++)
                     {
                         rng = NextInt(rng, 0, d.ColorCount - 1, out color);
-                        if (!MakesTriple(cells, n, r, c, color)) break;
+                        if (!MakesMatch(cells, n, r, c, color, d.Features.Pass)) break;
                     }
                     rng = NextInt(rng, d.HpMin, d.HpMax, out int hp);
                     cells.Add(new Block(color, hp));
@@ -264,8 +277,9 @@ namespace Project.ColorHunt
         /// going <paramref name="toBasket"/>, puts the <paramref name="born"/> specials in their cells, closes the gate of a basket
         /// column that has no free golden ball left, opens one random gate-less column per newly born golden ball while free
         /// golden balls outnumber the open gates (these rng draws come BEFORE the refill), collapses the columns and refills them
-        /// from the top. <paramref name="b"/> is never changed. Triggered specials and basket drops count for no target here
-        /// (Pota's bomb/line/golden targets are U25).
+        /// from the top. <paramref name="b"/> is never changed. A triggered bomb / line ball counts for the bomb / line target (Pota hedefDus;
+        /// 0 on every board but the pass ball's); basket drops count for nothing (Pota's golden target is U25). Fired pass balls fly after the
+        /// births (<see cref="FlyPasses"/>, spec 2026-10-11 §1.4): their hits join the step's explosions and triggers.
         /// </summary>
         private static Board ExplodeAndFill(Board b, List<int> exploded, List<Born> born, List<BasketDrop> toBasket,
                                             List<Trigger> triggered, out Step step)
@@ -282,11 +296,32 @@ namespace Project.ColorHunt
                 CountTarget(result, temp[i].Value.Color);
                 temp[i] = null;
             }
-            if (triggered != null) step.Triggered.AddRange(triggered);
+            if (triggered != null)
+            {
+                step.Triggered.AddRange(triggered);
+                foreach (var t in triggered) CountSpecialTarget(result, t.Kind);
+            }
             if (toBasket != null)
                 foreach (var d in toBasket) { temp[d.Cell] = null; step.ToBasket.Add(d); }
             if (born != null)
                 foreach (var d in born) { temp[d.Cell] = Block.MakeSpecial(d.Kind); step.Born.Add(d); }
+            var passes = new List<int>();
+            if (triggered != null) foreach (var t in triggered) if (t.Kind == SpecialKind.Pass) passes.Add(t.Cell);
+            if (passes.Count > 0)
+            {
+                var exclude = new HashSet<int>(exploded);
+                if (born != null) foreach (var d in born) exclude.Add(d.Cell);
+                var fired = new List<Trigger>();
+                var added = FlyPasses(result, temp, passes, exclude, step.Passes, fired);
+                step.Triggered.AddRange(fired);                  // Pota: [...tetiklenen, ...tetiklenenEk]
+                if (added.Count > 0)
+                {
+                    var all = new SortedSet<int>(step.Exploded);
+                    foreach (int i in added) all.Add(i);
+                    step.Exploded.Clear();
+                    step.Exploded.AddRange(all);
+                }
+            }
             uint rng = b.Rng;
             var gates = new List<int>();
             foreach (int c in b.Gates)
@@ -383,7 +418,8 @@ namespace Project.ColorHunt
         }
 
         /// <summary>
-        /// The game's only move: tap a block (Pota kir). A line or a bomb fires for free (its <see cref="Blast"/> area). A normal
+        /// The game's only move: tap a block (Pota kir). A line, a bomb or a pass ball fires for free (its <see cref="Blast"/> area; a pass ball
+        /// then flies to its target, <see cref="FlyPasses"/>). A normal
         /// block costs its hp: if ammo covers it the block goes, ammo drops, the column collapses, new blocks fall in and chains
         /// resolve; otherwise the SAME board comes back (Insufficient). A golden ball does nothing (Golden, same board).
         /// </summary>
@@ -422,7 +458,7 @@ namespace Project.ColorHunt
         public static bool Won(Board b)
         {
             foreach (var t in b.Targets) if (t.Remaining > 0) return false;
-            return true;
+            return b.BombTarget <= 0 && b.LineTarget <= 0;
         }
 
         /// <summary>Pota enUcuz: the cheapest NORMAL block; specials (hp 0) do not count. int.MaxValue when only specials remain.</summary>
@@ -433,7 +469,7 @@ namespace Project.ColorHunt
             return min;
         }
 
-        /// <summary>Pota hamleVar: a line or a bomb can always be fired (free); otherwise ammo must cover the cheapest block.</summary>
+        /// <summary>Pota hamleVar: a line, a bomb or a pass ball can always be fired (free); otherwise ammo must cover the cheapest block.</summary>
         public static bool HasMove(Board b)
         {
             foreach (var c in b.Cells) if (c.IsSpecial && c.Special != SpecialKind.Golden) return true;
@@ -444,7 +480,7 @@ namespace Project.ColorHunt
         {
             int sum = 0;
             foreach (var t in b.Targets) sum += Math.Max(0, t.Remaining);
-            return sum;
+            return sum + Math.Max(0, b.BombTarget) + Math.Max(0, b.LineTarget);
         }
     }
 }

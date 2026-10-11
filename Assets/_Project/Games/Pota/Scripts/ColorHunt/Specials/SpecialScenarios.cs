@@ -1,6 +1,6 @@
 namespace Project.ColorHunt
 {
-    public enum SpecialScenario { Birth, Line, Bomb, Chain, Golden, Free, Idle }
+    public enum SpecialScenario { Birth, Line, Bomb, Chain, Golden, Free, Idle, Pass, PassBomb }
 
     /// <summary>A hand-authored board (the demo's scenarios, tests): turned into a Board by ColorHuntRules.FromPreset.</summary>
     public sealed class BoardPreset
@@ -19,6 +19,8 @@ namespace Project.ColorHunt
         public Features Features = Features.All;
         public uint Rng = 1;
         public (int color, int count)[] Targets = { (0, 22), (1, 16) };
+        /// <summary>Pota's "bomba" / "cizgi" targets (0 = none): the pass ball flies to a bomb / line ball while one is in a target.</summary>
+        public int BombTarget, LineTarget;
     }
 
     /// <summary>
@@ -125,6 +127,44 @@ namespace Project.ColorHunt
         /// <summary>The Bekleme board's centre cell (3, 3): the idle recordings zoom on it.</summary>
         public const int IdleFocus = 24;
 
+        /// <summary>
+        /// Pas (Pota spec 2026-10-11): tap 31 (4, 3) — the 2 above drops in and closes a 2×2 of 2s at rows 4–5, cols 2–3 (nothing else lines
+        /// up) → a pass ball at its bottom-left (5, 2) = 37 (Royal: the other three gather into it). It rests a second, then the tap on it:
+        /// the target is colour 2 (one target only, so the flight is not to a neighbour) and the nearest 2 is (3, 1) = 22, √5 cells away.
+        /// Then a refill chain in column 2. Pinned against Pota by PassRulesTests (Scenario_pass).
+        /// </summary>
+        private static readonly int[] PassGrid =
+        {
+            0, 1, 2, 3, 4, 0, 1,
+            2, 3, 4, 0, 1, 2, 3,
+            4, 0, 1, 3, 3, 4, 0,
+            1, 2, 3, 2, 0, 1, 2,
+            3, 4, 2, 1, 0, 3, 4,
+            0, 1, 2, 2, 4, 0, 1,
+            2, 3, 4, 0, 1, 2, 3,
+        };
+
+        /// <summary>
+        /// Pas→Bomba: a pass ball at (4, 1) = 29, a bomb at (2, 5) = 19, and only a bomb target (2): the pass flies √20 cells to the bomb, which
+        /// bursts its 3×3 the moment the ball lands (its plan root is the arrival). Pinned by PassRulesTests (Scenario_passBomb).
+        /// </summary>
+        private static readonly int[] PassBombGrid =
+        {
+             0,  1,  2,  3,  4,  0,  1,
+             2,  3,  4,  0,  1,  2,  3,
+             4,  0,  1,  2,  3, -1,  0,
+             1,  2,  3,  4,  0,  1,  2,
+             3, -1,  0,  1,  2,  3,  4,
+             0,  1,  2,  3,  4,  0,  1,
+             2,  3,  4,  0,  1,  2,  3,
+        };
+
+        /// <summary>The close-up cell of a scenario (the recorder's default focus): Pas between the square and the flight, Pas→Bomba mid-flight; −1 = its first tap.</summary>
+        public static int Focus(SpecialScenario s) => s == SpecialScenario.Pass ? 30 : s == SpecialScenario.PassBomb ? 24 : s == SpecialScenario.Idle ? IdleFocus : -1;
+
+        /// <summary>Game seconds the demo waits on a settled board before a scripted tap: Pas rests its newborn ball a second (spec §4 "bekleme 1 sn").</summary>
+        public static float Beat(SpecialScenario s, float beat) => s == SpecialScenario.Pass ? 1f : beat;
+
         public static string Title(SpecialScenario s)
         {
             switch (s)
@@ -135,6 +175,8 @@ namespace Project.ColorHunt
                 case SpecialScenario.Chain: return "Zincir";
                 case SpecialScenario.Golden: return "Altın";
                 case SpecialScenario.Idle: return "Bekleme";
+                case SpecialScenario.Pass: return "Pas";
+                case SpecialScenario.PassBomb: return "Pas→Bomba";
                 default: return "Serbest";
             }
         }
@@ -150,6 +192,21 @@ namespace Project.ColorHunt
                 case SpecialScenario.Chain: return Preset(ChainGrid, new int[0], (21, SpecialKind.LineH), (25, SpecialKind.Bomb), (19, SpecialKind.LineV));
                 case SpecialScenario.Golden: return Preset(GoldenGrid, new[] { 3, 5 }, (38, SpecialKind.Golden), (47, SpecialKind.Golden));
                 case SpecialScenario.Idle: return Preset(IdleGrid, new[] { 3 }, (23, SpecialKind.Bomb), (25, SpecialKind.LineV), (17, SpecialKind.Golden), (31, SpecialKind.LineH));
+                case SpecialScenario.Pass:
+                {
+                    var p = Preset(PassGrid, new int[0]);
+                    p.Features = Features.Full;
+                    p.Targets = new[] { (2, 12) };
+                    return p;
+                }
+                case SpecialScenario.PassBomb:
+                {
+                    var p = Preset(PassBombGrid, new int[0], (29, SpecialKind.Pass), (19, SpecialKind.Bomb));
+                    p.Features = Features.Full;
+                    p.Targets = new (int, int)[0];
+                    p.BombTarget = 2;
+                    return p;
+                }
                 default: return Preset(FreeGrid, new[] { 4 }, (8, SpecialKind.LineV), (18, SpecialKind.Golden), (24, SpecialKind.Bomb), (40, SpecialKind.LineH));
             }
         }
@@ -164,6 +221,8 @@ namespace Project.ColorHunt
                 case SpecialScenario.Bomb: return new[] { 24, 48 };
                 case SpecialScenario.Chain: return new[] { 21 };
                 case SpecialScenario.Golden: return new[] { 45 };
+                case SpecialScenario.Pass: return new[] { 31, 37 };
+                case SpecialScenario.PassBomb: return new[] { 29 };
                 default: return new int[0];
             }
         }

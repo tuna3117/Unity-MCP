@@ -87,6 +87,11 @@ namespace Project.ColorHunt
         public float End;
         /// <summary>1, or the factor every start and fire was scaled by so the step fits <see cref="SpecialSchedule.MaxStep"/>.</summary>
         public float Pace = 1f;
+        /// <summary>
+        /// Normal blocks a pass ball hits (spec 2026-10-11 §3) → seconds from the step's start to the ball's landing: they do not swell, they
+        /// burst at the hit (Pota: baslangic = varış). A special a pass ball hits is a root of the plan instead: it fires at the landing.
+        /// </summary>
+        public readonly Dictionary<int, float> Hits = new Dictionary<int, float>();
     }
 
     /// <summary>A golden ball's way from its cell through its gate into the hoop, game-root local (renkAviFaz.ts altinlariIlerlet).</summary>
@@ -127,10 +132,10 @@ namespace Project.ColorHunt
     /// <summary>Pota's own words for specials (src/dil.ts, tr). Pota says "ÇİZGİ TOPU!" for the line ball.</summary>
     public static class SpecialTexts
     {
-        public const string Line = "ÇİZGİ TOPU!", Bomb = "BOMBA!", Golden = "ALTIN TOP!";
+        public const string Line = "ÇİZGİ TOPU!", Bomb = "BOMBA!", Golden = "ALTIN TOP!", Pass = "PAS TOPU!";
         /// <summary>dokun → "altin": the golden ball cannot be tapped away.</summary>
         public const string GoldenTap = "Altın top geçişten sepete inmeli";
 
-        public static string Born(SpecialKind k) => k == SpecialKind.Golden ? Golden : k == SpecialKind.Bomb ? Bomb : Line;
+        public static string Born(SpecialKind k) => k == SpecialKind.Golden ? Golden : k == SpecialKind.Bomb ? Bomb : k == SpecialKind.Pass ? Pass : Line;
     }
 }

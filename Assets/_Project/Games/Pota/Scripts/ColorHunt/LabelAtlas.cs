@@ -9,14 +9,18 @@ namespace Project.ColorHunt
     /// </summary>
     public static class LabelAtlas
     {
-        public const int Size = 2048, Columns = 11, CellPx = 186, Star = 99, ItemBase = 100, SpecialBase = 105;
+        public const int Size = 2048, Columns = 11, CellPx = 186, Star = 99, ItemBase = 100, SpecialBase = 105, PassCell = 111;
+
+        /// <summary>A whole sprite drawn like an atlas special ("payli"): the sprite fills the middle 88 % of the quad (clamped, padded art).</summary>
+        public static readonly Vector4 PaddedUv = new Vector4(-0.06f / 0.88f, -0.06f / 0.88f, 1f / 0.88f, 1f / 0.88f);
 
         /// <summary>rakamHucresi: min(99, max(1, n)) − 1.</summary>
         public static int NumberCell(int hp) => Mathf.Clamp(hp, 1, 99) - 1;
 
         public static int ItemCell(int color) => ItemBase + color;
 
-        /// <summary>HUCRE_OZEL: çizgi 105 (both lines; LineH turns the sticker 90°), bomba 106, altın 107. Drawn "payli" (88 %).</summary>
+        /// <summary>HUCRE_OZEL: çizgi 105 (both lines; LineH turns the sticker 90°), bomba 106, altın 107, pas topu 111 (Pota 2026-10-11; Unity's
+        /// exported atlas predates it: BlockView draws the pass ball from ColorHuntSettings.PassSprite). Drawn "payli" (88 %).</summary>
         public static int SpecialCell(SpecialKind k)
         {
             switch (k)
@@ -25,6 +29,7 @@ namespace Project.ColorHunt
                 case SpecialKind.LineH: return SpecialBase;
                 case SpecialKind.Bomb: return SpecialBase + 1;
                 case SpecialKind.Golden: return SpecialBase + 2;
+                case SpecialKind.Pass: return PassCell;
                 default: throw new ArgumentOutOfRangeException(nameof(k), k, "not a special ball");
             }
         }

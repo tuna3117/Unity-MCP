@@ -223,7 +223,7 @@ namespace Project.ColorHunt
         public const float GoldenPulseAmount = 0.08f;           // ozel.altinNabiz
         public const float GoldenPulseSpeed = 5f;               // ozel.altinHiz (rad/s)
 
-        /// <summary>yapbozSahne.ts OZEL_RENK_HEX: çizgi orange (both directions), bomba smoke, altın gold (sRGB).</summary>
+        /// <summary>yapbozSahne.ts OZEL_RENK_HEX: çizgi orange (both directions), bomba smoke, altın gold, pas topu sky blue (sRGB).</summary>
         public static uint SpecialHex(SpecialKind k)
         {
             switch (k)
@@ -232,6 +232,7 @@ namespace Project.ColorHunt
                 case SpecialKind.LineH: return 0xff8a2a;
                 case SpecialKind.Bomb: return 0x2a2d36;
                 case SpecialKind.Golden: return 0xffc93c;
+                case SpecialKind.Pass: return 0x3fb6e8;                 // pasTopu: sky blue (yapbozSahne.ts:87, 2026-10-11)
                 default: throw new System.ArgumentOutOfRangeException(nameof(k), k, "not a special ball");
             }
         }
