@@ -20,14 +20,18 @@ namespace Project.ColorHunt
     }
 
     /// <summary>
-    /// B "Pervane" (OZEL_AN.pasTopu.b, src/ozelAyar.ts:52; flight renkAviFaz.ts pasIlerletB / pasPervaneAcisi, efekt patlamaEfekt.ts
-    /// pasTopuGoster, Pota 4052db9): the Blender ball rises with its propeller spinning up, a high arc, hangs over the target, dives.
+    /// B "Pervane" (Tuna's pick 2026-10-12; OZEL_AN.pasTopu, src/ozelAyar.ts:58; flight renkAviFaz.ts pasUcur / pasBoyu / pasPervaneAcisi,
+    /// efekt patlamaEfekt.ts pasTopuGoster, Pota 6710483): the Blender ball rises with its propeller spinning up, a high arc (growing toward
+    /// its top), hangs over the target, dives onto the target's front face.
     /// </summary>
     [Serializable]
     public class PassTuningB
     {
         public PassTiming Timing = PassTiming.B;
-        [Tooltip("yuksel: cells toward the camera reached during the takeoff (ease-out u·(2 − u)); the hang stays there.")] public float Rise = 0.55f;
+        [Tooltip("yuksel: cells toward the camera reached during the takeoff (ease-out u·(2 − u)); the hang stays there.")] public float Rise = 1.3f;
+        [Tooltip("temas: the dive ends here (cells over the block centre): the block's front 0.45 + the ball's radius 0.45 — the ball touches the " +
+                 "target's face and never sinks into the cube.")] public float Contact = 0.9f;
+        [Tooltip("tepeOlcek: the ball's size at the top of the arc (Rise + Arc) × this, 1 at Contact, linear in the lift between (pasBoyu).")] public float PeakScale = 1.25f;
         [Tooltip("donus: rad/s; the ball turns about its own up axis at 0.2 × this (Pota pasTopuGoster(…, donme·0.2, …)).")] public float Spin = 9f;
         [Tooltip("pervane: the propeller's spin (rad/s), reached linearly over the takeoff (angle w·t²/2k, then w·(t − k/2)).")] public float Propeller = 40f;
         [Tooltip("kavis: the arc over the rise (cells, sin(π·o)).")] public float Arc = 1.6f;
@@ -271,8 +275,8 @@ namespace Project.ColorHunt
         }
 
         /// <summary>
-        /// renkAviFaz.ts pasIlerletB (Pota 4052db9): the takeoff rises to yuksel easing out; the flight window (sure − kalkış − asılı) is the arc
-        /// (its first 1 − dalis: smoothstep path, yuksel + sin(πo)·kavis) and the dive (the last dalis); the hang over the target sits between.
+        /// renkAviFaz.ts pasUcur (Pota 6710483): the takeoff rises to yuksel easing out; the flight window (sure − kalkış − asılı) is the arc
+        /// (its first 1 − dalis: smoothstep path, yuksel + sin(πo)·kavis) and the dive (the last dalis) down to temas; the hang sits between.
         /// </summary>
         private void StepB(Flight f)
         {
@@ -296,8 +300,12 @@ namespace Project.ColorHunt
             }
             f.Pos = f.To;
             float d = f.T < hangEnd ? 0f : Mathf.Min(1f, (f.T - hangEnd) / Mathf.Max(1e-3f, f.Duration - hangEnd));
-            f.Lift = b.Rise * (1f - d * d);
+            f.Lift = b.Contact + (b.Rise - b.Contact) * (1f - d * d);   // hang (d 0), then an accelerating dive onto the target's face
         }
+
+        /// <summary>renkAviFaz.ts pasBoyu: 1 at Contact, PeakScale at the top of the arc (Rise + Arc), linear in the lift between.</summary>
+        public static float SizeAt(float lift, PassTuningB b) =>
+            1f + (b.PeakScale - 1f) * Mathf.Clamp01((lift - b.Contact) / Mathf.Max(1e-3f, b.Rise + b.Arc - b.Contact));
 
         /// <summary>renkAviFaz.ts pasPervaneAcisi: the propeller spins up linearly over the takeoff (angle w·t²/2k), then turns at w.</summary>
         public static float PropellerAngle(float t, float w, float takeoff) =>
@@ -316,6 +324,7 @@ namespace Project.ColorHunt
             }
             if (f.Model == null) return;
             f.Model.Root.localPosition = new Vector3(f.Pos.x, f.Pos.y, -f.Lift);
+            f.Model.Root.localScale = Vector3.one * (_s.PassLookB.ModelScale * SizeAt(f.Lift, _s.PassLookB));
             f.Model.Root.localRotation = Quaternion.Euler(-_s.PassLookB.Tilt, 0f, 0f) * Quaternion.Euler(0f, f.Turn * 0.2f * Mathf.Rad2Deg, 0f);
             if (f.Model.Propeller != null)
                 f.Model.Propeller.localRotation = Quaternion.Euler(0f, PropellerAngle(f.T, _s.PassLookB.Propeller, _s.PassLookB.Timing.Takeoff) * Mathf.Rad2Deg, 0f);

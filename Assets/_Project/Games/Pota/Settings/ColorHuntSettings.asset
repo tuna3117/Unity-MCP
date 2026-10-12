@@ -104,7 +104,7 @@ MonoBehaviour:
     SwayHz: 0.5
     SwayDegrees: 5
     SwayBreath: 0.01
-  PassLook: 0
+  PassLook: 1
   PassLookA:
     Timing:
       Takeoff: 0.1
@@ -126,7 +126,9 @@ MonoBehaviour:
       MinFlight: 0.25
       MaxFlight: 0.5
       Hang: 0.08
-    Rise: 0.55
+    Rise: 1.3
+    Contact: 0.9
+    PeakScale: 1.25
     Spin: 9
     Propeller: 40
     Arc: 1.6

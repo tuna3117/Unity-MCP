@@ -381,5 +381,20 @@ namespace Project.Tests
             Assert.AreEqual(0.2f + Mathf.Sqrt(20f) / 12f + 0.08f, b.Arrival(7, 29, 19), 1e-5f);
             Assert.AreEqual(0.1f + 0.45f, a.Arrival(7, 0, 48), 1e-5f, "long flights are clipped");
         }
+
+        [Test]
+        public void LookB_HasPotasFinalShape_AndGrowsTowardTheArcTop()
+        {
+            // Pota OZEL_AN.pasTopu (6710483): yuksel 1.3, temas 0.9, tepeOlcek 1.25; renkAviFaz.ts pasBoyu: 1 at temas, tepeOlcek at yuksel + kavis.
+            var b = new PassTuningB();
+            Assert.AreEqual(1.3f, b.Rise, 1e-6f);
+            Assert.AreEqual(0.9f, b.Contact, 1e-6f);
+            Assert.AreEqual(1.25f, b.PeakScale, 1e-6f);
+            Assert.AreEqual(1f, PassFlight.SizeAt(b.Contact, b), 1e-5f, "1 where the ball touches the target's face");
+            Assert.AreEqual(b.PeakScale, PassFlight.SizeAt(b.Rise + b.Arc, b), 1e-5f, "tepeOlcek at the top of the arc");
+            Assert.AreEqual(1f + (b.PeakScale - 1f) * 0.5f, PassFlight.SizeAt((b.Contact + b.Rise + b.Arc) * 0.5f, b), 1e-5f, "linear between");
+            Assert.AreEqual(1f, PassFlight.SizeAt(0f, b), 1e-5f, "never below 1");
+            Assert.AreEqual(b.PeakScale, PassFlight.SizeAt(10f, b), 1e-5f, "never above tepeOlcek");
+        }
     }
 }

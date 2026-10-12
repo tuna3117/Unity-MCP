@@ -126,12 +126,13 @@ namespace Project.Tests
             var game = demo.Game;
             yield return StudioLookPlayTests.WaitUntil(() => game.PassFlights.InFlight > 0, 10f);
             Assert.AreEqual(1, game.PassFlights.InFlight, "the tap launched the ball");
-            float maxLift = 0f;
+            float maxLift = 0f, lowAfterTop = float.MaxValue;
             Quaternion? firstProp = null;
             bool propTurned = false, blockHidden = true, modelShown = false;
             while (game.PassFlights.InFlight > 0)
             {
                 maxLift = Mathf.Max(maxLift, game.PassFlights.FirstLift);
+                if (maxLift > 2f && game.PassFlights.FirstLift >= 0f) lowAfterTop = Mathf.Min(lowAfterTop, game.PassFlights.FirstLift);
                 var model = game.BoardRoot.Find("PassBall");
                 if (model != null && model.gameObject.activeSelf)
                 {
@@ -158,7 +159,9 @@ namespace Project.Tests
                 Assert.IsTrue(modelShown, "B flies the Blender ball (ColorHuntSettings.PassModel)");
                 Assert.IsTrue(propTurned, "the propeller turns about its own axis");
                 Assert.IsTrue(blockHidden, "B hides the ball's own block");
-                Assert.Greater(maxLift, 0.55f + 1f, "B: yuksel 0.55 + kavis 1.6 at the top of the arc");
+                Assert.Greater(maxLift, 1.3f + 1f, "B: yuksel 1.3 + kavis 1.6 at the top of the arc");
+                Assert.Less(maxLift, 1.3f + 1.6f + 0.01f);
+                Assert.GreaterOrEqual(lowAfterTop, 0.9f - 0.01f, "B: the dive ends on the target's face (temas 0.9), never inside the cube");
             }
             yield return StudioLookPlayTests.WaitUntil(() => demo.Finished, 15f);
             var ball = game.BoardRoot.Find("PassBall");

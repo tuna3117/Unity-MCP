@@ -42,11 +42,11 @@ namespace Project.ColorHunt
 
         [Header("Pass ball (Pota spec 2026-10-11: 2×2 kare → pas topu; two looks, Tuna picks)")]
         [Tooltip("Pas topu uçuşu: A Pas (topun kendi bloğu zıplar, alçak kavisle uçar, hız çizgileri) · B Pervane (Blender topu + dönen pervane, " +
-                 "yükselir, yüksek kavis, asılı kalıp dalar, toz halkası). Specials sahnesinde düğmelerle değişir.")]
-        public PassLook PassLook = PassLook.A;
+                 "yükselir, yüksek kavis, asılı kalıp dalar, toz halkası). Varsayılan B (Tuna 2026-10-12 seçti; A referans). Specials sahnesinde düğmelerle değişir.")]
+        public PassLook PassLook = PassLook.B;
         [Tooltip("A Pas — Pota src/ozelPlan.ts OZEL_ZAMANLAMA pas* (:16-17) + src/ozelAyar.ts OZEL_AN.pasTopu.a (:51); flight renkAviFaz.ts pasIlerlet.")]
         public PassTuningA PassLookA = new PassTuningA();
-        [Tooltip("B Pervane — Pota src/ozelPlan.ts PAS_ZAMANLAMA_B (:19) + src/ozelAyar.ts OZEL_AN.pasTopu.b (:52); flight renkAviFaz.ts pasIlerletB, tilt patlamaEfekt.ts PAS_EGIM.")]
+        [Tooltip("B Pervane (Tuna's pick, the default) — Pota src/ozelPlan.ts OZEL_ZAMANLAMA pas* (:20) + src/ozelAyar.ts OZEL_AN.pasTopu (:58); flight renkAviFaz.ts pasUcur / pasBoyu, tilt patlamaEfekt.ts PAS_EGIM.")]
         public PassTuningB PassLookB = new PassTuningB();
         [Tooltip("The pass ball's sticker: Pota public/assets/ozel-pasTopu-a.png (candidate a2, 256², padded) → Art/Specials/pas-topu-a.png.")]
         public Texture2D PassSprite;

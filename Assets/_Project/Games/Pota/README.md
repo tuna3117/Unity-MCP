@@ -255,7 +255,10 @@ Unity'de iki koreografi var, Tuna seçecek; seçilenin sayıları Pota'ya satır
   `pass_ball` (`Art/VFX/pas-topu`, Basketball 960 + Propeller 96 üçgen, toon + mürekkep) yumuşakça yükselir, pervane kalkışta 40 rad/sn'ye
   hızlanır, yüksek kavis (yol smoothstep), hedefin üstünde asılı kalıp hızlanarak dalar, toz halkası — Pota'nın `pasIlerletB`'si birebir
   (4052db9). Top kameraya 0,9 rad (51,6°) eğik (`PassLookB.Tilt` = Pota `PAS_EGIM`; eğimsiz pervane kameradan bıçak gibi ince görünüyor).
-  Kalkışta `pas` sesi (Court'un "vıııt"u), inişte `carpma`.
+  Kalkışta `pas` sesi (Court'un "vıııt"u), inişte `carpma`. **2026-10-12: Tuna B'yi seçti** → varsayılan `PassLook` B (A referans
+  kalır) ve B Pota'nın son hâline (6710483, `pasUcur` / `pasBoyu`) çekildi: `Rise` 0,55 → 1,3, dalış `Contact` 0,9'da biter (top hedefin
+  ön yüzüne değer, küpe girmez), top kavis tepesinde `PeakScale` 1,25 kat (temas 1 → tepe 1,25, yükseklikle doğrusal; oyun kamerası
+  Pota'nınkiyle aynı uyum, aynı sayı). Testler: `PassRulesTests.LookB_HasPotasFinalShape_AndGrowsTowardTheArcTop`, `PassPlayTests` dalış ≥ temas.
 - **Vitrin:** Specials sahnesinde senaryo düğmeleri **Pas** (dokunuş → kare → Royal doğuş → 1 sn bekleme → pasa dokunuş → uçuş →
   çarpma) ve **Pas→B** (pas + uzakta bomba, yalnız bomba hedefi: bomba VARIŞTA patlar); yeni satır "Pas: A Pas · B Pervane".
 - **Kayıt:** `Tools/potalook/record_unity.sh pas-a-pass '{"scene":"Specials","scenario":"pass","pass_look":"a","special_look":"royal",
