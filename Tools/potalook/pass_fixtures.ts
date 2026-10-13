@@ -1,14 +1,16 @@
 // Golden trace for Unity's pass-ball port (Pota spec 2026-10-11 §1), written by Pota's OWN src/renkAvi.ts (read only).
 // Copy it OUTSIDE both repos and run it from the Pota worktree (its tsx), then commit the json into Unity:
-//   cp Tools/potalook/pass_fixtures.ts /tmp/pass_fixtures.ts && cd ~/projects/Pota-pas && \
+//   cp Tools/potalook/pass_fixtures.ts /tmp/pass_fixtures.ts && cd ~/projects/Pota-kombo && \
 //   POTA_REV="$(git rev-parse --short HEAD) renkAvi.ts $(shasum -a 256 src/renkAvi.ts | cut -c1-12)" npx tsx /tmp/pass_fixtures.ts \
 //     "$HOME/projects/Unity MCP/Assets/_Project/Games/Pota/Tests/EditMode/Fixtures/pass-rules.json"
-// Read by PassRulesTests (EditMode).
+// Read by PassRulesTests (EditMode). Since Pota's kombo round (2026-10-13) the pass target prefers Chebyshev ≥ 3 (K7); combos are off
+// here (Pota renk-avi-test moved its "bomb area fires a pass" board to the diagonal for the same reason) and traced by combo_fixtures.ts,
+// except on the Specials scenarios, which mirror Unity's Features.Full (combo on; neither scenario makes one).
 // Env POTA_REV (written into the file). Deterministic: no timestamps, every choice
 // comes from Pota's own `rastgele`.
 import { writeFileSync } from "node:fs";
-import * as R from "/Users/tunaaltin17/projects/Pota-pas/src/renkAvi";
-import type { HedefTasarimi, OzelTur, Ozellikler, RAdim, RAlan, RBlok } from "/Users/tunaaltin17/projects/Pota-pas/src/renkAvi";
+import * as R from "/Users/tunaaltin17/projects/Pota-kombo/src/renkAvi";
+import type { HedefTasarimi, OzelTur, Ozellikler, RAdim, RAlan, RBlok } from "/Users/tunaaltin17/projects/Pota-kombo/src/renkAvi";
 
 const OUT = process.argv[2];
 if (!OUT) throw new Error("usage: tsx pass_fixtures.ts <out.json>");
@@ -37,6 +39,7 @@ const targetJson = (h: HedefTasarimi) => ({ kind: h.tur ?? "renk", color: h.renk
 function stepJson(a: RAdim) {
   if (a.altin?.length) throw new Error("golden flight in a traced step: Unity's golden ball is the old gate/basket one");
   if (a.fileHasar?.length || a.engelKalkan?.length || a.hakem?.length || a.hakemGelen?.length) throw new Error("obstacle in a traced step");
+  if (a.kombo) throw new Error("combo in a pass trace: combos are combo_fixtures.ts's");
   return {
     exploded: a.patlayan.slice(),
     triggered: cellKinds(a.tetiklenen),
@@ -60,11 +63,13 @@ function boardJson(a: RAlan) {
   };
 }
 
-const features = (o: Ozellikler) => ({ line: o.cizgi, bomb: o.bomba, golden: o.altin, pass: o.pasTopu });
+const features = (o: Ozellikler) => ({ line: o.cizgi, bomb: o.bomba, golden: o.altin, pass: o.pasTopu, combo: !!o.kombo });
 
 // ---------------------------------------------------------------- 1) matches: eslesmeleriCoz (Task 1's boards, renk-avi-test.ts §"2×2 kare")
 
-const TAM = { ozellikler: R.OZELLIK_TAM };
+/** OZELLIK_TAM without combos: the pass ball alone (a pass next to a bomb would merge with it). */
+const PAS: Ozellikler = { ...R.OZELLIK_TAM, kombo: false };
+const TAM = { ozellikler: PAS };
 const MATCHES: { name: string; rows: string[]; ek: Partial<RAlan> }[] = [
   { name: "k1", rows: ["00123", "00456", "78912", "45678", "12345"], ek: TAM },
   { name: "k1-off", rows: ["00123", "00456", "78912", "45678", "12345"], ek: {} },
@@ -92,7 +97,7 @@ const matches = MATCHES.map(({ name, rows, ek }) => {
 
 // ---------------------------------------------------------------- 2) taps: kir on a pass (Task 3's boards, §"pas topu: dokununca")
 
-const UCUS = { ozellikler: R.OZELLIK_TAM, renkSayisi: 1000, rng: 3 };
+const UCUS = { ozellikler: PAS, renkSayisi: 1000, rng: 3 };
 const TAPS: { name: string; rows: string[]; targets: HedefTasarimi[]; tap: number; rotate?: "saat" | "ters"; probes?: { exclude: number[]; noTargets?: boolean }[] }[] = [
   { name: "t", rows: ["31245", "12451", "24P12", "45124", "51243"], targets: [{ renk: 3, adet: 5 }], tap: 12,
     probes: [{ exclude: [12] }, { exclude: [12], noTargets: true }] },
@@ -128,7 +133,7 @@ const taps = TAPS.map((c) => {
 // ---------------------------------------------------------------- 3) deals: tahtaKur with pass on (no square, no triple)
 
 const DESIGN = { boyut: 7, renkSayisi: 5, can: { alt: 3, ust: 14 }, hedefler: [{ renk: 0, adet: 22 }, { renk: 1, adet: 16 }] };
-const NO_GOLD: Ozellikler = { cizgi: true, bomba: true, altin: false, pasTopu: true };
+const NO_GOLD: Ozellikler = { cizgi: true, bomba: true, altin: false, pasTopu: true, kombo: false };
 const deals = [1, 2, 3, 42, 99].map((seed) => {
   const a = R.tahtaKur({ ...DESIGN, ozellikler: R.OZELLIK_TAM }, 158, seed);
   if (R.eslesmeVarMi(a)) throw new Error(`seed ${seed}: deal has a match`);

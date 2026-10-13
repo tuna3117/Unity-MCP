@@ -67,7 +67,7 @@ namespace Project.Tests
             demo.Game.PassLanded -= Landed;
             Assert.AreEqual(1, landed, "one pass ball, one landing");
             Assert.AreEqual(37, cell, "born at the square's bottom-left");
-            Assert.AreEqual(22, target, "Pota's pasHedefi: the nearest colour-2 block");
+            Assert.AreEqual(47, target, "Pota's pasHedefi (K7): the nearest colour-2 block at Chebyshev ≥ 3");
             AssertSettled(demo.Game, $"{look}/{pass}");
             Assert.AreEqual(5, demo.Game.Board.Targets[0].Remaining, "Pota's trace: 12 → 9 (the square's three 2s) → 5 (the hit 2 and a refill chain of three)");
         }

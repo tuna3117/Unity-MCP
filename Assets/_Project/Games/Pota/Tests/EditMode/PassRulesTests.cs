@@ -24,7 +24,7 @@ namespace Project.Tests
         [Serializable] public class FixtureFile { public int version; public string pota; public DesignDto design; public MatchDto[] matches; public TapDto[] taps; public DealDto[] deals; public GameDto[] replays, scenarios; public int passFlights; }
         [Serializable] public class DesignDto { public int size, colorCount, hpMin, hpMax, ammo; public ColorTargetDto[] targets; }
         [Serializable] public class ColorTargetDto { public int color, count; }
-        [Serializable] public class FeaturesDto { public bool line, bomb, golden, pass; }
+        [Serializable] public class FeaturesDto { public bool line, bomb, golden, pass, combo; }
         [Serializable] public class CellsDto { public int color, cell; public int[] cells; }
         [Serializable] public class CellKindDto { public int cell, kind; }
         [Serializable] public class PassDto { public int cell, target; }
@@ -61,7 +61,7 @@ namespace Project.Tests
 
         // ---------- boards ----------
 
-        private static Features ToFeatures(FeaturesDto f) => new Features { Line = f.line, Bomb = f.bomb, Golden = f.golden, Pass = f.pass };
+        private static Features ToFeatures(FeaturesDto f) => new Features { Line = f.line, Bomb = f.bomb, Golden = f.golden, Pass = f.pass, Combo = f.combo };
 
         private static SpecialKind Letter(char ch)
         {
@@ -324,8 +324,9 @@ namespace Project.Tests
             Assert.AreEqual(37, plan.Fires[0].Cell);
             Assert.AreEqual(Peak, plan.Fires[0].Time, Eps, "the tapped special fires at the first peak");
             Assert.AreEqual(1, plan.Hits.Count);
-            Assert.AreEqual(Peak + timing.Arrival(7, 37, 22), plan.Hits[22], Eps, "the target goes the moment the ball lands");
-            Assert.AreEqual(Peak + timing.Arrival(7, 37, 22) + Swell, plan.End, Eps, "the drops wait for the landing (Pota: süre = varış + şişme)");
+            Assert.AreEqual(47, step.Passes[0].Target, "Pota K7: from (5, 2) to (6, 5), Chebyshev 3 (22 before K7: the nearest)");
+            Assert.AreEqual(Peak + timing.Arrival(7, 37, 47), plan.Hits[47], Eps, "the target goes the moment the ball lands");
+            Assert.AreEqual(Peak + timing.Arrival(7, 37, 47) + Swell, plan.End, Eps, "the drops wait for the landing (Pota: süre = varış + şişme)");
         }
 
         [Test]

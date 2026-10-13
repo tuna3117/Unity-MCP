@@ -19,6 +19,7 @@ MonoBehaviour:
     Bomb: 0
     Golden: 0
     Pass: 0
+    Combo: 0
   SpecialLook: 0
   Royal:
     LineLead: 0.06

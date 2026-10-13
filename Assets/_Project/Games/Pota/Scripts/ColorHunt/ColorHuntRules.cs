@@ -56,6 +56,8 @@ namespace Project.ColorHunt
         public readonly List<int> Opened = new List<int>();
         /// <summary>Pass balls that flew in this step (Pota pasTopu), in firing order: each ball's cell and the cell it hit (−1: none).</summary>
         public readonly List<PassHit> Passes = new List<PassHit>();
+        /// <summary>The combo of a combo tap's first step (Pota kombo, spec 2026-10-13); null on every other step. A pass combo's flights are in <see cref="Passes"/> too.</summary>
+        public ComboInfo? Combo;
     }
 
     public class Match
@@ -279,10 +281,12 @@ namespace Project.ColorHunt
         /// golden balls outnumber the open gates (these rng draws come BEFORE the refill), collapses the columns and refills them
         /// from the top. <paramref name="b"/> is never changed. A triggered bomb / line ball counts for the bomb / line target (Pota hedefDus;
         /// 0 on every board but the pass ball's); basket drops count for nothing (Pota's golden target is U25). Fired pass balls fly after the
-        /// births (<see cref="FlyPasses"/>, spec 2026-10-11 §1.4): their hits join the step's explosions and triggers.
+        /// births (<see cref="FlyPasses"/>, spec 2026-10-11 §1.4): their hits join the step's explosions and triggers. A pass
+        /// <paramref name="combo"/> (Pota komboUc) flies first, from its centre; its two partners are in <paramref name="triggered"/> but do not
+        /// fly on their own, and the step records the combo.
         /// </summary>
         private static Board ExplodeAndFill(Board b, List<int> exploded, List<Born> born, List<BasketDrop> toBasket,
-                                            List<Trigger> triggered, out Step step)
+                                            List<Trigger> triggered, out Step step, ComboFlight combo = null)
         {
             int n = b.Size;
             var result = b.Clone();
@@ -306,13 +310,18 @@ namespace Project.ColorHunt
             if (born != null)
                 foreach (var d in born) { temp[d.Cell] = Block.MakeSpecial(d.Kind); step.Born.Add(d); }
             var passes = new List<int>();
-            if (triggered != null) foreach (var t in triggered) if (t.Kind == SpecialKind.Pass) passes.Add(t.Cell);
-            if (passes.Count > 0)
+            if (triggered != null)
+                foreach (var t in triggered)
+                    if (t.Kind == SpecialKind.Pass && (combo == null || (t.Cell != combo.Center && t.Cell != combo.Partner))) passes.Add(t.Cell);
+            if (passes.Count > 0 || combo != null)
             {
                 var exclude = new HashSet<int>(exploded);
                 if (born != null) foreach (var d in born) exclude.Add(d.Cell);
                 var fired = new List<Trigger>();
-                var added = FlyPasses(result, temp, passes, exclude, step.Passes, fired);
+                var comboTargets = new List<int>();
+                var added = FlyPasses(result, temp, passes, exclude, step.Passes, fired, combo, comboTargets);
+                if (combo != null)
+                    step.Combo = new ComboInfo { Kind = combo.Kind, Center = combo.Center, Partner = combo.Partner, Carried = combo.Carried, PassTargets = comboTargets.ToArray() };
                 step.Triggered.AddRange(fired);                  // Pota: [...tetiklenen, ...tetiklenenEk]
                 if (added.Count > 0)
                 {
@@ -419,7 +428,8 @@ namespace Project.ColorHunt
 
         /// <summary>
         /// The game's only move: tap a block (Pota kir). A line, a bomb or a pass ball fires for free (its <see cref="Blast"/> area; a pass ball
-        /// then flies to its target, <see cref="FlyPasses"/>). A normal
+        /// then flies to its target, <see cref="FlyPasses"/>); with <see cref="Features.Combo"/> on and another one next to it, the two merge
+        /// instead (<see cref="FindComboPartner"/>, <see cref="ComboStep"/>; also free). A normal
         /// block costs its hp: if ammo covers it the block goes, ammo drops, the column collapses, new blocks fall in and chains
         /// resolve; otherwise the SAME board comes back (Insufficient). A golden ball does nothing (Golden, same board).
         /// </summary>
@@ -432,8 +442,13 @@ namespace Project.ColorHunt
             Step first;
             if (block.IsSpecial)
             {
-                var area = Blast(b, cell);
-                after = ExplodeAndFill(b, area.Cells, null, null, area.Triggered, out first);
+                int partner = FindComboPartner(b, cell);
+                if (partner >= 0) after = ComboStep(b, cell, partner, out first);
+                else
+                {
+                    var area = Blast(b, cell);
+                    after = ExplodeAndFill(b, area.Cells, null, null, area.Triggered, out first);
+                }
             }
             else
             {

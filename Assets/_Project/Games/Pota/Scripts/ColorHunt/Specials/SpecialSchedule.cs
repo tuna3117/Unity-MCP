@@ -44,6 +44,10 @@ namespace Project.ColorHunt
     /// Pass balls (Pota ozelPlan.ts ozelPlani, spec 2026-10-11 §3): a fired pass ball lands on its target <see cref="PassTiming.Arrival"/>
     /// later; a special target becomes a ROOT that fires at the landing (roots are never compressed: the compression scales each cell's
     /// delay after its own root, as Pota's kökler), a normal target bursts at the landing without a swell (<see cref="TriggerPlan.Hits"/>).
+    /// Combos (Pota ozelPlan.ts komboEki, spec 2026-10-13 §3): both partners are roots at the first peak (the merge before it is the look's,
+    /// never compressed); an area combo's centre sweeps its <see cref="ColorHuntRules.ComboCells"/> with <see cref="ComboDelay"/> and the
+    /// partner opens only its own cell; a PassLine / PassBomb's carried special is a VIRTUAL special of its kind at the flight's target, a
+    /// root at the landing (no target: at the centre, at the first peak); a PassPass sends three flights from the one centre.
     /// </summary>
     public static class SpecialSchedule
     {
@@ -56,20 +60,33 @@ namespace Project.ColorHunt
 
         public static TriggerPlan Plan(int n, Step step, int origin, SpecialTiming t, float swellTime, PassTiming pass)
         {
-            var targets = new Dictionary<int, int>();
-            foreach (var p in step.Passes) if (p.Target >= 0) targets[p.Cell] = p.Target;
-            if (targets.Count == 0) return Core(n, step, origin, t, swellTime, null);
             float peak = swellTime * PotaLook.SwellPeakAt;
+            var extra = step.Combo.HasValue ? ComboExtra(step.Combo.Value) : null;
+            // Combo: the two partners fire together at the first peak (Pota: both at t = 0).
+            Dictionary<int, float> roots = step.Combo.HasValue
+                ? new Dictionary<int, float> { [step.Combo.Value.Center] = peak, [step.Combo.Value.Partner] = peak } : null;
+            // Pass flights: the ball's cell → its targets in order (a PassPass sends three from the one centre).
+            var targets = new Dictionary<int, List<int>>();
+            int flights = 0;
+            foreach (var p in step.Passes)
+            {
+                if (p.Target < 0) continue;
+                if (!targets.TryGetValue(p.Cell, out var list)) targets[p.Cell] = list = new List<int>();
+                list.Add(p.Target);
+                flights++;
+            }
+            if (targets.Count == 0) return Core(n, step, origin, t, swellTime, roots, extra);
             var specials = new HashSet<int>();
             foreach (var tr in step.Triggered) specials.Add(tr.Cell);
+            if (extra?.Virtual != null) foreach (var kv in extra.Virtual) specials.Add(kv.Key);
             var exploded = new HashSet<int>(step.Exploded);
-            Dictionary<int, float> roots = null;
-            for (int round = 0; round <= targets.Count; round++)
+            for (int round = 0; round <= flights; round++)
             {
-                var plan = Core(n, step, origin, t, swellTime, roots);
+                var plan = Core(n, step, origin, t, swellTime, roots, extra);
                 var landings = new Dictionary<int, float>();
                 foreach (var f in plan.Fires)
-                    if (targets.TryGetValue(f.Cell, out int target)) landings[target] = f.Time + pass.Arrival(n, f.Cell, target);
+                    if (targets.TryGetValue(f.Cell, out var list))
+                        foreach (int target in list) landings[target] = f.Time + pass.Arrival(n, f.Cell, target);
                 bool added = false;
                 foreach (var kv in landings)
                 {
@@ -98,16 +115,65 @@ namespace Project.ColorHunt
         private struct At { public float T, Root; }
 
         /// <summary>
-        /// The plan from its roots: the tapped special at the first peak (<paramref name="roots"/> null), or every root at its own time.
-        /// Each cell and fire remembers its root; the compression scales what comes after the root.
+        /// Pota CekirdekEk (komboEki): an area combo's centre sweeps the combo area (<see cref="ComboCenter"/>, ≥ 0), consumed partners open
+        /// only their own cell, virtual specials (a carried one) fire with their own kind at their cell.
         /// </summary>
-        private static TriggerPlan Core(int n, Step step, int origin, SpecialTiming t, float swellTime, Dictionary<int, float> roots)
+        private sealed class CoreExtra
+        {
+            public int ComboCenter = -1;
+            public ComboKind ComboArea;
+            public HashSet<int> Consumed;
+            public Dictionary<int, SpecialKind> Virtual;
+        }
+
+        /// <summary>Pota komboEki.</summary>
+        private static CoreExtra ComboExtra(ComboInfo k)
+        {
+            switch (k.Kind)
+            {
+                case ComboKind.Cross:
+                case ComboKind.ThickCross:
+                case ComboKind.BigBomb:
+                    return new CoreExtra { ComboCenter = k.Center, ComboArea = k.Kind, Consumed = new HashSet<int> { k.Partner } };
+                case ComboKind.PassPass:
+                    return new CoreExtra { Consumed = new HashSet<int> { k.Center, k.Partner } };
+                default:
+                    int target = k.PassTargets != null && k.PassTargets.Length > 0 ? k.PassTargets[0] : -1;
+                    return target >= 0
+                        ? new CoreExtra { Consumed = new HashSet<int> { k.Center, k.Partner }, Virtual = new Dictionary<int, SpecialKind> { [target] = k.Carried } }
+                        : new CoreExtra { Consumed = new HashSet<int> { k.Partner }, Virtual = new Dictionary<int, SpecialKind> { [k.Center] = k.Carried } };
+            }
+        }
+
+        /// <summary>
+        /// Pota komboGecikme (spec 2026-10-13 §3): seconds from an area combo's fire at <paramref name="center"/> to the burst of
+        /// <paramref name="cell"/> — Cross / ThickCross: the earliest of its strips (one / three rows and columns) at the line's lead + distance /
+        /// LineSpeed; BigBomb: the bomb's lead + Chebyshev ring × BombRing.
+        /// </summary>
+        public static float ComboDelay(int n, int center, ComboKind kind, int cell, SpecialTiming t)
+        {
+            int dr = Mathf.Abs(ColorHuntRules.Row(n, cell) - ColorHuntRules.Row(n, center));
+            int dc = Mathf.Abs(ColorHuntRules.Col(n, cell) - ColorHuntRules.Col(n, center));
+            if (kind == ComboKind.BigBomb) return t.BombLead + Mathf.Max(dr, dc) * t.BombRing;
+            int width = kind == ComboKind.ThickCross ? 1 : 0;
+            float best = float.PositiveInfinity;
+            if (dr <= width) best = Mathf.Min(best, t.LineLead + (t.LineSpeed > 0f ? dc / t.LineSpeed : 0f));   // the row strip(s)
+            if (dc <= width) best = Mathf.Min(best, t.LineLead + (t.LineSpeed > 0f ? dr / t.LineSpeed : 0f));   // the column strip(s)
+            return best;
+        }
+
+        /// <summary>
+        /// The plan from its roots: the tapped special at the first peak (<paramref name="roots"/> null), or every root at its own time.
+        /// Each cell and fire remembers its root; the compression scales what comes after the root. <paramref name="extra"/>: a combo's areas.
+        /// </summary>
+        private static TriggerPlan Core(int n, Step step, int origin, SpecialTiming t, float swellTime, Dictionary<int, float> roots, CoreExtra extra = null)
         {
             var plan = new TriggerPlan();
             float peak = swellTime * PotaLook.SwellPeakAt;
             var exploded = new HashSet<int>(step.Exploded);
             var kinds = new Dictionary<int, SpecialKind>();
             foreach (var tr in step.Triggered) kinds[tr.Cell] = tr.Kind;
+            if (extra?.Virtual != null) foreach (var kv in extra.Virtual) kinds[kv.Key] = kv.Value;
             var burst = new Dictionary<int, At>();                 // cell → its burst moment (and its root)
             var reach = new Dictionary<int, At>();                 // special → when it fires (earliest arrival so far)
             var fired = new HashSet<int>();
@@ -138,12 +204,16 @@ namespace Project.ColorHunt
                 if (next < 0) break;
                 fired.Add(next);
                 var kind = kinds[next];
+                bool comboArea = extra != null && extra.ComboCenter == next;
+                var area = comboArea ? ColorHuntRules.ComboCells(n, next, extra.ComboArea)
+                    : extra?.Consumed != null && extra.Consumed.Contains(next) ? new List<int> { next }
+                    : ColorHuntRules.SingleArea(n, next, kind);
                 int size = 0;
-                foreach (int c in ColorHuntRules.SingleArea(n, next, kind))
+                foreach (int c in area)
                 {
                     if (!exploded.Contains(c)) continue;             // a golden ball, or a cell the rules left out
                     size++;
-                    float at = best.T + Delay(n, next, kind, c, t);
+                    float at = best.T + (comboArea ? ComboDelay(n, next, extra.ComboArea, c, t) : Delay(n, next, kind, c, t));
                     if (!burst.TryGetValue(c, out var b) || at < b.T) burst[c] = new At { T = at, Root = best.Root };
                     if (kinds.ContainsKey(c) && !fired.Contains(c) && (!reach.TryGetValue(c, out var r) || at < r.T)) reach[c] = new At { T = at, Root = best.Root };
                 }
