@@ -1,7 +1,7 @@
 // Golden trace for Unity's combo port (Pota spec 2026-10-13 §1, §3), written by Pota's OWN src/renkAvi.ts + src/ozelPlan.ts (read only).
 // Copy it OUTSIDE both repos and run it from the Pota worktree (its tsx), then commit the json into Unity:
 //   cp Tools/potalook/combo_fixtures.ts /tmp/combo_fixtures.ts && cd ~/projects/Pota-kombo && \
-//   POTA_REV="$(git rev-parse --short HEAD) renkAvi.ts $(shasum -a 256 src/renkAvi.ts | cut -c1-12) ozelPlan.ts $(shasum -a 256 src/ozelPlan.ts | cut -c1-12)" \
+//   POTA_REV="$(git rev-parse --short HEAD) renkAvi.ts $(shasum -a 256 src/renkAvi.ts | cut -c1-12) ozelPlan.ts $(shasum -a 256 src/ozelPlan.ts | cut -c1-12) ayar2.ts $(shasum -a 256 src/ayar2.ts | cut -c1-12)" \
 //     npx tsx /tmp/combo_fixtures.ts "$HOME/projects/Unity MCP/Assets/_Project/Games/Pota/Tests/EditMode/Fixtures/combo-rules.json"
 // Read by ComboRulesTests (EditMode). Env POTA_REV (written into the file). Deterministic: no timestamps, every choice comes from Pota's own
 // `rastgele`. Unity has no obstacles (file/ice/referee) and its golden ball is the old gate/basket one (U25): traced boards carry neither
@@ -9,6 +9,8 @@
 import { writeFileSync } from "node:fs";
 import * as R from "/Users/tunaaltin17/projects/Pota-kombo/src/renkAvi";
 import * as P from "/Users/tunaaltin17/projects/Pota-kombo/src/ozelPlan";
+/** Only for the game's swell (YAPBOZ_AYAR.sure.zincir, renkAviFaz.ts adimPlanla's `sisme`): ayar2.ts imports nothing. */
+import { YAPBOZ_AYAR } from "/Users/tunaaltin17/projects/Pota-kombo/src/ayar2";
 import type { HedefTasarimi, KomboTur, OzelTur, Ozellikler, RAdim, RAlan, RBlok } from "/Users/tunaaltin17/projects/Pota-kombo/src/renkAvi";
 
 const OUT = process.argv[2];
@@ -81,6 +83,11 @@ const features = (o: Ozellikler) => ({ line: o.cizgi, bomb: o.bomba, golden: o.a
 const Z = P.OZEL_ZAMANLAMA;
 /** The fixture's swell (renkAviFaz sisme for combos, ozel-plan-test kombo block) and Pota's swell peak (balon.tepe). */
 const SISME = 0.3, TEPE = 0.55;
+/**
+ * The swell the GAME plans with (renkAviFaz.ts adimPlanla: `ozelPlani(n, adim, kaynak, OZEL_ZAMANLAMA, ayar.sure.zincir, balon.tepe)`,
+ * ayar = YAPBOZ_AYAR): 0.15 today, Unity's ColorHuntSettings.ChainTime.
+ */
+const GAME_SISME = YAPBOZ_AYAR.sure.zincir;
 const timing = { lineSpeed: Z.cizgiHiz, lineLead: Z.cizgiOncu, bombLead: Z.bombaOncu, bombRing: Z.bombaHalka, cap: Z.tavan,
   passTakeoff: Z.pasKalkis, passSpeed: Z.pasHiz, passMin: Z.pasEnAz, passMax: Z.pasEnCok, passHang: Z.pasAsili };
 const planJson = (p: P.OzelPlani) => ({
@@ -101,6 +108,14 @@ function addPlan(name: string, n: number, a: RAdim, origin: number) {
     name, n, origin, swell: SISME, peakAt: TEPE, timing, step: stepJson(a),
     pota: planJson(P.ozelPlani(n, a, origin, Z, SISME, TEPE)),
     flat: planJson(P.ozelPlani(n, a, origin, Z, SISME, 0)),
+    // A combo step (Unity Task 7, ruling R-8): Pota's GAME plan from the centre — partners roots at 0, pay = max(0, arrival − root −
+    // sisme·tepe), compressed only when max pay + sisme > tavan — at the fixture's swell and at the game's own (GAME_SISME). Unity's
+    // SpecialSchedule plans combo steps exactly so (ComboRulesTests.Plan); single specials keep `flat` + peak.
+    ...(a.kombo ? {
+      gameSwell: GAME_SISME,
+      game: planJson(P.ozelPlani(n, a, a.kombo.merkez, Z, SISME, TEPE)),
+      gameAtSwell: planJson(P.ozelPlani(n, a, a.kombo.merkez, Z, GAME_SISME, TEPE)),
+    } : {}),
   });
 }
 

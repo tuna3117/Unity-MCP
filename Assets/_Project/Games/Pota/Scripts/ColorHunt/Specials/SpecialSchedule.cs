@@ -44,10 +44,13 @@ namespace Project.ColorHunt
     /// Pass balls (Pota ozelPlan.ts ozelPlani, spec 2026-10-11 §3): a fired pass ball lands on its target <see cref="PassTiming.Arrival"/>
     /// later; a special target becomes a ROOT that fires at the landing (roots are never compressed: the compression scales each cell's
     /// delay after its own root, as Pota's kökler), a normal target bursts at the landing without a swell (<see cref="TriggerPlan.Hits"/>).
-    /// Combos (Pota ozelPlan.ts komboEki, spec 2026-10-13 §3): both partners are roots at the first peak (the merge before it is the look's,
-    /// never compressed); an area combo's centre sweeps its <see cref="ColorHuntRules.ComboCells"/> with <see cref="ComboDelay"/> and the
-    /// partner opens only its own cell; a PassLine / PassBomb's carried special is a VIRTUAL special of its kind at the flight's target, a
-    /// root at the landing (no target: at the centre, at the first peak); a PassPass sends three flights from the one centre.
+    /// Combos (Pota ozelPlan.ts komboEki, spec 2026-10-13 §3): an area combo's centre sweeps its <see cref="ColorHuntRules.ComboCells"/>
+    /// with <see cref="ComboDelay"/> and the partner opens only its own cell; a PassLine / PassBomb's carried special is a VIRTUAL special
+    /// of its kind at the flight's target, a root at the landing (no target: at the centre); a PassPass sends three flights from the one
+    /// centre. A combo step is planned in Pota's GAME frame (Unity Task 7, ruling R-8; ComboRulesTests.Plan pins it to Pota's ozelPlani):
+    /// both partners are roots at 0 (the merge before them is the look's pre-phase, never compressed), a cell's swell starts at root +
+    /// max(0, arrival − root − swell·SwellPeakAt) so its peak lands on the arrival, and the step is compressed only when the latest such
+    /// pay + swell passes <see cref="MaxStep"/> (Unity's frame below would compress a combo up to 3× more often).
     /// </summary>
     public static class SpecialSchedule
     {
@@ -61,10 +64,11 @@ namespace Project.ColorHunt
         public static TriggerPlan Plan(int n, Step step, int origin, SpecialTiming t, float swellTime, PassTiming pass)
         {
             float peak = swellTime * PotaLook.SwellPeakAt;
-            var extra = step.Combo.HasValue ? ComboExtra(step.Combo.Value) : null;
-            // Combo: the two partners fire together at the first peak (Pota: both at t = 0).
-            Dictionary<int, float> roots = step.Combo.HasValue
-                ? new Dictionary<int, float> { [step.Combo.Value.Center] = peak, [step.Combo.Value.Partner] = peak } : null;
+            bool game = step.Combo.HasValue;                                   // R-8: a combo step in Pota's game frame
+            var extra = game ? ComboExtra(step.Combo.Value) : null;
+            // Combo: the two partners fire together at the step's start (Pota: both at t = 0, after the merge pre-phase).
+            Dictionary<int, float> roots = game
+                ? new Dictionary<int, float> { [step.Combo.Value.Center] = 0f, [step.Combo.Value.Partner] = 0f } : null;
             // Pass flights: the ball's cell → its targets in order (a PassPass sends three from the one centre).
             var targets = new Dictionary<int, List<int>>();
             int flights = 0;
@@ -75,14 +79,14 @@ namespace Project.ColorHunt
                 list.Add(p.Target);
                 flights++;
             }
-            if (targets.Count == 0) return Core(n, step, origin, t, swellTime, roots, extra);
+            if (targets.Count == 0) return Core(n, step, origin, t, swellTime, roots, extra, game);
             var specials = new HashSet<int>();
             foreach (var tr in step.Triggered) specials.Add(tr.Cell);
             if (extra?.Virtual != null) foreach (var kv in extra.Virtual) specials.Add(kv.Key);
             var exploded = new HashSet<int>(step.Exploded);
             for (int round = 0; round <= flights; round++)
             {
-                var plan = Core(n, step, origin, t, swellTime, roots, extra);
+                var plan = Core(n, step, origin, t, swellTime, roots, extra, game);
                 var landings = new Dictionary<int, float>();
                 foreach (var f in plan.Fires)
                     if (targets.TryGetValue(f.Cell, out var list))
@@ -165,8 +169,11 @@ namespace Project.ColorHunt
         /// <summary>
         /// The plan from its roots: the tapped special at the first peak (<paramref name="roots"/> null), or every root at its own time.
         /// Each cell and fire remembers its root; the compression scales what comes after the root. <paramref name="extra"/>: a combo's areas.
+        /// <paramref name="game"/> (a combo step, R-8): Pota cekirdek exactly — a root's own cell gets its arrival from the areas like any
+        /// other (not its fire), pay = max(0, arrival − root − peak), start = root + pay·pace, End = the latest start + swell.
         /// </summary>
-        private static TriggerPlan Core(int n, Step step, int origin, SpecialTiming t, float swellTime, Dictionary<int, float> roots, CoreExtra extra = null)
+        private static TriggerPlan Core(int n, Step step, int origin, SpecialTiming t, float swellTime, Dictionary<int, float> roots, CoreExtra extra = null,
+            bool game = false)
         {
             var plan = new TriggerPlan();
             float peak = swellTime * PotaLook.SwellPeakAt;
@@ -184,7 +191,7 @@ namespace Project.ColorHunt
                 {
                     if (!kinds.ContainsKey(kv.Key)) continue;
                     reach[kv.Key] = new At { T = kv.Value, Root = kv.Value };
-                    burst[kv.Key] = new At { T = kv.Value, Root = kv.Value };
+                    if (!game) burst[kv.Key] = new At { T = kv.Value, Root = kv.Value };   // Unity's frame: a root's block bursts at its fire
                 }
             }
             else
@@ -226,12 +233,18 @@ namespace Project.ColorHunt
             }
             // start = rootStart + pay, rootStart = root − peak (the tapped special: 0), pay = burst − root. One root at the first peak: start =
             // burst − peak, exactly the plan before roots.
+            // Game frame (R-8, Pota cekirdek): start = root + pay, pay = max(0, burst − root − peak); a cell no area reached starts at 0.
             var pay = new Dictionary<int, At>();
             float last = 0f;
             foreach (int c in step.Exploded)
             {
-                var b = burst.TryGetValue(c, out var found) ? found : new At { T = peak, Root = peak };
-                var p = new At { T = b.T - b.Root, Root = b.Root - peak };
+                At p;
+                if (game) p = burst.TryGetValue(c, out var g) ? new At { T = Mathf.Max(0f, g.T - g.Root - peak), Root = g.Root } : new At();
+                else
+                {
+                    var b = burst.TryGetValue(c, out var found) ? found : new At { T = peak, Root = peak };
+                    p = new At { T = b.T - b.Root, Root = b.Root - peak };
+                }
                 pay[c] = p;
                 plan.Start[c] = p.Root + p.T;
                 last = Mathf.Max(last, p.T);
@@ -257,7 +270,7 @@ namespace Project.ColorHunt
             float end = 0f;
             foreach (int c in step.Exploded) end = Mathf.Max(end, plan.Start[c]);
             plan.End = end + swellTime;
-            foreach (var f in plan.Fires) plan.End = Mathf.Max(plan.End, f.Time);
+            if (!game) foreach (var f in plan.Fires) plan.End = Mathf.Max(plan.End, f.Time);   // Pota's sure: the latest start + swell
             return plan;
         }
 

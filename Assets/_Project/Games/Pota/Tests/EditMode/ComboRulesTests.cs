@@ -53,7 +53,12 @@ namespace Project.Tests
         [Serializable] public class FireDto { public int cell, kind, order, size; public double t; }
         [Serializable] public class StartDto { public int cell; public double t; }
         [Serializable] public class PlanValuesDto { public FireDto[] fires; public StartDto[] starts; public double pace, end; }
-        [Serializable] public class PlanDto { public string name; public int n, origin; public double swell, peakAt; public TimingDto timing; public StepDto step; public PlanValuesDto pota, flat; }
+        [Serializable] public class PlanDto
+        {
+            public string name; public int n, origin; public double swell, peakAt, gameSwell; public TimingDto timing; public StepDto step;
+            /// <summary>Combo steps only (R-8): Pota's game plan from the centre at the fixture's swell (`game`) and at the game's own (`gameAtSwell`).</summary>
+            public PlanValuesDto pota, flat, game, gameAtSwell;
+        }
         [Serializable] public class MoveDto { public string kind, dir, result; public int cell, cost, partner; public StepDto[] steps; public BoardDto after; }
         [Serializable] public class GameDto { public string name; public long seed; public int ammo; public FeaturesDto features; public BoardDto start; public MoveDto[] moves; }
 
@@ -387,6 +392,7 @@ namespace Project.Tests
         public void Plan(string name)
         {
             var p = Array.Find(Fixture.plans, x => x.name == name);
+            if (!string.IsNullOrEmpty(p.step.combo.kind)) { ComboPlan(p); return; }
             var pass = PassTiming.B;
             Assert.AreEqual((float)p.timing.passTakeoff, pass.Takeoff, 1e-6f, "pasKalkis");
             Assert.AreEqual((float)p.timing.passSpeed, pass.Speed, 1e-6f, "pasHiz");
@@ -443,6 +449,59 @@ namespace Project.Tests
                 end = Mathf.Max(end, want + swell);
             }
             Assert.AreEqual(end, plan.End, PlanEps, name + ": end");
+        }
+
+        /// <summary>
+        /// A combo step (Unity Task 7, ruling R-8): Unity plans it exactly as Pota's GAME does (ozelPlani from the centre, tepe 0.55) — both
+        /// partners roots at 0 (the merge before them is the look's, never compressed), every cell's swell starting at root + max(0, arrival −
+        /// root − swell·0.55) so its peak lands on the arrival, compressed only when the latest such pay + swell passes the 0.6 cap; the
+        /// carried special a root at the landing; a pass-hit normal block's Hits = the landing; End = the latest start (or hit) + swell.
+        /// Checked at the fixture's swell 0.3 (`game`) and at the game's own 0.15 (`gameAtSwell`), ±1e-5: fires (cell, kind, order, size,
+        /// time), pace, every start, every hit, the end. Single specials keep the frame mapping above.
+        /// </summary>
+        private static void ComboPlan(PlanDto p)
+        {
+            Assert.IsNotNull(p.game, p.name + ": the fixture has no game plan (regenerate combo_fixtures.ts)");
+            Assert.IsNotNull(p.game.fires, p.name + ": the fixture has no game plan (regenerate combo_fixtures.ts)");
+            Assert.AreEqual((float)p.peakAt, PotaLook.SwellPeakAt, 1e-6f, "tepe");
+            Assert.AreEqual((float)p.timing.cap, SpecialSchedule.MaxStep, 1e-6f, "tavan");
+            AssertGamePlan(p, p.game, (float)p.swell, "swell " + p.swell);
+            Assert.AreEqual(0.15f, (float)p.gameSwell, 1e-6f, "the game's swell (YAPBOZ_AYAR.sure.zincir) = ColorHuntSettings.ChainTime");
+            AssertGamePlan(p, p.gameAtSwell, (float)p.gameSwell, "game swell " + p.gameSwell);
+        }
+
+        private static void AssertGamePlan(PlanDto p, PlanValuesDto want, float swell, string where)
+        {
+            string name = $"{p.name} ({where})";
+            var step = ToStep(p.step);
+            var plan = SpecialSchedule.Plan(p.n, step, p.origin, FixtureTiming(p.timing), swell, PassTiming.B);
+            Assert.AreEqual(want.fires.Length, plan.Fires.Count, name + ": fires");
+            var fired = new HashSet<int>();
+            for (int i = 0; i < plan.Fires.Count; i++)
+            {
+                var w = want.fires[i];
+                var got = plan.Fires[i];
+                string at = $"{name}: fire {i}";
+                Assert.AreEqual($"{w.cell}:{w.kind}:{w.order}:{w.size}", $"{got.Cell}:{(int)got.Kind}:{got.Order}:{got.Size}", at);
+                Assert.AreEqual((float)w.t, got.Time, PlanEps, at + " time");
+                Assert.AreEqual((float)want.pace, got.Pace, PlanEps, at + " pace");
+                fired.Add(got.Cell);
+            }
+            Assert.AreEqual((float)want.pace, plan.Pace, PlanEps, name + ": pace");
+            var start = new Dictionary<int, float>();
+            foreach (var s in want.starts) start[s.cell] = (float)s.t;
+            var exploded = new HashSet<int>(step.Exploded);
+            var hits = new HashSet<int>();
+            foreach (var h in step.Passes) if (h.Target >= 0 && exploded.Contains(h.Target) && !fired.Contains(h.Target)) hits.Add(h.Target);
+            CollectionAssert.AreEquivalent(step.Exploded, plan.Start.Keys, name + ": one start per exploded cell");
+            CollectionAssert.AreEquivalent(step.Exploded, start.Keys, name + ": Pota starts every exploded cell");
+            CollectionAssert.AreEquivalent(hits, plan.Hits.Keys, name + ": pass hits on normal blocks");
+            foreach (int c in step.Exploded)
+            {
+                if (hits.Contains(c)) Assert.AreEqual(start[c], plan.Hits[c], PlanEps, $"{name}: cell {c} hit (the landing)");
+                else Assert.AreEqual(start[c], plan.Start[c], PlanEps, $"{name}: cell {c} start");
+            }
+            Assert.AreEqual((float)want.end, plan.End, PlanEps, name + ": end");
         }
     }
 }
