@@ -53,6 +53,24 @@ namespace Project.ColorHunt
         [Tooltip("B: the Blender pass_ball delivery (ai_import_asset) — Basketball (960 tris) + Propeller (96 tris, its origin on the ball's up axis).")]
         public GameObject PassModel;
 
+        [Header("Combo (Pota spec 2026-10-13: two specials side by side merge on a tap; two choreographies, Tuna picks)")]
+        [Tooltip("Kombo koreografisi: A Hızlı-sert · B Sinematik (Pota OZEL_AN.kombo.a/.b; aynı sayılar). Specials sahnesinde düğmelerle değişir.")]
+        public ComboLook ComboLook = ComboLook.A;
+        [Tooltip("A \"Hızlı-sert\" — Pota src/ozelAyar.ts OZEL_AN.kombo.a.")]
+        public ComboTuning ComboLookA = ComboTuning.A();
+        [Tooltip("B \"Sinematik\" — Pota src/ozelAyar.ts OZEL_AN.kombo.b.")]
+        public ComboTuning ComboLookB = ComboTuning.B();
+        [Tooltip("What both share: lettering widths, the big bomb, the carry, the three-pass fan, the lean, the chunks.")]
+        public ComboShared Combo = new ComboShared();
+        [Tooltip("Yaslanma (K6): kombo yapabilen çift, tahta boşken ara ara birbirine yaslanır. Specials sahnesinde var/yok.")]
+        public bool ComboLean = true;
+        [Tooltip("vfx_flipbook lettering (combo / slam / swish styles), 1024×512 stills: CROSSOVER!, SHOWTIME!, MEGA SLAM!, ALLEY-OOP!, FAST BREAK!.")]
+        public Texture2D LetterCrossover, LetterShowtime, LetterMegaSlam, LetterAlleyOop, LetterFastBreak;
+        [Tooltip("The combo's ring: vfx_flipbook ring_toon (white toon ring, 4×4 frames, 0.4 s; plan P2 instead of the shock ring).")]
+        public Texture2D ComboRing;
+        [Tooltip("The combo's chunks: vfx_fracture pillow (vfx-pillow-shatter, ten pieces of the 0.9 block; the first three fly, plan P6).")]
+        public GameObject ComboPieces;
+
         [Header("Feel layer (spec 2026-10-03: level intro, ammo tension, leftover finale, words, hint, bounce, clip, sky, lose)")]
         [Tooltip("Off = today's behaviour exactly (for the Pota | before | after recordings).")]
         public FeelTuning Feel = new FeelTuning();

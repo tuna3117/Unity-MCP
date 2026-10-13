@@ -41,6 +41,23 @@ namespace Project.ColorHunt
         void GoldenFlight(GoldenRoute route, Action passedGate, Action landed);
     }
 
+    /// <summary>
+    /// A special look that draws the combo itself (Pota spec 2026-10-13 §3; 2 · Court). The game owns the merge pre-phase, the hit-stop and
+    /// slow motion, the pass flights and the plan; the look draws the combo's moment at its fire and the chunks of the combo step's bursts.
+    /// A look without it (Pota, Royal) fires an area combo's two partners as two single specials.
+    /// </summary>
+    public interface IComboStyle
+    {
+        /// <summary>
+        /// The combo fires at <paramref name="center"/> (its cell, the plan's time and pace; an area combo's two blocks are hidden, a pass
+        /// combo's are flying): the flash, the toon ring, the shake, the camera kick, the lettering and the crowd; Cross / ThickCross their
+        /// balls from the centre (one row + one column / three of each), BigBomb the big dunk; the pass combos only the moment.
+        /// </summary>
+        void FireCombo(ComboInfo combo, SpecialFire center, ComboTuning look, ComboShared shared);
+        /// <summary>A block of the combo step bursts at <paramref name="at"/>: chunks in its <paramref name="tone"/> fly out from <paramref name="centre"/> and fall.</summary>
+        void ComboChunks(Vector2 at, Color tone, Vector2 centre, ComboTuning look, ComboShared shared);
+    }
+
     /// <summary>How a look staggers a trigger step (spec §2 "sırayla patlama"). Default = Pota: everything at once.</summary>
     [Serializable]
     public struct SpecialTiming

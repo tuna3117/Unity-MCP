@@ -25,7 +25,10 @@ namespace Project.Editor.AITools
         "'rotate cw|ccw', 'settle'; default: idle, select, tap, settle, rotate, settle, tap, settle), seed (7), ammo (settings), win (false; " +
         "true: one red target block, the first red tap wins), tail (1.5 s). scene 'Specials' (Specials.unity open): scenario " +
         "(birth|line|bomb|chain|golden|idle|pass|passBomb; idle = the Bekleme board, nothing tapped, 6 s, zoomed on its centre by zoom; " +
-        "pass/passBomb = the pass ball, Pota spec 2026-10-11), pass_look (a = A Pas | b = B Pervane; default the game's; restored after), special_look " +
+        "pass/passBomb = the pass ball, Pota spec 2026-10-11; comboCross|comboThickCross|comboBigBomb|comboPassLine|comboPassBomb|comboPassPass = " +
+        "the combos, comboLean = the resting pairs (Yan yana, nothing tapped, 7.6 s), Pota spec 2026-10-13), combo_look (a = A Hızlı | b = B " +
+        "Sinematik; default the game's; restored after), combo_lean (on|off; default the game's; restored after), " +
+        "pass_look (a = A Pas | b = B Pervane; default the game's; restored after), special_look " +
         "(pota|royal or 1|court or 2; default pota), special_idle (look|breath|glint|rim|twinkle|sway or a-e; default look = the look's own " +
         "idle; restored after), until (the marker to stop at, default 'finish' = the demo's ScenarioFinished; e.g. 'tap2'), tail (0.6 s; " +
         "idle 6 s). Feel layer (spec 2026-10-03): feel (on|off, restored after), " +
@@ -33,7 +36,9 @@ namespace Project.Editor.AITools
         "result, finale). Both: width (540), aspect (0.5625), look (pota|candy|shatter), " +
         "closeup (zoom on focus; steps of 0.3× fixedDeltaTime, play the frames back at meta.speed 0.3), zoom (2.4; without closeup it zooms at " +
         "normal speed), focus (cell; default the first tap's, idle 24, pass 30, passBomb 24), name ('colorhunt'). Out: Temp/record/<name>/f_NNNN_tS.SSS.png, events.json {markers in s: tap, tap2…, rotate, win, " +
-        "born…, fire…, land…, hit… (a pass ball landed), finish, end; meta {…, speed, step}; sounds: [{id, clip, t, volume, pitch, voice}]}, sounds/<clip>.wav.")]
+        "born…, fire…, land…, hit… (a pass ball landed), merge (a combo's merge began), combo (it fired), burst / lastburst (the first and the " +
+        "last burst after the first tap, before its step's drops), drops (that step's drops), finish, end; meta {…, speed, step}; sounds: " +
+        "[{id, clip, t, volume, pitch, voice}]}, sounds/<clip>.wav.")]
     public static class ColorHuntRecordTool
     {
         public struct Step { public string Verb; public string Arg; public float Seconds; }
@@ -44,6 +49,9 @@ namespace Project.Editor.AITools
             public bool Specials; public SpecialScenario Scenario; public SpecialLook Look; public SpecialIdle Idle;
             /// <summary>pass_look given: the pass ball's look for the recording (else the game's stays).</summary>
             public bool HasPassLook; public PassLook PassLook;
+            /// <summary>combo_look / combo_lean given (Pota spec 2026-10-13): the combo's choreography and lean for the recording.</summary>
+            public bool HasComboLook; public ComboLook ComboLook;
+            public bool HasComboLean; public bool ComboLean;
         }
 
         /// <summary>A feel-layer scenario in the ColorHunt scene (spec 2026-10-03 Task 10): the script and the round it needs.</summary>
@@ -86,8 +94,10 @@ namespace Project.Editor.AITools
         {
             [ToolParameter("'start' (default), 'status' or 'cancel'", Required = false)] public string action { get; set; }
             [ToolParameter("'ColorHunt' (default) or 'Specials' (the special-balls demo)", Required = false)] public string scene { get; set; }
-            [ToolParameter("Specials: birth | line | bomb | chain | golden | idle (the Bekleme board) | pass | passBomb. ColorHunt (feel layer): intro | lowammo | finale | lose | chain | idle", Required = false)] public string scenario { get; set; }
+            [ToolParameter("Specials: birth | line | bomb | chain | golden | idle (the Bekleme board) | pass | passBomb | comboCross | comboThickCross | comboBigBomb | comboPassLine | comboPassBomb | comboPassPass | comboLean. ColorHunt (feel layer): intro | lowammo | finale | lose | chain | idle", Required = false)] public string scenario { get; set; }
             [ToolParameter("Specials: the pass ball's look - a (A Pas) | b (B Pervane); default: the game's", Required = false)] public string pass_look { get; set; }
+            [ToolParameter("Specials: the combo's choreography - a (A Hızlı) | b (B Sinematik); default: the game's", Required = false)] public string combo_look { get; set; }
+            [ToolParameter("Specials: combo pairs lean while the board rests - on | off; default: the game's", Required = false)] public string combo_lean { get; set; }
             [ToolParameter("Feel layer on|off for the recording (the asset's value is restored after)", Required = false)] public string feel { get; set; }
             [ToolParameter("Specials: pota (default) | royal (1) | court (2)", Required = false)] public string special_look { get; set; }
             [ToolParameter("Specials: how resting specials idle - look (default: the special look's own) | breath (a) | glint (b) | rim (c) | twinkle (d) | sway (e)", Required = false)] public string special_idle { get; set; }
@@ -117,14 +127,19 @@ namespace Project.Editor.AITools
         public const float SpecialsTail = 0.6f, SpecialsTimeout = 40f;
         /// <summary>Specials "idle" (spec 2026-10-07): seconds of the resting Bekleme board after the demo's (immediate) finish.</summary>
         public const float IdleTail = 6f;
+        /// <summary>Specials "comboLean" (Pota spec 2026-10-13 K6): the resting pairs lean at 0, 3.5 and 7 s (0.4 s each) — three leans.</summary>
+        public const float LeanTail = 7.6f;
         /// <summary>Specials: the longest the recorder steps (uncaptured, unscaled s) waiting for the demo's start-up scenario to settle.</summary>
         public const float SettleTimeout = 20f;
-        private const string ScenarioList = "birth, line, bomb, chain, golden, idle, pass, passBomb";
+        private const string ScenarioList = "birth, line, bomb, chain, golden, idle, pass, passBomb, comboCross, comboThickCross, comboBigBomb, " +
+                                            "comboPassLine, comboPassBomb, comboPassPass, comboLean";
 
         private static PuzzleLook _previousLook;
         private static SpecialLook _previousSpecialLook;
         private static SpecialIdle _previousSpecialIdle;
         private static PassLook _previousPassLook;
+        private static ComboLook _previousComboLook;
+        private static bool _previousComboLean, _dropsSeen;
         private static bool _closeup, _zoomOnly, _restoreLook, _specials;
         private static SpecialsRequest _request;
         private static SpecialsDemo _demo;
@@ -160,6 +175,13 @@ namespace Project.Editor.AITools
                 case "idle": case "bekleme": scenario = SpecialScenario.Idle; return true;
                 case "pass": case "pas": scenario = SpecialScenario.Pass; return true;
                 case "passbomb": case "pass_bomb": case "pasbomba": scenario = SpecialScenario.PassBomb; return true;
+                case "combocross": case "arti": scenario = SpecialScenario.ComboCross; return true;
+                case "combothickcross": case "kalinarti": scenario = SpecialScenario.ComboThickCross; return true;
+                case "combobigbomb": case "devbomba": scenario = SpecialScenario.ComboBigBomb; return true;
+                case "combopassline": case "pascizgi": scenario = SpecialScenario.ComboPassLine; return true;
+                case "combopassbomb": case "pasbombakombo": scenario = SpecialScenario.ComboPassBomb; return true;
+                case "combopasspass": case "paspas": scenario = SpecialScenario.ComboPassPass; return true;
+                case "combolean": case "yaslanma": case "yanyana": scenario = SpecialScenario.ComboLean; return true;
                 default: scenario = SpecialScenario.Birth; return false;
             }
         }
@@ -196,6 +218,37 @@ namespace Project.Editor.AITools
 
         public static string ParseRequest(string scene, string scenario, string specialLook, string specialIdle, bool scripted,
             out SpecialsRequest request) => ParseRequest(scene, scenario, specialLook, specialIdle, null, scripted, out request);
+
+        /// <summary>"a" | "hizli" → A, "b" | "sinematik" → B (any case).</summary>
+        public static bool TryComboLook(string s, out ComboLook look)
+        {
+            switch ((s ?? "").Trim().ToLowerInvariant())
+            {
+                case "a": case "hizli": case "hızlı": look = ComboLook.A; return true;
+                case "b": case "sinematik": look = ComboLook.B; return true;
+                default: look = ComboLook.A; return false;
+            }
+        }
+
+        /// <summary>
+        /// The combo options of a Specials request (Pota spec 2026-10-13): combo_look a|b, combo_lean on|off. Null when fine (or not given),
+        /// else the refusal; they need scene 'Specials'.
+        /// </summary>
+        public static string ParseCombo(bool specials, string comboLook, string comboLean, ref SpecialsRequest request)
+        {
+            bool hasLook = !string.IsNullOrWhiteSpace(comboLook), hasLean = !string.IsNullOrWhiteSpace(comboLean);
+            if (!hasLook && !hasLean) return null;
+            if (!specials) return "combo_look and combo_lean need scene 'Specials'";
+            var look = ComboLook.A;
+            if (hasLook && !TryComboLook(comboLook, out look)) return $"unknown combo_look '{comboLook}' (a/hizli, b/sinematik)";
+            bool lean = true;
+            if (hasLean && !TryFeel(comboLean, out lean)) return $"combo_lean must be on or off, got '{comboLean}'";
+            request.HasComboLook = hasLook;
+            request.ComboLook = look;
+            request.HasComboLean = hasLean;
+            request.ComboLean = lean;
+            return null;
+        }
 
         /// <summary>"a" | "pas" → A, "b" | "pervane" → B (any case).</summary>
         public static bool TryPassLook(string s, out PassLook look)
@@ -327,6 +380,8 @@ namespace Project.Editor.AITools
                 AIToolsCommon.GetString(p, "special_look", null), AIToolsCommon.GetString(p, "special_idle", null),
                 AIToolsCommon.GetString(p, "pass_look", null), p["script"] != null || _win, out _request);
             if (refusal != null) return new ErrorResponse(refusal);
+            refusal = ParseCombo(_request.Specials, AIToolsCommon.GetString(p, "combo_look", null), AIToolsCommon.GetString(p, "combo_lean", null), ref _request);
+            if (refusal != null) return new ErrorResponse(refusal);
             _specials = _request.Specials;
             _demo = null;
             if (_specials)
@@ -364,14 +419,20 @@ namespace Project.Editor.AITools
                 _previousSpecialLook = game.SpecialLook;
                 _previousSpecialIdle = game.SpecialIdle;
                 _previousPassLook = game.PassLook;
+                _previousComboLook = game.ComboLook;
+                _previousComboLean = game.ComboLean;
                 _demo.SetLook(_request.Look);
                 _demo.SetIdle(_request.Idle);
                 if (_request.HasPassLook) _demo.SetPassLook(_request.PassLook);
+                if (_request.HasComboLook) _demo.SetComboLook(_request.ComboLook);
+                if (_request.HasComboLean) _demo.SetComboLean(_request.ComboLean);
                 if (_request.Look != SpecialLook.Pota && game.Specials is PotaSpecials)
                 {
                     _demo.SetLook(_previousSpecialLook);
                     _demo.SetIdle(_previousSpecialIdle);
                     _demo.SetPassLook(_previousPassLook);
+                    _demo.SetComboLook(_previousComboLook);
+                    _demo.SetComboLean(_previousComboLean);
                     return new ErrorResponse($"The {_request.Look} special look fell back to Pota (missing assets: run ai_studio_import); nothing recorded.");
                 }
             }
@@ -391,13 +452,15 @@ namespace Project.Editor.AITools
             _ammo = AIToolsCommon.GetInt(p, "ammo", _presetName.Length > 0 && _preset.Ammo >= 0 ? _preset.Ammo : game.S.Ammo);
             _width = Mathf.Clamp(AIToolsCommon.GetInt(p, "width", 540), 120, 2160);
             _aspect = Mathf.Clamp(AIToolsCommon.GetFloat(p, "aspect", 0.5625f), 0.3f, 3f);
-            float tailDefault = _specials ? (_request.Scenario == SpecialScenario.Idle ? IdleTail : SpecialsTail) : _presetName.Length > 0 ? _preset.Tail : 1.5f;
+            float tailDefault = _specials
+                ? (_request.Scenario == SpecialScenario.Idle ? IdleTail : _request.Scenario == SpecialScenario.ComboLean ? LeanTail : SpecialsTail)
+                : _presetName.Length > 0 ? _preset.Tail : 1.5f;
             _tail = Mathf.Max(0f, AIToolsCommon.GetFloat(p, "tail", tailDefault));
             _dir = "Temp/record/" + (AIToolsCommon.GetString(p, "name", "colorhunt") ?? "colorhunt");
             if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
             Directory.CreateDirectory(_dir);
             _index = 0; _stepFrames = 0; _captured = 0; _tailFrames = 0; _dealt = false; _result = ""; _lastFrame = -1; _waits = 0; _tailStart = -1f;
-            _stopAt = -1f; _landed = 0; _settleStart = -1f; _warm = 0;
+            _stopAt = -1f; _landed = 0; _settleStart = -1f; _warm = 0; _dropsSeen = false;
             _events.Clear();
             Time.captureDeltaTime = 1f / 30f;
             _floating = FrameRecorder.OpenFloatingGameView(new Rect(1040f, 70f, 380f, 700f));
@@ -432,7 +495,12 @@ namespace Project.Editor.AITools
                 meta["scenario"] = _request.Scenario.ToString().ToLowerInvariant();
                 meta["special_look"] = _request.Look.ToString().ToLowerInvariant();
                 meta["special_idle"] = _request.Idle.ToString().ToLowerInvariant();
-                if (game != null) meta["pass_look"] = game.PassLook.ToString().ToLowerInvariant();
+                if (game != null)
+                {
+                    meta["pass_look"] = game.PassLook.ToString().ToLowerInvariant();
+                    meta["combo_look"] = game.ComboLook.ToString().ToLowerInvariant();
+                    meta["combo_lean"] = game.ComboLean ? "on" : "off";
+                }
             }
             else if (_presetName.Length > 0) meta["scenario"] = _presetName;
             if (game != null && _restoreFeel && game.S != null && game.S.Feel != null) game.S.Feel.Enabled = _previousFeel;
@@ -445,6 +513,8 @@ namespace Project.Editor.AITools
                     _demo.SetLook(_previousSpecialLook);
                     _demo.SetIdle(_previousSpecialIdle);
                     _demo.SetPassLook(_previousPassLook);
+                    _demo.SetComboLook(_previousComboLook);
+                    _demo.SetComboLean(_previousComboLean);
                     _demo.ShowUi(true);
                 }
                 var fit = game.Cam != null ? game.Cam.GetComponent<ColorHuntCamera>() : null;
@@ -625,6 +695,10 @@ namespace Project.Editor.AITools
             game.SpecialBorn += OnBorn;
             game.SpecialFired += OnFired;
             game.PassLanded += OnPassLanded;
+            game.ComboMerging += OnComboMerging;
+            game.ComboFired += OnComboFired;
+            game.CellBurst += OnCellBurst;
+            game.StepDropping += OnStepDropping;
             if (_demo == null) return;
             _demo.Tapped += OnTapped;
             _demo.ScenarioFinished += OnFinished;
@@ -637,6 +711,10 @@ namespace Project.Editor.AITools
                 _hooked.SpecialBorn -= OnBorn;
                 _hooked.SpecialFired -= OnFired;
                 _hooked.PassLanded -= OnPassLanded;
+                _hooked.ComboMerging -= OnComboMerging;
+                _hooked.ComboFired -= OnComboFired;
+                _hooked.CellBurst -= OnCellBurst;
+                _hooked.StepDropping -= OnStepDropping;
                 _hooked = null;
             }
             if (_demo == null) return;
@@ -648,6 +726,24 @@ namespace Project.Editor.AITools
         private static void OnBorn(SpecialKind kind, int cell) => Mark("born");
         private static void OnFired(SpecialFire fire) => Mark("fire");
         private static void OnPassLanded(int cell, int target) => Mark("hit");
+        private static void OnComboMerging(ComboKind kind) => Mark("merge");
+        private static void OnComboFired(ComboKind kind) => Mark("combo");
+
+        /// <summary>"burst" = the first burst after the first tap, "lastburst" = the last one before that step's drops (the combo's own end).</summary>
+        private static void OnCellBurst(int cell)
+        {
+            if (!_running || !_dealt || _dropsSeen || !_events.ContainsKey("tap")) return;
+            if (!_events.ContainsKey("burst")) _events["burst"] = Now;
+            _events["lastburst"] = Now;
+        }
+
+        /// <summary>"drops": the first step after the first tap starts its drops (after its last burst).</summary>
+        private static void OnStepDropping(int depth)
+        {
+            if (!_running || !_dealt || _dropsSeen || !_events.ContainsKey("tap")) return;
+            _dropsSeen = true;
+            _events["drops"] = Now;
+        }
 
         private static void OnFinished()
         {
@@ -719,6 +815,7 @@ namespace Project.Editor.AITools
         {
             running = _running, scene = _specials ? "Specials" : "ColorHunt", scenario = _specials ? _request.Scenario.ToString() : "",
             special_look = _specials ? _request.Look.ToString() : "", special_idle = _specials ? _request.Idle.ToString() : "",
+            combo_look = Object.FindAnyObjectByType<ColorHuntGame>()?.ComboLook.ToString(), combo_lean = Object.FindAnyObjectByType<ColorHuntGame>()?.ComboLean,
             pass_look = Object.FindAnyObjectByType<ColorHuntGame>()?.PassLook.ToString(), until = _until, step = _index, steps = _steps?.Count ?? 0,
             frames = _captured, dir = _dir, result = _result, events = _events, look = Object.FindAnyObjectByType<ColorHuntGame>()?.Look.ToString(),
             closeup = _closeup, gameTime = Time.time, frameCount = Time.frameCount, timeScale = Time.timeScale, captureDeltaTime = Time.captureDeltaTime,

@@ -69,6 +69,9 @@ namespace Project.ColorHunt
         {
             public PassLook Look;
             public BlockView View;
+            /// <summary>A pass combo's carried special (Pota spec 2026-10-13 §3 tasima): its block hangs under the ball, shrunk.</summary>
+            public BlockView Carried;
+            public float CarryDown, CarryScale;
             public Model Model;
             public Vector2 From, To, Pos;
             public bool HasTarget;
@@ -96,6 +99,18 @@ namespace Project.ColorHunt
         /// <summary>The A flight's lift of a flight (tests): cells toward the camera of the first flight, −1 when none.</summary>
         public float FirstLift => _flights.Count > 0 ? _flights[0].Lift : -1f;
         public Vector2 FirstPos => _flights.Count > 0 ? _flights[0].Pos : Vector2.zero;
+        /// <summary>Flights in the air that carry a special under them (a pass combo's PassLine / PassBomb).</summary>
+        public int CarryingInFlight
+        {
+            get
+            {
+                int n = 0;
+                foreach (var f in _flights) if (f.Carried != null) n++;
+                return n;
+            }
+        }
+        /// <summary>Where each flight is now (board-local cells, in launch order) and its lift (tests: the three-pass fan, the carry).</summary>
+        public IEnumerable<(Vector2 pos, float lift, BlockView carried)> Flights { get { foreach (var f in _flights) yield return (f.Pos, f.Lift, f.Carried); } }
 
         public void Build(ColorHuntGame game)
         {
@@ -198,15 +213,25 @@ namespace Project.ColorHunt
         /// hops in place for the takeoff and puffs), <paramref name="duration"/> = PassTiming.Arrival (the takeoff without a target),
         /// <paramref name="age"/> = how far the step's clock already is past its fire. A flies <paramref name="view"/> (the ball's block); B
         /// hides it and flies the model. <paramref name="landed"/> gets the view back once, at the hit (or at the puff).
+        /// A pass combo (Pota pasKomboAtesle): <paramref name="carried"/> hangs <paramref name="carryDown"/> cells under the ball at
+        /// <paramref name="carryScale"/>, riding its lift; it is hidden at the landing (the game recycles it with the flight's view).
         /// </summary>
-        public void Fly(PassLook look, Vector2 from, Vector2? to, float duration, float age, BlockView view, Action<BlockView> landed)
+        public void Fly(PassLook look, Vector2 from, Vector2? to, float duration, float age, BlockView view, Action<BlockView> landed,
+            BlockView carried = null, float carryDown = 0.5f, float carryScale = 0.8f)
         {
             if (look == PassLook.B && _ball == null) look = PassLook.A;   // no model: A's flight rather than nothing
             var f = new Flight
             {
                 Look = look, View = view, From = from, To = to ?? from, Pos = from, HasTarget = to.HasValue,
                 Duration = Mathf.Max(1e-3f, duration), T = Mathf.Max(0f, age), Landed = landed,
+                Carried = carried, CarryDown = carryDown, CarryScale = carryScale,
             };
+            if (carried != null)
+            {
+                carried.Exploding = true;
+                carried.Pressed = false;
+                carried.Scale = carryScale;
+            }
             if (view != null)
             {
                 view.Exploding = true;
@@ -311,9 +336,15 @@ namespace Project.ColorHunt
         public static float PropellerAngle(float t, float w, float takeoff) =>
             t < takeoff ? w * t * t / (2f * Mathf.Max(1e-3f, takeoff)) : w * (t - takeoff * 0.5f);
 
-        /// <summary>Writes the flight onto its block (A) or its model (B): position, lift toward the camera, turn.</summary>
+        /// <summary>Writes the flight onto its block (A) or its model (B): position, lift toward the camera, turn; a carried block hangs under it.</summary>
         private void Place(Flight f)
         {
+            if (f.Carried != null)
+            {
+                f.Carried.Pos = new Vector2(f.Pos.x, f.Pos.y - f.CarryDown);
+                f.Carried.Lift = f.Lift;
+                f.Carried.Scale = f.CarryScale;
+            }
             if (f.Look == PassLook.A)
             {
                 if (f.View == null) return;
@@ -353,6 +384,11 @@ namespace Project.ColorHunt
             {
                 f.View.Lift = 0f;
                 f.View.Roll = 0f;
+            }
+            if (f.Carried != null)
+            {
+                f.Carried.Lift = 0f;
+                f.Carried.gameObject.SetActive(false);              // the carried special fires here now (the plan's virtual root)
             }
             try { f.Landed?.Invoke(f.View); }
             catch (Exception e) { Debug.LogException(e); }

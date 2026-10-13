@@ -118,12 +118,15 @@ namespace Project.ColorHunt
     /// pooled and on game time, in the game root's space (this object sits at its origin); materials come from the settings' templates.
     /// </summary>
     [DefaultExecutionOrder(100)]   // after ColorHuntGame: the step clock equals the game's step time at the end of every frame
-    public class CourtSpecials : MonoBehaviour, ISpecialStyle
+    public class CourtSpecials : MonoBehaviour, ISpecialStyle, IComboStyle
     {
-        public const int BallMax = 8, GoldenMax = 4, FlameMax = 8, SpeedMax = 8, RingMax = 12, CrackMax = 4, LetterMax = 4,
-            DustMax = 16, FlashMax = 24, ConfettiMax = 60;
+        // Combo (Pota spec 2026-10-13): a thick cross flies 12 balls (three rows + three columns, both ways) — ball, flame and speed-line
+        // pools of 16; two more letterings (a combo word over a SWISH!); the toon ring; the chunks (OZEL_AN.kombo.parca.havuz 120).
+        public const int BallMax = 16, GoldenMax = 4, FlameMax = 16, SpeedMax = 16, RingMax = 12, CrackMax = 4, LetterMax = 6,
+            DustMax = 16, FlashMax = 24, ConfettiMax = 60, ToonRingMax = 2, ChunkMax = 120;
         /// <summary>Every pooled piece and particle this look can have alive at once.</summary>
-        public const int PoolTotal = BallMax + GoldenMax + FlameMax + SpeedMax + RingMax + CrackMax + LetterMax + DustMax + FlashMax + ConfettiMax;
+        public const int PoolTotal = BallMax + GoldenMax + FlameMax + SpeedMax + RingMax + CrackMax + LetterMax + DustMax + FlashMax + ConfettiMax
+                                     + ToonRingMax + ChunkMax;
         /// <summary>Spec §1.6: this look's own live count stays under what the Pota burst pools (ColorHuntFx) leave of the budget.</summary>
         public const int Cap = BurstBudget.Max - BurstBudget.Pota;
 
@@ -135,7 +138,9 @@ namespace Project.ColorHunt
         // dust out within 0.1 s of the impact); the lettering over everything. Pota's shards and confetti are opaque: depth still hides
         // the crack behind a shard that flies in front of it.
         public const int RingOrder = 1, CrackOrder = 10, DustOrder = 11, SpeedOrder = 12, FlameOrder = 13, SwishOrder = 14, FlashOrder = 15,
-            LetterOrder = 30;
+            ToonRingOrder = 16, LetterOrder = 30;
+        /// <summary>The combo's toon ring (vfx-ring-toon: 4×4 frames in 0.4 s), over the block fronts and the bursts.</summary>
+        public const float ToonRingTime = 0.4f, ToonRingZ = PotaLook.FrontZ + 0.33f;
         /// <summary>Toon outline of the balls in world metres (Project/Toon extrudes along the world normal).</summary>
         public const float Outline = 0.02f;
 
@@ -146,7 +151,7 @@ namespace Project.ColorHunt
         private static readonly Color[] Gold = { PotaLook.Hex(0xffc93c), PotaLook.Hex(0xffe27a), PotaLook.Hex(0xeeb900), PotaLook.Hex(0xfff1b0) };
         private static Texture2D _ringTex;
 
-        private enum Kind { Ring, Crack, Letter, Flame, Speed }
+        private enum Kind { Ring, Crack, Letter, Flame, Speed, ToonRing }
         private enum Mode { Line, Dunk }
 
         private sealed class Quad
@@ -172,6 +177,9 @@ namespace Project.ColorHunt
             public int NextKick;
             public bool Lead, Whooshed, Edged, Impacted, SpeedDone;
             public Quad Flame, Speed;
+            /// <summary>A combo's big dunk (BigBomb): the ball, the crack and the dust × these, the 5×5 hops, MEGA SLAM! instead of SLAM!, a dip at the impact.</summary>
+            public bool Big;
+            public float Size = 1f, CrackScale = 1f, DustScale = 1f, ImpactDip;
         }
 
         private sealed class Flight
@@ -192,7 +200,9 @@ namespace Project.ColorHunt
         private Mesh _ballMesh, _quadMesh;
         private float _ballSize = 0.45f;
         private Vector3 _ballCentre;
-        private Material _ballMat, _goldMat, _ringMat, _crackMat, _slamMat, _swishMat, _comboMat, _flameMat, _speedMat;
+        private Material _ballMat, _goldMat, _ringMat, _crackMat, _slamMat, _swishMat, _comboMat, _flameMat, _speedMat, _toonRingMat;
+        private readonly Dictionary<ComboKind, Material> _comboWords = new Dictionary<ComboKind, Material>();
+        private ParticleSystem _chunks;
         private readonly List<Material> _materials = new List<Material>();
         private MaterialPropertyBlock _mpb;
         private ParticleSystem _dust, _birthDust, _flash, _confetti;
@@ -216,7 +226,21 @@ namespace Project.ColorHunt
         private int _gen;
 
         public bool Ready { get; private set; }
-        public int LiveCount => _balls.Count + _flights.Count + _quads.Count + StudioParticles.Count(_dust, _birthDust, _flash, _confetti);
+        public int LiveCount => _balls.Count + _flights.Count + _quads.Count + StudioParticles.Count(_dust, _birthDust, _flash, _confetti, _chunks);
+        /// <summary>Combo chunks in the air (the combo step's bursts).</summary>
+        public int ChunksLive => StudioParticles.Count(_chunks);
+        /// <summary>Live combo toon rings.</summary>
+        public int ToonRingsLive
+        {
+            get
+            {
+                int n = 0;
+                foreach (var q in _quads) if (q.Kind == Kind.ToonRing) n++;
+                return n;
+            }
+        }
+        /// <summary>The combo's assets are in place (letterings, the toon ring, the pieces); without them a combo plays its balls only.</summary>
+        public bool ComboReady => _toonRingMat != null && _chunks != null && _comboWords.Count == 6;   // a word per ComboKind (both carries: ALLEY-OOP!)
         public SpecialTiming Timing => TimingFor(Tuning);
         public bool GathersBirthGroup => true;
         public bool ConsumesSpecialView => true;
@@ -350,7 +374,10 @@ namespace Project.ColorHunt
         }
 
         /// <summary>Lettering opacity: full for 75 % of its life, then out by LetterTime.</summary>
-        public static float LetterAlpha(float age, CourtTuning t) => Mathf.Clamp01((t.LetterTime - age) / (0.25f * Mathf.Max(1e-3f, t.LetterTime)));
+        public static float LetterAlpha(float age, CourtTuning t) => LetterAlpha(age, t.LetterTime);
+
+        /// <summary>Lettering opacity over a life of <paramref name="life"/> s (a combo word lives OZEL_AN.kombo.yaziSure).</summary>
+        public static float LetterAlpha(float age, float life) => Mathf.Clamp01((life - age) / (0.25f * Mathf.Max(1e-3f, life)));
 
         /// <summary>Net ring <paramref name="ring"/> (0 = under the rim) widens 1 + amount·sin(πu) over its time, NetRingGap after the one above.</summary>
         public static float NetRing(float time, int ring, CourtTuning t)
@@ -512,8 +539,41 @@ namespace Project.ColorHunt
                 _pass = MakePass();
                 _crowd = ShortCrowd(s.SfxCrowd, Tuning.CrowdCut, Tuning.CrowdFade);
                 _crowdMade = _crowd != null && _crowd != s.SfxCrowd;
+                BuildCombo(s);
             }
             Activate(false);
+        }
+
+        /// <summary>
+        /// The combo's pieces (Pota spec 2026-10-13 §3): the five letterings, the toon ring's quads and the chunks — one mesh-particle system
+        /// over the first three vfx-pillow-shatter pieces (a random one per chunk), lit like the gold confetti, tinted per chunk.
+        /// </summary>
+        private void BuildCombo(ColorHuntSettings s)
+        {
+            void Word(ComboKind k, Texture2D tex) { if (tex != null) _comboWords[k] = QuadMaterial(s, tex, "CourtCombo" + k); }
+            Word(ComboKind.Cross, s.LetterCrossover);
+            Word(ComboKind.ThickCross, s.LetterShowtime);
+            Word(ComboKind.BigBomb, s.LetterMegaSlam);
+            Word(ComboKind.PassLine, s.LetterAlleyOop);
+            Word(ComboKind.PassBomb, s.LetterAlleyOop);
+            Word(ComboKind.PassPass, s.LetterFastBreak);
+            if (s.ComboRing != null)
+            {
+                _toonRingMat = QuadMaterial(s, s.ComboRing, "CourtComboRing");
+                Pool(Kind.ToonRing, ToonRingMax);
+            }
+            var pieces = s.ComboPieces != null ? SpecialMeshes.Parts(s.ComboPieces) : null;
+            if (pieces == null || pieces.Count == 0) return;
+            var meshes = new Mesh[Mathf.Min(3, pieces.Count)];
+            for (int i = 0; i < meshes.Length; i++) meshes[i] = pieces[i].Mesh;
+            int pool = Mathf.Clamp(s.Combo != null ? s.Combo.ChunkPool : ChunkMax, 1, ChunkMax);
+            _chunks = StudioParticles.System(transform, "CourtComboChunks", Keep(ColorHuntFx.LitMaterial(s.ParticleLitTemplate, 0.55f, 0f, 1f)),
+                ParticleSystemRenderMode.Mesh, pool, 7, true);
+            var r = _chunks.GetComponent<ParticleSystemRenderer>();
+            r.SetMeshes(meshes);
+            r.meshDistribution = ParticleSystemMeshDistribution.UniformRandom;
+            float life = s.Combo != null ? s.Combo.ChunkLife : 1.1f;
+            StudioParticles.SizeOverLife(_chunks, u => Mathf.Clamp01((1f - u) * life / 0.25f));   // shrinks away in its last 0.25 s
         }
 
         public void Activate(bool on)
@@ -541,7 +601,7 @@ namespace Project.ColorHunt
             _landing.Clear();
             _gathers.Clear();                                                           // the game settles its gathered blocks itself
             _bulbs.Clear();
-            foreach (var ps in new[] { _dust, _birthDust, _flash, _confetti }) if (ps != null) ps.Clear();
+            foreach (var ps in new[] { _dust, _birthDust, _flash, _confetti, _chunks }) if (ps != null) ps.Clear();
             ResetNet();
             ResetIdle();
             _stepActive = false;
@@ -741,7 +801,7 @@ namespace Project.ColorHunt
             }
         }
 
-        private void FireLine(SpecialFire f, float age)
+        private void FireLine(SpecialFire f, float age, bool dribble = true)
         {
             var t = Tuning;
             int n = BoardSize, row = ColorHuntRules.Row(n, f.Cell), col = ColorHuntRules.Col(n, f.Cell);
@@ -759,7 +819,7 @@ namespace Project.ColorHunt
                 b.Edge = cells + 0.5f;                                                  // the last cell's outer edge, inside the frame bar
                 b.Cells = LineCells(n, row, col, dir, cells);
                 b.NextKick = 0;
-                b.Lead = side == 0;                                                     // the first ball also plays the dribble
+                b.Lead = side == 0 && dribble;                                          // the first ball also plays the dribble
                 b.Whooshed = side == 1;                                                 // one whoosh per fire
                 b.Edged = false;
                 b.Impacted = false;
@@ -852,7 +912,7 @@ namespace Project.ColorHunt
             return true;
         }
 
-        private void FireDunk(SpecialFire f, float age)
+        private void FireDunk(SpecialFire f, float age, ComboShared big = null, float impactDip = 0f)
         {
             if (_freeBalls.Count == 0) return;                                          // ruling 10
             var b = TakeBall();
@@ -862,6 +922,11 @@ namespace Project.ColorHunt
             b.Impacted = false;
             b.Flame = null;
             b.Speed = null;
+            b.Big = big != null;
+            b.Size = big != null ? big.BigBombScale : 1f;
+            b.CrackScale = big != null ? big.BigBombCrack : 1f;
+            b.DustScale = big != null ? big.BigBombDust : 1f;
+            b.ImpactDip = impactDip;
         }
 
         private bool StepDunk(Ball b, CourtTuning t)
@@ -875,20 +940,24 @@ namespace Project.ColorHunt
                 if (!b.Impacted)
                 {
                     b.Impacted = true;
-                    Impact(f, t);
+                    Impact(f, t, b);
                 }
                 if (b.Age - TimingFor(t).BombLead * pace >= t.ImpactHold) return false;
             }
             b.T.gameObject.SetActive(true);
             var rot = pose.Impact ? Quaternion.identity : Quaternion.Euler(pose.Spin * 0.35f, pose.Spin, 0f);
             float wide = pose.Impact ? 1f + 0.6f * (1f - pose.Squash) : 1f;
-            PlaceBall(b.T, f.At + new Vector2(0f, pose.Up - (pose.Impact ? 0.15f : 0f)), StandInZ + pose.Toward, t.StandInCells * pose.Scale,
+            PlaceBall(b.T, f.At + new Vector2(0f, pose.Up - (pose.Impact ? 0.15f : 0f)), StandInZ + pose.Toward, t.StandInCells * pose.Scale * b.Size,
                 wide, pose.Squash, rot);
             return true;
         }
 
-        /// <summary>The dunk hits the floor: crack, dust ring, the 3×3 hops (they burst BombRing·Pace later), SLAM!, flashbulbs, shake, kick, smac.</summary>
-        private void Impact(SpecialFire f, CourtTuning t)
+        /// <summary>
+        /// The dunk hits the floor: crack, dust ring, the 3×3 hops (they burst BombRing·Pace later), SLAM!, flashbulbs, shake, kick, smac.
+        /// A combo's big dunk: crack and dust × devBomba, the 5×5 hops, no SLAM! (MEGA SLAM! came at the fire), the combo's dip (Pota smaç
+        /// çarpması → zamanDusur).
+        /// </summary>
+        private void Impact(SpecialFire f, CourtTuning t, Ball b)
         {
             int n = BoardSize;
             float bs = BoardScale;
@@ -896,13 +965,15 @@ namespace Project.ColorHunt
             if (crack != null)
             {
                 crack.At = Local(f.At, DecalZ);
-                crack.From = t.CrackCells * bs;
+                crack.From = t.CrackCells * bs * b.CrackScale;
                 crack.Life = t.CrackFade;
                 crack.Turn = R() * 360f;
             }
-            StudioParticles.Emit(_dust, World(f.At, DecalZ), t.DustCells * bs, t.DustTime, Color.white, Vector3.zero, R() * 360f);
-            foreach (int c in ColorHuntRules.SingleArea(n, f.Cell, SpecialKind.Bomb)) if (c != f.Cell) Kick(c, t.BlockHop, t.BlockHopTime);
-            Letter(_slamMat, f.At + new Vector2(0f, 1.1f), t.SlamLetterCells);
+            StudioParticles.Emit(_dust, World(f.At, DecalZ), t.DustCells * bs * b.DustScale, t.DustTime, Color.white, Vector3.zero, R() * 360f);
+            var area = b.Big ? ColorHuntRules.ComboCells(n, f.Cell, ComboKind.BigBomb) : ColorHuntRules.SingleArea(n, f.Cell, SpecialKind.Bomb);
+            foreach (int c in area) if (c != f.Cell) Kick(c, t.BlockHop, t.BlockHopTime);
+            if (!b.Big) Letter(_slamMat, f.At + new Vector2(0f, 1.1f), t.SlamLetterCells);
+            if (b.ImpactDip > 0f) _game.Juice?.TimeCtl?.Dip(_game.S.HitStopTapScale, b.ImpactDip);
             int bulbs = t.FlashbulbsMin + _rng.Next(Mathf.Max(0, t.FlashbulbsMax - t.FlashbulbsMin) + 1);
             for (int i = 0; i < bulbs; i++) _bulbs.Add(new Flashbulb { Wait = R() * t.FlashbulbWindow, At = EdgePoint(n) });
             _game.Juice?.Shake?.Add(t.SlamShake);
@@ -918,6 +989,125 @@ namespace Project.ColorHunt
             _game.Juice?.TimeCtl?.SlowMo(t.ComboSlowScale, t.ComboSlowTime);
             Letter(_comboMat, _comboCentre + new Vector2(0f, -1.4f), t.ComboLetterCells);
             Sounds()?.PlayClip("kalabalik", _crowd, t.CrowdVolume);
+        }
+
+        // ---------- the combo (Pota spec 2026-10-13 §3, renkAviFaz.ts komboAtesle; IComboStyle) ----------
+
+        /// <summary>
+        /// The combo's moment at its centre (the game merged the pair, dips the time and flies a pass combo's balls): a big white flash, the
+        /// toon ring, the shake and the camera kick, the combo's word over the centre (CROSSOVER!, SHOWTIME!, MEGA SLAM!, ALLEY-OOP!, FAST
+        /// BREAK!) and the crowd. Cross: a row ball pair and a column ball pair from the centre; ThickCross: three of each (rows and columns
+        /// through the centre ±1, clipped at the edges; only the centre's row dribbles); BigBomb: the dunk × devBomba with the 5×5 hopping.
+        /// No COMBO! on a combo step (Pota: the combo's own word only).
+        /// </summary>
+        public void FireCombo(ComboInfo combo, SpecialFire center, ComboTuning look, ComboShared shared)
+        {
+            if (!Ready || _game == null || _game.BoardRoot == null || look == null) return;
+            shared = shared ?? new ComboShared();
+            _comboArmed = false;
+            var t = Tuning;
+            float age = _stepActive ? Mathf.Clamp(_stepClock - center.Time, -0.05f, 0f) : 0f;
+            var at = center.At;
+            _game.Fx?.Glow(at, Color.white.linear, look.Flash, 3f, 4f, 0.18f, ComboFlashZ);   // flasGoster(m, 0xffffff, flas, 3, 4, 0.18)
+            ToonRing(at, look.Ring);
+            _game.Juice?.Shake?.Add(look.Shake);
+            var cam = _game.Cam != null ? _game.Cam.GetComponent<ColorHuntCamera>() : null;
+            if (cam != null && look.Kick > 0f) cam.Push(World(at, PotaLook.FrontZ), look.Kick, look.KickTime);
+            if (_comboWords.TryGetValue(combo.Kind, out var word)) Letter(word, at + new Vector2(0f, 1.2f), WordCells(combo.Kind, shared), look.LetterTime);
+            Sounds()?.PlayClip("kalabalik", _crowd, t.CrowdVolume * 0.75f);                // ses.cal("kalabalik", 0.6): the short crowd
+            int n = BoardSize, r0 = ColorHuntRules.Row(n, center.Cell), c0 = ColorHuntRules.Col(n, center.Cell);
+            switch (combo.Kind)
+            {
+                case ComboKind.Cross:
+                    FireLine(LineFire(center, center.Cell, SpecialKind.LineH), age);
+                    FireLine(LineFire(center, center.Cell, SpecialKind.LineV), age, false);
+                    break;
+                case ComboKind.ThickCross:
+                    for (int d = -1; d <= 1; d++)
+                    {
+                        if (r0 + d >= 0 && r0 + d < n) FireLine(LineFire(center, ColorHuntRules.Index(n, r0 + d, c0), SpecialKind.LineH), age, d == 0);
+                        if (c0 + d >= 0 && c0 + d < n) FireLine(LineFire(center, ColorHuntRules.Index(n, r0, c0 + d), SpecialKind.LineV), age, false);
+                    }
+                    break;
+                case ComboKind.BigBomb:
+                    FireDunk(new SpecialFire { Cell = center.Cell, Kind = SpecialKind.Bomb, At = at, Order = center.Order, Time = center.Time, Pace = center.Pace },
+                        age, shared, look.HitStop);
+                    break;
+            }
+        }
+
+        /// <summary>The combo flash sits in front of the merged pair's lift (B rises 0.45 cells) and the block fronts' bursts.</summary>
+        public const float ComboFlashZ = PotaLook.FrontZ + 0.6f;
+
+        /// <summary>OZEL_AN.kombo.yaziEn: the word's width (cells) — CROSSOVER!, SHOWTIME!, MEGA SLAM!, ALLEY-OOP! (both carries), FAST BREAK!.</summary>
+        public static float WordCells(ComboKind k, ComboShared s)
+        {
+            switch (k)
+            {
+                case ComboKind.Cross: return s.CrossoverCells;
+                case ComboKind.ThickCross: return s.ShowtimeCells;
+                case ComboKind.BigBomb: return s.MegaSlamCells;
+                case ComboKind.PassPass: return s.FastBreakCells;
+                default: return s.AlleyOopCells;
+            }
+        }
+
+        /// <summary>A combo's line ball pair as a line special's fire at <paramref name="cell"/> (row or column through it), on the combo's clock.</summary>
+        private SpecialFire LineFire(SpecialFire center, int cell, SpecialKind kind)
+        {
+            int n = BoardSize;
+            return new SpecialFire
+            {
+                Cell = cell, Kind = kind, Order = center.Order, Time = center.Time, Pace = center.Pace,
+                At = BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, cell), ColorHuntRules.Col(n, cell)),
+            };
+        }
+
+        /// <summary>halkaPatlat: the toon ring flipbook, <paramref name="cells"/> across, over the bursts, 16 frames in 0.4 s.</summary>
+        private void ToonRing(Vector2 at, float cells)
+        {
+            if (_toonRingMat == null) return;
+            var q = TakeQuad(Kind.ToonRing, _toonRingMat, ToonRingOrder);
+            if (q == null) return;
+            q.At = Local(at, ToonRingZ);
+            q.From = cells * BoardScale;
+            q.Life = ToonRingTime;
+        }
+
+        /// <summary>
+        /// KomboParcalari.sac: ChunksPerBlock pieces in the block's tone fly from <paramref name="at"/> away from the centre (±0.6 rad;
+        /// any way at the centre), ChunkSpeed × 0.6–1.0 cells/s plus 1 up and 1.5–3 toward the camera (pulled back 2 cells/s²), spinning;
+        /// gravity pulls them off the board; each lives ChunkLife and shrinks away in its last 0.25 s. Size: ChunkSize × 0.7–1.2 of the piece's own size in the block.
+        /// </summary>
+        public void ComboChunks(Vector2 at, Color tone, Vector2 centre, ComboTuning look, ComboShared shared)
+        {
+            if (!Ready || _chunks == null || look == null || look.ChunksPerBlock <= 0 || _game == null || _game.BoardRoot == null) return;
+            shared = shared ?? new ComboShared();
+            float bs = BoardScale;
+            var main = _chunks.main;
+            main.gravityModifier = shared.ChunkGravity * bs / 9.81f;                    // cells/s² on the board's scale
+            // KomboParcalari: vz −= 2·dt — the pull back toward the board keeps a chunk (vz ≤ 3) under 2.25 cells, behind the lettering (2.6).
+            var back = _game.BoardRoot.TransformVector(new Vector3(0f, 0f, 2f));
+            var force = _chunks.forceOverLifetime;
+            force.enabled = true;
+            force.space = ParticleSystemSimulationSpace.World;
+            force.x = new ParticleSystem.MinMaxCurve(back.x);
+            force.y = new ParticleSystem.MinMaxCurve(back.y);
+            force.z = new ParticleSystem.MinMaxCurve(back.z);
+            var d = at - centre;
+            bool middle = d.sqrMagnitude < 1e-6f;
+            float baseAngle = Mathf.Atan2(d.y, d.x);
+            var c = tone.linear;
+            c.a = 1f;
+            var from = World(at, PotaLook.FrontZ);
+            for (int k = 0; k < look.ChunksPerBlock; k++)
+            {
+                float a = middle ? R() * Mathf.PI * 2f : baseAngle + (R() - 0.5f) * 1.2f, h = look.ChunkSpeed * (0.6f + 0.4f * R());
+                var v = _game.BoardRoot.TransformVector(new Vector3(Mathf.Cos(a) * h, Mathf.Sin(a) * h + 1f, -(1.5f + 1.5f * R())));
+                float size = look.ChunkSize * (0.7f + 0.5f * R()) * bs;
+                StudioParticles.Emit3D(_chunks, from, v, Vector3.one * size, new Vector3(R(), R(), R()) * 360f,
+                    new Vector3(R() - 0.5f, R() - 0.5f, R() - 0.5f) * 800f, shared.ChunkLife, c);
+            }
         }
 
         private void TickFlights(float dt, CourtTuning t)
@@ -1007,15 +1197,20 @@ namespace Project.ColorHunt
                         float fade = Mathf.Clamp01((q.Age - 0.1f) / Mathf.Max(1e-3f, q.Life - 0.1f));
                         alpha = (1f - fade) * (1f - fade);
                         break;
+                    case Kind.ToonRing:                                                 // the flipbook draws the ring's growth
+                        size = q.From;
+                        alpha = 1f;
+                        break;
                     default:                                                            // lettering, 2:1
                         size = q.From * LetterScale(q.Age, t);
-                        alpha = LetterAlpha(q.Age, t);
+                        alpha = LetterAlpha(q.Age, q.Life);
                         break;
                 }
                 q.T.localPosition = q.At;
                 q.T.localRotation = Quaternion.Euler(0f, 0f, q.Turn);
                 q.T.localScale = new Vector3(Mathf.Max(1e-4f, size), Mathf.Max(1e-4f, size / q.Aspect), 1f);
-                Draw(q, Whole, Color.white, alpha);
+                var uv = q.Kind == Kind.ToonRing ? Frame(Mathf.Min(15, Mathf.FloorToInt(u * 16f)), 4, 4) : Whole;
+                Draw(q, uv, Color.white, alpha);
             }
         }
 
@@ -1067,12 +1262,17 @@ namespace Project.ColorHunt
         }
 
         /// <summary>A 2:1 lettering quad <paramref name="widthCells"/> wide near <paramref name="at"/>, kept inside the board so it is never cut.</summary>
-        private void Letter(Material mat, Vector2 at, float widthCells)
+        private void Letter(Material mat, Vector2 at, float widthCells, float life = -1f)
         {
-            int n = BoardSize;
+            ShowLetter(mat, Local(LetterSpot(at, widthCells, BoardSize), LetterZ), widthCells * BoardScale, life);
+        }
+
+        /// <summary>Pota yaziYeri: the lettering's centre stays 0.4 + 0.6 × its size (the 1.15 pop + perspective) inside the board's edge.</summary>
+        public static Vector2 LetterSpot(Vector2 at, float widthCells, int n)
+        {
             float w = widthCells, h = widthCells * 0.5f;
-            float mx = Mathf.Max(0f, n * 0.5f - 0.4f - 0.6f * w), my = Mathf.Max(0f, n * 0.5f - 0.4f - 0.6f * h);   // 0.6: the 1.15 pop + perspective
-            ShowLetter(mat, Local(new Vector2(Mathf.Clamp(at.x, -mx, mx), Mathf.Clamp(at.y, -my, my)), LetterZ), w * BoardScale);
+            float mx = Mathf.Max(0f, n * 0.5f - 0.4f - 0.6f * w), my = Mathf.Max(0f, n * 0.5f - 0.4f - 0.6f * h);
+            return new Vector2(Mathf.Clamp(at.x, -mx, mx), Mathf.Clamp(at.y, -my, my));
         }
 
         /// <summary>
@@ -1080,7 +1280,7 @@ namespace Project.ColorHunt
         /// a second dunk in a chain) it pops again from its peak at the new spot, instead of a second copy stacked half over it
         /// (SWISH! always re-pops at the same spot, the hoop; a second SLAM! moves to its own dunk).
         /// </summary>
-        private void ShowLetter(Material mat, Vector3 local, float width)
+        private void ShowLetter(Material mat, Vector3 local, float width, float life = -1f)
         {
             foreach (var live in _quads)
                 if (live.Kind == Kind.Letter && live.R.sharedMaterial == mat)
@@ -1094,7 +1294,7 @@ namespace Project.ColorHunt
             q.At = local;
             q.From = width;
             q.Aspect = 2f;
-            q.Life = Tuning.LetterTime;
+            q.Life = life > 0f ? life : Tuning.LetterTime;
         }
 
         /// <summary>A random point on the frame (board units): half the backboard plus half the frame bar, over the grid scale.</summary>

@@ -80,7 +80,7 @@ namespace Project.Tests
                 Assert.AreEqual(s == SpecialScenario.Golden ? 2 : 0, game.GoldenLanded, $"{s}: golden balls in the hoop");
                 for (int i = 0; i < game.Board.Cells.Length; i++)
                     Assert.AreEqual(game.Board.Cells[i].Special, game.ViewAt(i).Block.Special, $"{s}: cell {i}");
-                if (s != SpecialScenario.Free && s != SpecialScenario.Idle) Assert.Greater(most, 0, $"{s}: the Court look drew");   // no tap: nothing fires
+                if (SpecialScenarios.Taps(s).Length > 0) Assert.Greater(most, 0, $"{s}: the Court look drew");   // no tap (Serbest, Bekleme, Yan yana): nothing fires
                 yield return StudioLookPlayTests.WaitUntil(() => game.Specials.LiveCount == 0, 4f);
                 Assert.AreEqual(0, game.Specials.LiveCount, $"{s}: a Court effect never ended");
             }

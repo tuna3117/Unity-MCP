@@ -18,7 +18,8 @@ namespace Project.Editor.AITools
         "Import the Blender hand-offs of the studio looks (vfx-puff-toon, vfx-ring-toon, vfx-smoke-lit, vfx-shock-ring, " +
         "the pass ball pas-topu (+ the Art/Specials/pas-topu-a.png sticker), " +
         "vfx-pillow-shatter) and the special-ball looks (vfx-fire-toon, vfx-flame-jet, vfx-dust-ring, vfx-speed-lines, " +
-        "vfx-floor-crack, vfx-letter-slam/-swish/-combo, vfx-ball-halves, vfx-bomb-shell, vfx-coin, vfx-basketball), the feel and menu " +
+        "vfx-floor-crack, vfx-letter-slam/-swish/-combo, vfx-ball-halves, vfx-bomb-shell, vfx-coin, vfx-basketball), the combo's letterings " +
+        "(vfx-letter-crossover/-showtime/-mega-slam/-alley-oop/-fast-break; ring and chunks: vfx-ring-toon, vfx-pillow-shatter), the feel and menu " +
         "props and the calm idles' stills (vfx-glint-streak, vfx-rim-ring, vfx-twinkle-star) into " +
         "Games/Pota/Art/VFX and wire them into ColorHuntSettings. Params: workshop (default ~/projects/Blender MCP).")]
     public static class StudioImportTool
@@ -34,6 +35,8 @@ namespace Project.Editor.AITools
             "vfx-hand-pointer", "vfx-cloud-still",                                  // menu/reward layer (M11 hand, M7 clouds)
             "vfx-glint-streak", "vfx-rim-ring", "vfx-twinkle-star",                 // calm idles B, C, D (spec 2026-10-07)
             "pas-topu",                                                             // pass ball B Pervane (Pota spec 2026-10-11)
+            "vfx-letter-crossover", "vfx-letter-showtime", "vfx-letter-mega-slam",   // combo lettering (Pota spec 2026-10-13, plan P3);
+            "vfx-letter-alley-oop", "vfx-letter-fast-break",                        // the ring and the chunks are vfx-ring-toon / vfx-pillow-shatter above
         };
 
         /// <summary>The pass ball's sticker (Pota public/assets/ozel-pasTopu-a.png, candidate a2), copied in by hand: Pota is not a workshop.</summary>
@@ -101,6 +104,7 @@ namespace Project.Editor.AITools
             s.CityBand = Prop("city-band");
             report.Add(WireIdleStills(s));
             report.Add(WirePassBall(s));
+            report.Add(WireCombo(s));
             EditorUtility.SetDirty(s);
             var basket = AssetDatabase.LoadAssetAtPath<Project.Basket.BasketSettings>("Assets/_Project/Games/Pota/Settings/BasketSettings.asset");
             if (basket != null)
@@ -166,6 +170,24 @@ namespace Project.Editor.AITools
             s.PassModel = Model("pas-topu");
             EditorUtility.SetDirty(s);
             return $"pass ball: sprite={s.PassSprite != null} model={s.PassModel != null}";
+        }
+
+        /// <summary>
+        /// The combo (Pota spec 2026-10-13 §3): the five letterings → ColorHuntSettings.Letter*, the toon ring (plan P2) → ComboRing, the
+        /// pillow pieces (plan P6) → ComboPieces.
+        /// </summary>
+        public static string WireCombo(ColorHuntSettings s)
+        {
+            s.LetterCrossover = Sheet("vfx-letter-crossover");
+            s.LetterShowtime = Sheet("vfx-letter-showtime");
+            s.LetterMegaSlam = Sheet("vfx-letter-mega-slam");
+            s.LetterAlleyOop = Sheet("vfx-letter-alley-oop");
+            s.LetterFastBreak = Sheet("vfx-letter-fast-break");
+            s.ComboRing = Sheet("vfx-ring-toon");
+            s.ComboPieces = Model("vfx-pillow-shatter");
+            EditorUtility.SetDirty(s);
+            return $"combo: letters={s.LetterCrossover != null && s.LetterShowtime != null && s.LetterMegaSlam != null && s.LetterAlleyOop != null && s.LetterFastBreak != null} " +
+                   $"ring={s.ComboRing != null} pieces={s.ComboPieces != null}";
         }
 
         [MenuItem("AI Tools/Color Hunt/Wire Pass Ball")]

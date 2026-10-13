@@ -192,5 +192,38 @@ namespace Project.Tests
             Assert.IsNotNull(s.CityBand, FeelHint);
             Assert.GreaterOrEqual(s.CityBand.GetComponentsInChildren<MeshFilter>(true).Length, 28, "28 buildings plus window strips");
         }
+
+        private const string ComboHint = "run the Blender lettering recipe (Pota plan 2026-10-13 Task 5), then execute_custom_tool ai_studio_import";
+
+        /// <summary>Pota spec 2026-10-13 §3 (plan P2, P3, P6): five 1024×512 letterings, the toon ring, the pillow pieces — imported, matching, wired.</summary>
+        [Test]
+        public void ComboHandoffs_AreImportedAndWired()
+        {
+            foreach (string id in new[] { "vfx-letter-crossover", "vfx-letter-showtime", "vfx-letter-mega-slam", "vfx-letter-alley-oop",
+                         "vfx-letter-fast-break", "vfx-ring-toon", "vfx-pillow-shatter" })
+            {
+                CollectionAssert.Contains(StudioImportTool.Ids, id, "ai_studio_import must bring " + id);
+                string folder = StudioImportTool.Folder(id);
+                Assert.IsTrue(File.Exists(folder + "/manifest.json"), id + ": " + ComboHint);
+                var r = ImportAssetTool.Verify(folder + "/manifest.json", folder);
+                Assert.IsTrue(r.matches, id + ": " + string.Join("; ", r.differences));
+            }
+            var s = Settings();
+            foreach (var (tex, field) in new[] { (s.LetterCrossover, "LetterCrossover"), (s.LetterShowtime, "LetterShowtime"),
+                         (s.LetterMegaSlam, "LetterMegaSlam"), (s.LetterAlleyOop, "LetterAlleyOop"), (s.LetterFastBreak, "LetterFastBreak") })
+            {
+                Assert.IsNotNull(tex, field + ": " + ComboHint);
+                Assert.AreEqual(1024, tex.width, field);
+                Assert.AreEqual(512, tex.height, field);
+                var imp = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(tex));
+                Assert.IsTrue(imp.alphaIsTransparency, field);
+                Assert.IsTrue(imp.sRGBTexture, field + " holds colour: sRGB");
+            }
+            Assert.IsNotNull(s.ComboRing, ComboHint);
+            Assert.AreEqual(s.CandyRing, s.ComboRing, "the ring is vfx-ring-toon (plan P2)");
+            Assert.IsNotNull(s.ComboPieces, ComboHint);
+            Assert.AreEqual(s.ShatterPieces, s.ComboPieces, "the chunks are vfx-pillow-shatter (plan P6)");
+            Assert.GreaterOrEqual(SpecialMeshes.Parts(s.ComboPieces).Count, 3, "the first three pieces fly");
+        }
     }
 }

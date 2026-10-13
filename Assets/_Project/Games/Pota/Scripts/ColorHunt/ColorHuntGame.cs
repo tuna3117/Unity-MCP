@@ -86,6 +86,16 @@ namespace Project.ColorHunt
             public readonly HashSet<int> Consumed = new HashSet<int>();
             /// <summary>Pass targets already burst (Plan.Hits).</summary>
             public readonly HashSet<int> HitDone = new HashSet<int>();
+            /// <summary>
+            /// A combo step's merge pre-phase (Pota birlesmeBaslat, spec 2026-10-13 §3): game seconds into it, −1 when none. The plan
+            /// waits for it (it is outside SpecialSchedule's MaxStep compression) and starts at t = 0 when it ends.
+            /// </summary>
+            public float Merge = -1f;
+            public ComboTuning MergeLook;
+            public BlockView MergeCenter, MergePartner;
+            public Vector2 MergeFrom;
+            /// <summary>The combo's moment played (both partners fire at t = 0; whichever comes first plays it, once).</summary>
+            public bool ComboFired;
         }
         private class PendingSwell { public int Cell; public BlockView View; public float At; }
         private class RotateJob : Job { public float Angle; public Board Rotated; }
@@ -130,6 +140,8 @@ namespace Project.ColorHunt
             _labelMat = BlockView.LabelMaterial(S.LabelTemplate, S.LabelAtlas);
             _passMat = S.PassSprite != null ? BlockView.LabelMaterial(S.LabelTemplate, S.PassSprite) : null;
             PassLook = S.PassLook;
+            ComboLook = S.ComboLook;
+            ComboLean = S.ComboLean;
 
 
             _selectionRing = RimMeshBuilder.MeshObject("SelectionRing", BoardRoot, RimMeshBuilder.Torus(0.46f, 0.055f, 26, 8), BlockView.RingMaterial(S.SelectionTemplate));
@@ -191,6 +203,8 @@ namespace Project.ColorHunt
             _style?.Clear();
             _idleFx?.Clear();
             ResetSpecials();                            // the special style, golden balls and gate rings start over (shows Board.Gates)
+            _leanClock = 0f;                            // K6: the first lean comes as the board settles in
+            _slowAt = -1f;
             DisplayedAmmo = Board.Ammo;
             Current = State.Idle;
             _staged = true;
@@ -337,6 +351,8 @@ namespace Project.ColorHunt
             TickGathers(dt);
             AdvanceIntro(dt);
             AdvanceViews(dt);
+            LeanPairs(dt);
+            TickComboTime();
             TickHint(Time.unscaledDeltaTime);
             if (Current == State.Playing && !Busy && _checkNeeded) AfterSettle();
             if (_targetsPending && !Busy && _flights == 0) SyncTargetsIfSettled();
@@ -494,6 +510,19 @@ namespace Project.ColorHunt
                     break;
                 case StepJob st:
                     if (!st.Started) StartStep(st);
+                    if (st.Merge >= 0f)
+                    {
+                        // Pota isleriIlerlet: the merge runs on its own clock; the frame it ends the plan starts at 0 and takes this dt
+                        // (BeginPlan's TickPlan fires t = 0 — a flight then as old as the frame, like LaunchPass's — and starts what is due).
+                        st.Merge += dt;
+                        TickMerge(st, dt);
+                        if (st.Merge < st.MergeLook.MergeTime) break;
+                        st.Merge = -1f;
+                        st.T = dt;
+                        BeginPlan(st);
+                        if (st.T >= st.SwellEnd) StartDrops(st);
+                        break;
+                    }
                     st.T += dt;
                     if (!st.Dropping)
                     {
@@ -741,14 +770,40 @@ namespace Project.ColorHunt
         /// renkAviFaz.ts pasAtesle: the ball's block leaves its cell (out of the views, so the drops do not take it), its target is the step's
         /// PassHit, the flight lasts PassTiming.Arrival — the plan bursts a normal target (HitBurst) or fires a special one at that same moment
         /// on the step's clock. The flight starts as old as the step is past the fire. The look's Fire still runs (Royal: COMBO! on the 2nd).
+        /// Every flight of the cell leaves (R-9; the rules give a single pass one, a pass combo's centre three — see FireComboPartner); a
+        /// further flight under look A flies a fresh copy of the ball's block.
         /// </summary>
         private void LaunchPass(StepJob st, SpecialFire f)
         {
-            int n = Board.Size, target = -1;
-            foreach (var p in st.Step.Passes) if (p.Cell == f.Cell) { target = p.Target; break; }
+            int n = Board.Size;
+            var targets = new List<int>();
+            foreach (var p in st.Step.Passes) if (p.Cell == f.Cell) targets.Add(p.Target);
+            if (targets.Count == 0) targets.Add(-1);                 // a pass with no flight in the step: the takeoff in place
             var view = ViewAt(f.Cell);
-            if (view != null) { _views.Remove(f.Cell); _flying.Add(view); }
+            if (view != null) _views.Remove(f.Cell);
             Vector2 from = view != null ? view.Pos : f.At;
+            st.Peak?.Invoke();
+            RaiseCellBurst(f.Cell);
+            // ozelAtesle: zamanDusur(hitStop) at every fire but the 2nd special's (PotaSpecials.Fire already dips for every kind)
+            if (f.Order != 1 && !(Specials is PotaSpecials)) Juice?.TimeCtl?.Dip(S.HitStopTapScale, PassHitStop);
+            for (int j = 0; j < targets.Count; j++)
+                FlyPass(f.Cell, from, targets[j], Mathf.Max(0f, st.T - f.Time), j == 0 ? view : ExtraPassView(f.Cell, from), null);
+            Specials.Fire(f);
+            try { SpecialFired?.Invoke(f); }
+            catch (Exception e) { Debug.LogException(e); }
+        }
+
+        /// <summary>A further pass ball's block for look A (B flies its model, so none): a pooled copy at <paramref name="at"/>.</summary>
+        private BlockView ExtraPassView(int cell, Vector2 at) => PassLook == PassLook.A ? NewView(Block.MakeSpecial(SpecialKind.Pass), cell, at) : null;
+
+        /// <summary>
+        /// One flight from <paramref name="cell"/> (its fire's position <paramref name="from"/>, a combo's fan included) to <paramref name="target"/>
+        /// (−1: the takeoff in place): <paramref name="view"/> flies (A) or hides (B), <paramref name="carried"/> hangs under it; both leave
+        /// the board's views and are recycled at the landing. PassLanded (the recorder's "hit") carries the fire's cell and the target.
+        /// </summary>
+        private void FlyPass(int cell, Vector2 from, int target, float age, BlockView view, BlockView carried)
+        {
+            int n = Board.Size;
             Vector2? to = null;
             if (target >= 0)
             {
@@ -756,22 +811,253 @@ namespace Project.ColorHunt
                 to = tv != null ? tv.Pos : BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, target), ColorHuntRules.Col(n, target));
             }
             var timing = PassTimingNow;
-            float duration = target >= 0 ? timing.Arrival(n, f.Cell, target) : timing.Takeoff;
-            int gen = _specialGen, cell = f.Cell;
-            st.Peak?.Invoke();
-            RaiseCellBurst(f.Cell);
-            // ozelAtesle: zamanDusur(hitStop) at every fire but the 2nd special's (PotaSpecials.Fire already dips for every kind)
-            if (f.Order != 1 && !(Specials is PotaSpecials)) Juice?.TimeCtl?.Dip(S.HitStopTapScale, PassHitStop);
-            PassFlights.Fly(PassLook, from, to, duration, Mathf.Max(0f, st.T - f.Time), view, landed =>
+            float duration = target >= 0 ? timing.Arrival(n, cell, target) : timing.Takeoff;
+            if (view != null) { _flying.Add(view); view.Pos = from; }
+            if (carried != null) _flying.Add(carried);
+            int gen = _specialGen;
+            var shared = S.Combo ?? new ComboShared();
+            PassFlights.Fly(PassLook, from, to, duration, age, view, landed =>
             {
                 if (landed != null && _flying.Remove(landed)) Recycle(landed);
+                if (carried != null && _flying.Remove(carried)) Recycle(carried);
                 if (gen != _specialGen) return;
                 try { PassLanded?.Invoke(cell, target); }
                 catch (Exception e) { Debug.LogException(e); }
-            });
-            Specials.Fire(f);
+            }, carried, shared.CarryDown, shared.CarryScale);
+        }
+
+        // ---------- the combo (Pota spec 2026-10-13 §3: two specials side by side merge on a tap; A/B choreographies, the lean) ----------
+
+        /// <summary>The combo choreography (P4): A Hızlı-sert, B Sinematik — the demo's Görünüm row, the record tool's combo_look.</summary>
+        public ComboLook ComboLook { get; private set; } = ComboLook.A;
+        /// <summary>K6: pairs that can combo lean toward each other while the board rests — the demo's Yaslanma row, the record tool's combo_lean.</summary>
+        public bool ComboLean { get; private set; } = true;
+        public event Action ComboLookChanged;
+        /// <summary>A combo step's merge began (the recorder's "merge" marker).</summary>
+        public event Action<ComboKind> ComboMerging;
+        /// <summary>A combo fired: its merge ended and its moment played (the recorder's "combo" marker).</summary>
+        public event Action<ComboKind> ComboFired;
+        /// <summary>A step's drops began, with its depth (the recorder's "drops": a combo's last burst comes before its step's drops).</summary>
+        public event Action<int> StepDropping;
+        /// <summary>The chosen choreography's numbers (ColorHuntSettings.ComboLookA / B).</summary>
+        public ComboTuning ComboTuningNow => S == null ? ComboTuning.A() : ComboLook == ComboLook.B ? S.ComboLookB : S.ComboLookA;
+
+        private float _slowAt = -1f, _slowScale = 1f, _slowTime;
+        private float _leanClock;
+        private Board _pairsBoard;
+        private SortedDictionary<int, int> _pairs = new SortedDictionary<int, int>();
+
+        /// <summary>The next combo plays this choreography (one already merging keeps its own).</summary>
+        public void SetComboLook(ComboLook look)
+        {
+            if (look == ComboLook) return;
+            ComboLook = look;
+            Raise(ComboLookChanged);
+        }
+
+        public void SetComboLean(bool on)
+        {
+            if (on == ComboLean) return;
+            ComboLean = on;
+            Raise(ComboLookChanged);
+        }
+
+        /// <summary>The cell a carried special fires on (a PassLine / PassBomb's flight target), a normal block of the plan's virtual root.</summary>
+        private static bool IsCarryTarget(Step step, int cell)
+        {
+            if (!step.Combo.HasValue) return false;
+            var k = step.Combo.Value;
+            return k.IsPass && k.Carried != SpecialKind.None && k.PassTargets != null && k.PassTargets.Length > 0 && k.PassTargets[0] == cell;
+        }
+
+        /// <summary>
+        /// Pota birlesmeBaslat: the partner slides into the centre (smoothstep over MergeTime), both grow by Grow, glow, turn their stickers
+        /// apart and (B) rise toward the camera while the camera pushes in; the "kombo" sound. No idle or lean touches them meanwhile.
+        /// </summary>
+        private void StartMerge(StepJob st)
+        {
+            var k = st.Step.Combo.Value;
+            var t = ComboTuningNow;
+            st.MergeLook = t;
+            st.Merge = 0f;
+            st.MergeCenter = ViewAt(k.Center);
+            st.MergePartner = ViewAt(k.Partner);
+            st.MergeFrom = st.MergePartner != null ? st.MergePartner.Pos : Vector2.zero;
+            foreach (var v in new[] { st.MergeCenter, st.MergePartner })
+            {
+                if (v == null) continue;
+                v.Exploding = true;
+                v.Pressed = false;
+                v.Bob = 0f;
+                v.Wiggle = 0f;
+            }
+            Juice?.Sounds?.Combo(2);
+            int n = Board.Size;
+            var c = BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, k.Center), ColorHuntRules.Col(n, k.Center));
+            var cam = t.CameraPush > 0f && Cam != null ? Cam.GetComponent<ColorHuntCamera>() : null;
+            if (cam != null) cam.Push(BoardRoot.TransformPoint(new Vector3(c.x, c.y, -PotaLook.FrontZ)), t.CameraPush, t.MergeTime + t.KickTime);
+            TickMerge(st, 0f);
+            try { ComboMerging?.Invoke(k.Kind); }
+            catch (Exception e) { Debug.LogException(e); }
+        }
+
+        /// <summary>renkAviFaz.ts gorselleriIlerlet's birlesme: the pose at <c>st.Merge</c> s (the partner a hair in front, so they never z-fight).</summary>
+        private void TickMerge(StepJob st, float dt)
+        {
+            var t = st.MergeLook;
+            float o = t.MergeTime > 1e-4f ? Mathf.Clamp01(st.Merge / t.MergeTime) : 1f, e = PotaLook.Smoothstep(o);
+            var c = st.MergeCenter;
+            if (st.MergePartner != null && c != null) st.MergePartner.Pos = Vector2.LerpUnclamped(st.MergeFrom, c.Home, e);
+            Pose(c, -1f);
+            Pose(st.MergePartner, 1f);
+
+            void Pose(BlockView v, float side)
+            {
+                if (v == null) return;
+                v.Scale = 1f + t.Grow * e;
+                v.Lift = t.Rise * e + (side > 0f ? 0.06f * e : 0f);
+                v.Flash = Mathf.Max(v.Flash, t.Glow * e + Mathf.Min(dt, 0.05f) * PotaLook.FlashDecay);   // the view's Tick decays it this frame
+                v.StickerSpin = side * 0.9f * Mathf.Rad2Deg * e;
+                v.Squash = 0f;
+            }
+        }
+
+        /// <summary>A merged view goes back to its plain pose (it flies, hangs, or swells from here).</summary>
+        private static void Unpose(BlockView v)
+        {
+            if (v == null) return;
+            v.Scale = 1f;
+            v.Lift = 0f;
+            v.StickerSpin = 0f;
+        }
+
+        /// <summary>
+        /// A combo partner fires (both at t = 0, at the merge's end; Pota ozelAtesle → komboAtesle). The first of the two plays the combo once:
+        /// the hit-stop and (B) the slow motion after it (R-10), the flights of a pass combo from the centre (the ball, the
+        /// carried special hanging under it, three fanned passes), and the look's combo moment (Court: flash, ring, shake, kick, lettering,
+        /// the cross's balls or the big dunk). A carry with nothing to hit fires its special at the centre now. A look without its own combo
+        /// (Pota, Royal) fires each partner of an area combo as a single special, as before.
+        /// </summary>
+        private void FireComboPartner(StepJob st, SpecialFire f)
+        {
+            var k = st.Step.Combo.Value;
+            var combo = Specials as IComboStyle;
+            var centerFire = f;
+            foreach (var x in st.Plan.Fires) if (x.Cell == k.Center) { centerFire = x; break; }
+            if (!st.ComboFired)
+            {
+                st.ComboFired = true;
+                var t = st.MergeLook ?? ComboTuningNow;
+                ComboTime(t);                                      // the step's peak feedback waits for its first block's burst (Pota adimTepe)
+                var cv = ViewAt(k.Center);
+                var pv = ViewAt(k.Partner);
+                Unpose(cv);
+                Unpose(pv);
+                if (k.IsPass) LaunchComboFlights(st, k, centerFire, cv, pv);
+                else if (combo != null)
+                {
+                    if (cv != null && st.Consumed.Contains(k.Center)) cv.gameObject.SetActive(false);   // the look draws them now; the drops recycle
+                    if (pv != null && st.Consumed.Contains(k.Partner)) pv.gameObject.SetActive(false);
+                }
+                combo?.FireCombo(k, centerFire, t, S.Combo);
+                if (k.IsPass && k.Carried != SpecialKind.None && (k.PassTargets == null || k.PassTargets.Length == 0 || k.PassTargets[0] < 0))
+                    Specials.Fire(centerFire);                     // nothing to carry it to: the carried special fires at the centre
+                try { ComboFired?.Invoke(k.Kind); }
+                catch (Exception e) { Debug.LogException(e); }
+            }
+            if (combo == null && !k.IsPass)
+            {
+                var v = ViewAt(f.Cell);
+                if (st.Consumed.Contains(f.Cell) && v != null) v.gameObject.SetActive(false);
+                if (st.Consumed.Contains(f.Cell)) RaiseCellBurst(f.Cell);
+                Specials.Fire(f);
+            }
+            else if (st.Consumed.Contains(f.Cell)) RaiseCellBurst(f.Cell);
             try { SpecialFired?.Invoke(f); }
             catch (Exception e) { Debug.LogException(e); }
+        }
+
+        /// <summary>
+        /// Pota pasKomboAtesle: the flights leave the centre (Step.Passes from it, in order). The first carries the pass ball's block (A) or its
+        /// model (B) with a PassLine / PassBomb's carried special hanging under it; a PassPass's second flies the other pass ball, its third a
+        /// fresh block (A) or a model (B), fanned (j − 1)·PassFan across. A carried special with nothing to hit fires at the centre (the
+        /// caller), so its block goes now.
+        /// </summary>
+        private void LaunchComboFlights(StepJob st, ComboInfo k, SpecialFire centerFire, BlockView cv, BlockView pv)
+        {
+            int n = Board.Size;
+            bool centreIsPass = cv != null ? cv.Block.Special == SpecialKind.Pass : !(pv != null && pv.Block.Special == SpecialKind.Pass);
+            var passView = centreIsPass ? cv : pv;
+            var other = centreIsPass ? pv : cv;
+            _views.Remove(k.Center);
+            _views.Remove(k.Partner);
+            var from = BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, k.Center), ColorHuntRules.Col(n, k.Center));
+            var targets = new List<int>();
+            foreach (var p in st.Step.Passes) if (p.Cell == k.Center) targets.Add(p.Target);
+            if (targets.Count == 0) targets.Add(-1);
+            float fan = (S.Combo ?? new ComboShared()).PassFan, age = Mathf.Max(0f, st.T - centerFire.Time);
+            bool otherUsed = false;
+            for (int j = 0; j < targets.Count; j++)
+            {
+                var start = k.Kind == ComboKind.PassPass ? from + new Vector2((j - 1) * fan, 0f) : from;
+                BlockView view;
+                if (j == 0) view = passView;
+                else if (k.Kind == ComboKind.PassPass && j == 1) { view = other; otherUsed = true; }
+                else view = ExtraPassView(k.Center, start);
+                BlockView carried = null;
+                if (j == 0 && k.Carried != SpecialKind.None && targets[0] >= 0) { carried = other; otherUsed = true; }
+                FlyPass(k.Center, start, targets[j], age, view, carried);
+            }
+            if (other != null && !otherUsed) Recycle(other);     // a carry with nothing to hit: the special fires at the centre instead
+        }
+
+        /// <summary>R-10: the combo's hit-stop now (×HitStopTapScale for HitStop real s); B's slow motion starts when it ends, never over it.</summary>
+        private void ComboTime(ComboTuning t)
+        {
+            Juice?.TimeCtl?.Dip(S.HitStopTapScale, t.HitStop);
+            _slowAt = t.SlowScale < 1f && t.SlowTime > 0f ? Time.unscaledTime + t.HitStop : -1f;
+            _slowScale = t.SlowScale;
+            _slowTime = t.SlowTime;
+        }
+
+        private void TickComboTime()
+        {
+            if (_slowAt < 0f || Time.unscaledTime < _slowAt) return;
+            _slowAt = -1f;
+            Juice?.TimeCtl?.SlowMo(_slowScale, _slowTime);
+        }
+
+        /// <summary>A burst of a combo step (a swell's peak, a pass hit): the combo look's chunks fly from it, away from the combo's centre.</summary>
+        private void ComboChunks(StepJob st, Vector2 at, Color tone)
+        {
+            if (!st.Step.Combo.HasValue || !(Specials is IComboStyle combo)) return;
+            int n = Board.Size, c = st.Step.Combo.Value.Center;
+            combo.ComboChunks(at, tone, BoardBuilder.CellPosition(n, ColorHuntRules.Row(n, c), ColorHuntRules.Col(n, c)), st.MergeLook ?? ComboTuningNow, S.Combo);
+        }
+
+        /// <summary>
+        /// K6 yaslanma (renkAviFaz.ts gorselleriIlerlet): every resting special with a combo partner leans LeanAmount·sin(π·u) toward it for
+        /// LeanTime s every LeanEvery s (game time since the deal), only while the board rests (playing, nothing running, no intro, nothing
+        /// selected); otherwise it sits at home.
+        /// </summary>
+        private void LeanPairs(float dt)
+        {
+            _leanClock += dt;
+            if (Board == null) return;
+            if (_pairsBoard != Board) { _pairs = ColorHuntRules.ComboPairs(Board); _pairsBoard = Board; }
+            if (_pairs.Count == 0) return;
+            var sh = S.Combo ?? new ComboShared();
+            float u = (_leanClock % Mathf.Max(1e-3f, sh.LeanEvery)) / Mathf.Max(1e-3f, sh.LeanTime);
+            bool rest = ComboLean && Current == State.Playing && !Busy && !_introOn && _selected < 0 && u < 1f;
+            float lean = rest ? sh.LeanAmount * Mathf.Sin(Mathf.PI * u) : 0f;
+            int n = Board.Size;
+            foreach (var kv in _pairs)
+            {
+                if (!_views.TryGetValue(kv.Key, out var v) || v.Exploding || _drops.ContainsKey(v)) continue;
+                int i = kv.Key, es = kv.Value;
+                var toward = new Vector2(Mathf.Sign(ColorHuntRules.Col(n, es) - ColorHuntRules.Col(n, i)), -Mathf.Sign(ColorHuntRules.Row(n, es) - ColorHuntRules.Row(n, i)));
+                v.Pos = v.Home + toward * lean;
+            }
         }
 
         /// <summary>OZEL_AN.hitStop: the dip at a special's fire (Pota 0.06 s).</summary>
@@ -1083,6 +1369,7 @@ namespace Project.ColorHunt
             {
                 st.Peak?.Invoke();
                 Style.StepBurst(v, tone, d);
+                ComboChunks(st, v.Pos, tone);
                 CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
                 RaiseCellBurst(cell);
             }, elapsed);
@@ -1140,6 +1427,7 @@ namespace Project.ColorHunt
             st.Peak?.Invoke();
             Fx?.Puff(v.Pos, PassFlight.EmptyPuff);
             Fx?.Particles(v.Pos, BurstTone(v.Block), 8, 2.4f, 0.1f);
+            ComboChunks(st, v.Pos, BurstTone(v.Block));
             CountItem(v, BoardRoot.TransformPoint(new Vector3(v.Pos.x, v.Pos.y, -PotaLook.FrontZ)));
             RaiseCellBurst(cell);
             v.gameObject.SetActive(false);                         // the drops recycle the view
@@ -1147,6 +1435,7 @@ namespace Project.ColorHunt
 
         private void FireSpecial(StepJob st, SpecialFire f)
         {
+            if (st.Step.Combo.HasValue && (f.Cell == st.Step.Combo.Value.Center || f.Cell == st.Step.Combo.Value.Partner)) { FireComboPartner(st, f); return; }
             if (f.Kind == SpecialKind.Pass) { LaunchPass(st, f); return; }
             if (st.Consumed.Contains(f.Cell))
             {
@@ -1246,6 +1535,13 @@ namespace Project.ColorHunt
             st.Started = true;
             st.SwellEnd = S.ChainTime;
             if (st.Depth == 0 || st.Step.Exploded.Count == 0) { StartDrops(st); return; }
+            if (st.Step.Combo.HasValue) { StartMerge(st); return; }     // Pota adimBaslat: a combo merges first, its plan starts after
+            BeginPlan(st);
+        }
+
+        /// <summary>renkAviFaz.ts adimPlanla: the trigger plan, the step's peak feedback, the gathers, the pending swells (a combo: after its merge).</summary>
+        private void BeginPlan(StepJob st)
+        {
             int d = st.Depth;
             bool peaked = false;
             BlockView first = null;
@@ -1274,7 +1570,12 @@ namespace Project.ColorHunt
                 st.Plan = SpecialSchedule.Plan(Board.Size, st.Step, st.Origin, Specials.Timing, S.ChainTime, PassTimingNow);
                 st.SwellEnd = Mathf.Max(st.SwellEnd, st.Plan.End);
                 foreach (var f in st.Plan.Fires)
+                {
+                    if (IsCarryTarget(st.Step, f.Cell)) continue;      // the normal block a carried special fires on swells and bursts (counted)
                     if (Specials.ConsumesSpecialView || f.Kind == SpecialKind.Pass) st.Consumed.Add(f.Cell);   // a pass ball's block flies (A) or hides (B)
+                }
+                // A pass combo: both partners' blocks leave with the flights (the ball flies, the carried one hangs under it) in every look.
+                if (st.Step.Combo.HasValue && st.Step.Combo.Value.IsPass) { st.Consumed.Add(st.Step.Combo.Value.Center); st.Consumed.Add(st.Step.Combo.Value.Partner); }
                 Specials.TriggerStep(st.Plan.Fires.Count, centre);
             }
             foreach (int i in st.Step.Exploded)
@@ -1304,6 +1605,8 @@ namespace Project.ColorHunt
                 Recycle(v);
                 _views.Remove(i);
             }
+            try { StepDropping?.Invoke(st.Depth); }             // after the step's last burst
+            catch (Exception e) { Debug.LogException(e); }
             int n = Board.Size;
             // dususleriBaslat: born specials take their cell's view (it then falls with its column), golden balls leave for the hoop
             // 0.12 s apart, newly opened gates light up — all before the columns fall.

@@ -149,6 +149,64 @@ namespace Project.Tests
             CollectionAssert.IsEmpty(end.Gates, "no other golden ball in those columns: both gates close");
         }
 
+        /// <summary>
+        /// Kombo (Pota spec 2026-10-13, Unity Task 7): each combo board's one tap merges its pair into the combo it names — Artı row 3 +
+        /// column 3, Kalın artı three rows and three columns around 25, Dev bomba the 5×5 around 24, Pas+Çizgi carries the row ball to 10,
+        /// Pas+Bomba (tapped on the BOMB) carries the bomb to 10, Pas+Pas fans three passes to 7, 12, 47. Probed with Pota's own kir first;
+        /// every board but Dev bomba settles in its one step (the 5×5's refill matches once, nothing is born).
+        /// </summary>
+        [TestCase(SpecialScenario.ComboCross, ComboKind.Cross, 24, 25, SpecialKind.None, new int[0], 13, 1)]
+        [TestCase(SpecialScenario.ComboThickCross, ComboKind.ThickCross, 25, 26, SpecialKind.None, new int[0], 33, 1)]
+        [TestCase(SpecialScenario.ComboBigBomb, ComboKind.BigBomb, 24, 25, SpecialKind.None, new int[0], 25, 2)]
+        [TestCase(SpecialScenario.ComboPassLine, ComboKind.PassLine, 29, 30, SpecialKind.LineH, new[] { 10 }, 9, 1)]
+        [TestCase(SpecialScenario.ComboPassBomb, ComboKind.PassBomb, 31, 32, SpecialKind.Bomb, new[] { 10 }, 11, 1)]
+        [TestCase(SpecialScenario.ComboPassPass, ComboKind.PassPass, 30, 31, SpecialKind.None, new[] { 7, 12, 47 }, 5, 1)]
+        public void Combos_TapTheirCombo(SpecialScenario s, ComboKind kind, int center, int partner, SpecialKind carried, int[] targets, int exploded, int steps)
+        {
+            Assert.IsTrue(SpecialScenarios.IsCombo(s));
+            CollectionAssert.AreEqual(new[] { center }, SpecialScenarios.Taps(s), "one tap, on the centre");
+            Assert.IsTrue(SpecialScenarios.Board(s).Features.Combo, "Features.Full");
+            var r = PlayAll(s, out var end);
+            var step = r[0].Steps[0];
+            Assert.IsTrue(step.Combo.HasValue, $"{s}: no combo");
+            var k = step.Combo.Value;
+            Assert.AreEqual(kind, k.Kind);
+            Assert.AreEqual(center, k.Center);
+            Assert.AreEqual(partner, k.Partner);
+            Assert.AreEqual(carried, k.Carried);
+            CollectionAssert.AreEqual(targets, k.PassTargets);
+            Assert.AreEqual(exploded, step.Exploded.Count, $"{s}: exploded");
+            Assert.AreEqual(steps, r[0].Steps.Count, $"{s}: steps");
+            foreach (var st in r[0].Steps) Assert.IsEmpty(st.Born, $"{s}: nothing is born");
+            Assert.AreEqual(0, r[0].Cost, "free");
+            foreach (var c in end.Cells) Assert.IsFalse(c.IsSpecial, $"{s}: both partners are gone");
+        }
+
+        [Test]
+        public void ComboLean_RestsThreePairs_AndHasNoScript()
+        {
+            var b = ColorHuntRules.FromPreset(SpecialScenarios.Board(SpecialScenario.ComboLean));
+            Assert.IsTrue(b.Features.Combo);
+            var pairs = ColorHuntRules.ComboPairs(b);
+            CollectionAssert.AreEquivalent(new[] { 8, 9, 25, 32, 36, 37 }, pairs.Keys);
+            Assert.AreEqual(9, pairs[8]);
+            Assert.AreEqual(32, pairs[25]);
+            Assert.AreEqual(37, pairs[36]);
+            Assert.IsEmpty(SpecialScenarios.Taps(SpecialScenario.ComboLean), "the pairs rest and lean");
+            Assert.AreEqual(24, SpecialScenarios.Focus(SpecialScenario.ComboLean));
+        }
+
+        [Test]
+        public void IsCombo_IsTheSevenComboScenarios()
+        {
+            int combos = 0;
+            foreach (SpecialScenario s in System.Enum.GetValues(typeof(SpecialScenario))) if (SpecialScenarios.IsCombo(s)) combos++;
+            Assert.AreEqual(7, combos);
+            Assert.IsFalse(SpecialScenarios.IsCombo(SpecialScenario.PassBomb));
+            Assert.IsTrue(SpecialScenarios.IsCombo(SpecialScenario.ComboCross));
+            Assert.AreEqual("Pas+Pas", SpecialScenarios.Title(SpecialScenario.ComboPassPass));
+        }
+
         [Test]
         public void Free_HasOneOfEachSpecial_AndNoScript()
         {

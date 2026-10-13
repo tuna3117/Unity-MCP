@@ -141,6 +141,69 @@ MonoBehaviour:
     Tilt: 51.5662
   PassSprite: {fileID: 2800000, guid: e2f35e102450545b9a64f3f92c4d9d25, type: 3}
   PassModel: {fileID: 8771091787928289351, guid: f4e05209387ab4e99b7d65bc89ffc4c4, type: 3}
+  ComboLook: 0
+  ComboLookA:
+    MergeTime: 0.15
+    Grow: 0.18
+    Rise: 0
+    Glow: 0.8
+    CameraPush: 0
+    HitStop: 0.06
+    SlowScale: 1
+    SlowTime: 0
+    Flash: 2.4
+    Ring: 2.6
+    Shake: 0.18
+    Kick: 0.06
+    KickTime: 0.2
+    ChunksPerBlock: 2
+    ChunkSpeed: 4.2
+    ChunkSize: 0.8
+    LetterTime: 0.55
+  ComboLookB:
+    MergeTime: 0.35
+    Grow: 0.3
+    Rise: 0.45
+    Glow: 1
+    CameraPush: 0.06
+    HitStop: 0.12
+    SlowScale: 0.5
+    SlowTime: 0.3
+    Flash: 3.2
+    Ring: 3.4
+    Shake: 0.26
+    Kick: 0.1
+    KickTime: 0.3
+    ChunksPerBlock: 4
+    ChunkSpeed: 5.5
+    ChunkSize: 1
+    LetterTime: 0.7
+  Combo:
+    CrossoverCells: 5.6
+    ShowtimeCells: 5.4
+    MegaSlamCells: 5.6
+    AlleyOopCells: 5.4
+    FastBreakCells: 5.6
+    BigBombScale: 1.5
+    BigBombCrack: 1.8
+    BigBombDust: 1.8
+    CarryDown: 0.5
+    CarryScale: 0.8
+    PassFan: 0.35
+    LeanAmount: 0.06
+    LeanEvery: 3.5
+    LeanTime: 0.4
+    ChunkLife: 1.1
+    ChunkGravity: 14
+    ChunkPool: 120
+  ComboLean: 1
+  LetterCrossover: {fileID: 2800000, guid: e7467992858c4412289ab3f1704d0e5d, type: 3}
+  LetterShowtime: {fileID: 2800000, guid: cb1266cab63fa47b7b26db7b6e281e87, type: 3}
+  LetterMegaSlam: {fileID: 2800000, guid: 392072de133c143a49c4e548f95f1289, type: 3}
+  LetterAlleyOop: {fileID: 2800000, guid: ef3c2164021204eb487be5ef7148c3e2, type: 3}
+  LetterFastBreak: {fileID: 2800000, guid: e29f1fbe94c3d4aba8e65265b79c9dee, type: 3}
+  ComboRing: {fileID: 2800000, guid: 8adca5aa811f4435c8e05f6ba8416b6e, type: 3}
+  ComboPieces: {fileID: 8771091787928289351, guid: 2b5ed0bb995c74898b52c990ea129792, type: 3}
   Feel:
     Enabled: 1
     WordFromDepth: 3

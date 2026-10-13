@@ -96,6 +96,38 @@ namespace Project.Tests
             Assert.IsFalse(r.Specials, "a refused request records nothing");
         }
 
+        /// <summary>Pota spec 2026-10-13 (Unity Task 7): the combo scenarios, combo_look a|b and combo_lean on|off (restored after a recording).</summary>
+        [Test]
+        public void ParseCombo_ReadsTheComboScenariosLookAndLean()
+        {
+            var names = new Dictionary<string, SpecialScenario>
+            {
+                ["comboCross"] = SpecialScenario.ComboCross, ["comboThickCross"] = SpecialScenario.ComboThickCross,
+                ["comboBigBomb"] = SpecialScenario.ComboBigBomb, ["comboPassLine"] = SpecialScenario.ComboPassLine,
+                ["comboPassBomb"] = SpecialScenario.ComboPassBomb, ["comboPassPass"] = SpecialScenario.ComboPassPass,
+                ["comboLean"] = SpecialScenario.ComboLean,
+            };
+            foreach (var kv in names)
+            {
+                Assert.IsNull(ColorHuntRecordTool.ParseRequest("Specials", kv.Key, "court", false, out var r), kv.Key);
+                Assert.AreEqual(kv.Value, r.Scenario, kv.Key);
+            }
+            Assert.IsNull(ColorHuntRecordTool.ParseRequest("Specials", "comboCross", "court", false, out var req));
+            Assert.IsNull(ColorHuntRecordTool.ParseCombo(true, "b", "off", ref req));
+            Assert.IsTrue(req.HasComboLook);
+            Assert.AreEqual(ComboLook.B, req.ComboLook);
+            Assert.IsTrue(req.HasComboLean);
+            Assert.IsFalse(req.ComboLean);
+            Assert.IsNull(ColorHuntRecordTool.ParseRequest("Specials", "comboCross", "court", false, out req));
+            Assert.IsNull(ColorHuntRecordTool.ParseCombo(true, null, null, ref req));
+            Assert.IsFalse(req.HasComboLook, "not given: the game's look stays");
+            Assert.IsFalse(req.HasComboLean);
+            StringAssert.Contains("unknown combo_look 'c'", ColorHuntRecordTool.ParseCombo(true, "c", null, ref req));
+            StringAssert.Contains("combo_lean must be on or off", ColorHuntRecordTool.ParseCombo(true, null, "maybe", ref req));
+            StringAssert.Contains("need scene 'Specials'", ColorHuntRecordTool.ParseCombo(false, "a", null, ref req));
+            Assert.AreEqual(7.6f, ColorHuntRecordTool.LeanTail, 1e-6f, "three leans: 0, 3.5, 7 s");
+        }
+
         [Test]
         public void Markers_CountUp_TapThenTap2()
         {

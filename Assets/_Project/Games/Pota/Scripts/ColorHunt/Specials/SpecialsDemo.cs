@@ -9,8 +9,9 @@ namespace Project.ColorHunt
     /// <summary>
     /// The special-balls showcase (Scenes/Specials.unity, spec §1.3): a row of scenario buttons (Doğuş, Çizgi, Bomba, Zincir, Altın,
     /// Serbest, Bekleme, Pas, Pas→Bomba), a row of look buttons (Pota | 1 | 2) with "Tekrar", a row of idle buttons (Bekleme: Görünüm · A ·
-    /// B · C · D · E, spec 2026-10-07), a pass row (Pas: A Pas · B Pervane, spec 2026-10-11) and a label (look · scenario · idle · pass ·
-    /// golden balls in the hoop), bottom-left,
+    /// B · C · D · E, spec 2026-10-07), a pass row (Pas: A Pas · B Pervane, spec 2026-10-11), the combo rows (Pota spec 2026-10-13: "Kombo:"
+    /// Artı · Kalın artı · Dev bomba · Pas+Çizgi · Pas+Bomba · Pas+Pas · Yan yana; "Görünüm: A Hızlı · B Sinematik" and "Yaslanma: var ·
+    /// yok") and a label (look · scenario · idle · pass · combo · lean · golden balls in the hoop), bottom-left,
     /// clear of the rotate arrows. Play stages the scenario's preset and, when auto, taps its script one move at a time, each after the
     /// board has settled plus <see cref="Beat"/> (game time, so the frame recorder can step it). Built in code at runtime in ColorHuntHud's
     /// style: listeners added in Edit Mode are not saved with a scene.
@@ -53,9 +54,26 @@ namespace Project.ColorHunt
         private readonly Dictionary<SpecialIdle, Image> _idleButtons = new Dictionary<SpecialIdle, Image>();
         private readonly Dictionary<PassLook, Image> _passButtons = new Dictionary<PassLook, Image>();
         private PassLook _shownPass;
+        private readonly Dictionary<ComboLook, Image> _comboButtons = new Dictionary<ComboLook, Image>();
+        private readonly Dictionary<bool, Image> _leanButtons = new Dictionary<bool, Image>();
+        private ComboLook _shownCombo;
+        private bool _shownLean;
 
-        /// <summary>A scenario button's face: the title, "Pas→B" for Pas→Bomba (the row is tight).</summary>
-        public static string ScenarioButton(SpecialScenario s) => s == SpecialScenario.PassBomb ? "Pas→B" : SpecialScenarios.Title(s);
+        /// <summary>A scenario button's face: the title, "Pas→B" for Pas→Bomba (the row is tight); a combo's title on two lines past its first word.</summary>
+        public static string ScenarioButton(SpecialScenario s)
+        {
+            if (s == SpecialScenario.PassBomb) return "Pas→B";
+            string title = SpecialScenarios.Title(s);
+            if (!SpecialScenarios.IsCombo(s)) return title;
+            int cut = title.IndexOf('+') >= 0 ? title.IndexOf('+') + 1 : title.IndexOf(' ') >= 0 ? title.IndexOf(' ') : -1;
+            return cut > 0 ? title.Substring(0, cut).TrimEnd() + "\n" + title.Substring(cut).TrimStart() : title;
+        }
+
+        /// <summary>The combo look row's names (Pota spec 2026-10-13 §3, P4).</summary>
+        public static string ComboTitle(ComboLook look) => look == ComboLook.B ? "B Sinematik" : "A Hızlı";
+
+        /// <summary>The lean row's names (K6).</summary>
+        public static string LeanTitle(bool on) => on ? "var" : "yok";
 
         public static string LookTitle(SpecialLook look) => look == SpecialLook.Royal ? "1 · Royal" : look == SpecialLook.Court ? "2 · Basketbol" : "Pota";
 
@@ -124,6 +142,22 @@ namespace Project.ColorHunt
             RefreshLabel();
         }
 
+        /// <summary>The combo's choreography row (Pota spec 2026-10-13 §3): A Hızlı-sert or B Sinematik, whatever the scenario.</summary>
+        public void SetComboLook(ComboLook look)
+        {
+            if (Game != null) Game.SetComboLook(look);
+            _shownAny = false;
+            RefreshLabel();
+        }
+
+        /// <summary>The lean row (K6): combo pairs lean toward each other while the board rests, or not.</summary>
+        public void SetComboLean(bool on)
+        {
+            if (Game != null) Game.SetComboLean(on);
+            _shownAny = false;
+            RefreshLabel();
+        }
+
         /// <summary>Shows or hides the demo's buttons and label (before the UI is built, the choice waits for it).</summary>
         public void ShowUi(bool on)
         {
@@ -177,18 +211,23 @@ namespace Project.ColorHunt
         {
             if (Game == null || _label == null) return;
             if (_shownAny && _shownLanded == Game.GoldenLanded && _shownLook == Game.SpecialLook && _shownScenario == Current
-                && _shownIdle == Game.SpecialIdle && _shownPass == Game.PassLook) return;
+                && _shownIdle == Game.SpecialIdle && _shownPass == Game.PassLook && _shownCombo == Game.ComboLook && _shownLean == Game.ComboLean) return;
             _shownAny = true;
             _shownLanded = Game.GoldenLanded;
             _shownLook = Game.SpecialLook;
             _shownScenario = Current;
             _shownIdle = Game.SpecialIdle;
             _shownPass = Game.PassLook;
-            _label.text = $"{LookTitle(_shownLook)}  ·  {SpecialScenarios.Title(Current)}  ·  bekleme {IdleTitle(_shownIdle)}  ·  pas {PassTitle(_shownPass)}  ·  sepette {_shownLanded}";
+            _shownCombo = Game.ComboLook;
+            _shownLean = Game.ComboLean;
+            _label.text = $"{LookTitle(_shownLook)}  ·  {SpecialScenarios.Title(Current)}  ·  bekleme {IdleTitle(_shownIdle)}  ·  pas {PassTitle(_shownPass)}  ·  " +
+                          $"kombo {(_shownCombo == ComboLook.B ? "B" : "A")}  ·  yaslanma {LeanTitle(_shownLean)}  ·  sepette {_shownLanded}";
             foreach (var kv in _scenarioButtons) kv.Value.sprite = kv.Key == Current ? _faceOn : _face;
             foreach (var kv in _lookButtons) kv.Value.sprite = kv.Key == _shownLook ? _faceOn : _face;
             foreach (var kv in _idleButtons) kv.Value.sprite = kv.Key == _shownIdle ? _faceOn : _face;
             foreach (var kv in _passButtons) kv.Value.sprite = kv.Key == _shownPass ? _faceOn : _face;
+            foreach (var kv in _comboButtons) kv.Value.sprite = kv.Key == _shownCombo ? _faceOn : _face;
+            foreach (var kv in _leanButtons) kv.Value.sprite = kv.Key == _shownLean ? _faceOn : _face;
         }
 
         // ---------- UI (Pota CSS px on a 390-px-wide phone, ColorHuntHud.Css canvas units each) ----------
@@ -215,11 +254,14 @@ namespace Project.ColorHunt
                 Mathf.RoundToInt(2f * css), 0f, 0);
             var root = (RectTransform)canvasGo.transform;
             var scenarios = (SpecialScenario[])Enum.GetValues(typeof(SpecialScenario));
-            // Nine scenarios on a 390-px phone: 38 wide at a 40 pitch (the pass pair's titles are the long ones: "Pas→B" on the face)
-            for (int i = 0; i < scenarios.Length; i++)
+            // Nine scenarios on a 390-px phone: 38 wide at a 40 pitch (the pass pair's titles are the long ones: "Pas→B" on the face);
+            // the seven combos have their own row above the pass row.
+            int column = 0;
+            foreach (var scenario in scenarios)
             {
-                var s = scenarios[i];
-                _scenarioButtons[s] = MakeButton(root, "Scenario" + s, ScenarioButton(s), new Vector2(14f + i * 40f, 14f), new Vector2(38f, 34f), font,
+                if (SpecialScenarios.IsCombo(scenario)) continue;
+                var s = scenario;
+                _scenarioButtons[s] = MakeButton(root, "Scenario" + s, ScenarioButton(s), new Vector2(14f + column++ * 40f, 14f), new Vector2(38f, 34f), font,
                     () => Play(s, true));
             }
             var looks = new[] { SpecialLook.Pota, SpecialLook.Royal, SpecialLook.Court };
@@ -250,10 +292,40 @@ namespace Project.ColorHunt
                 _passButtons[l] = MakeButton(root, "Pass" + l, PassTitle(l), new Vector2(px, 134f), new Vector2(w, 34f), font, () => SetPassLook(l));
                 px += w + 4f;
             }
-            _label = MakeText(root, "Label", new Vector2(14f, 176f), new Vector2(300f, 20f), font, TextAnchor.MiddleLeft);
+            // Pota spec 2026-10-13: "Kombo:" and its seven scenarios (two-line faces, 44 wide at a 46 pitch), above the pass row
+            MakeText(root, "ComboCaption", new Vector2(14f, 176f), new Vector2(44f, 34f), font, TextAnchor.MiddleLeft).text = "Kombo:";
+            float cx = 58f;
+            foreach (var scenario in scenarios)
+            {
+                if (!SpecialScenarios.IsCombo(scenario)) continue;
+                var s = scenario;
+                _scenarioButtons[s] = MakeButton(root, "Scenario" + s, ScenarioButton(s), new Vector2(cx, 176f), new Vector2(44f, 34f), font,
+                    () => Play(s, true), 10f);
+                cx += 46f;
+            }
+            // "Görünüm: A Hızlı · B Sinematik" and "Yaslanma: var · yok", above the combo row
+            MakeText(root, "ComboLookCaption", new Vector2(14f, 216f), new Vector2(62f, 34f), font, TextAnchor.MiddleLeft).text = "Görünüm:";
+            float gx = 76f;
+            foreach (var look in new[] { ComboLook.A, ComboLook.B })
+            {
+                var l = look;
+                float w = l == ComboLook.A ? 60f : 84f;
+                _comboButtons[l] = MakeButton(root, "Combo" + l, ComboTitle(l), new Vector2(gx, 216f), new Vector2(w, 34f), font, () => SetComboLook(l));
+                gx += w + 4f;
+            }
+            MakeText(root, "LeanCaption", new Vector2(gx + 6f, 216f), new Vector2(66f, 34f), font, TextAnchor.MiddleLeft).text = "Yaslanma:";
+            gx += 72f;
+            foreach (var on in new[] { true, false })
+            {
+                var o = on;
+                _leanButtons[o] = MakeButton(root, o ? "LeanOn" : "LeanOff", LeanTitle(o), new Vector2(gx, 216f), new Vector2(36f, 34f), font, () => SetComboLean(o));
+                gx += 40f;
+            }
+            _label = MakeText(root, "Label", new Vector2(14f, 256f), new Vector2(300f, 20f), font, TextAnchor.MiddleLeft);
         }
 
-        private Image MakeButton(RectTransform root, string name, string text, Vector2 posCss, Vector2 sizeCss, Font font, UnityAction onClick)
+        private Image MakeButton(RectTransform root, string name, string text, Vector2 posCss, Vector2 sizeCss, Font font, UnityAction onClick,
+            float fontCss = 12f)
         {
             float css = ColorHuntHud.Css;
             var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
@@ -271,6 +343,8 @@ namespace Project.ColorHunt
             button.onClick.AddListener(onClick);
             var label = MakeText(rt, "Label", Vector2.zero, sizeCss, font, TextAnchor.MiddleCenter);
             label.text = text;
+            label.fontSize = Mathf.RoundToInt(fontCss * css);
+            label.lineSpacing = 0.9f;
             return img;
         }
 

@@ -46,7 +46,6 @@ MonoBehaviour:
     DotStep: 0.04
     PinHop: 0.7
     UnlockPop: 0.3
-    Breath: 3.2
     BallHopEvery: 7
     ShineEvery: 2.2
     ShineTime: 0.35

@@ -136,5 +136,33 @@ namespace Project.Tests
             yield return StudioLookPlayTests.WaitUntil(() => demo.Finished, 15f);
             Assert.IsTrue(demo.Finished);
         }
+
+        /// <summary>Pota spec 2026-10-13: the "Kombo:" row plays a combo; "Görünüm: A Hızlı · B Sinematik" and "Yaslanma: var · yok" switch the game; the label says so.</summary>
+        [UnityTest]
+        public IEnumerator ComboRows_AreBoundAtRuntime()
+        {
+            SpecialsDemo demo = null;
+            yield return Load(d => demo = d);
+            GameObject.Find("ComboB").GetComponent<Button>().onClick.Invoke();
+            Assert.AreEqual(ComboLook.B, demo.Game.ComboLook);
+            GameObject.Find("LeanOff").GetComponent<Button>().onClick.Invoke();
+            Assert.IsFalse(demo.Game.ComboLean);
+            GameObject.Find("ScenarioComboThickCross").GetComponent<Button>().onClick.Invoke();
+            Assert.AreEqual(SpecialScenario.ComboThickCross, demo.Current);
+            Assert.IsTrue(demo.AutoPlaying);
+            yield return null;
+            StringAssert.Contains("Kalın artı", demo.LabelText);
+            StringAssert.Contains("kombo B", demo.LabelText);
+            StringAssert.Contains("yaslanma yok", demo.LabelText);
+            var row = GameObject.Find("ScenarioComboCross").GetComponent<RectTransform>();
+            var first = GameObject.Find("ScenarioBirth").GetComponent<RectTransform>();
+            Assert.Greater(row.anchoredPosition.y, first.anchoredPosition.y, "the combos have their own row above the scenarios");
+            GameObject.Find("ComboA").GetComponent<Button>().onClick.Invoke();
+            GameObject.Find("LeanOn").GetComponent<Button>().onClick.Invoke();
+            Assert.AreEqual(ComboLook.A, demo.Game.ComboLook);
+            Assert.IsTrue(demo.Game.ComboLean);
+            yield return StudioLookPlayTests.WaitUntil(() => demo.Finished, 15f);
+            Assert.IsTrue(demo.Finished);
+        }
     }
 }
