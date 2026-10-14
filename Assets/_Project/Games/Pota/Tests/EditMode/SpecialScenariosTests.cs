@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using Project.ColorHunt;
+using UnityEditor;
+using UnityEngine;
 
 namespace Project.Tests
 {
@@ -194,6 +196,45 @@ namespace Project.Tests
             Assert.AreEqual(37, pairs[36]);
             Assert.IsEmpty(SpecialScenarios.Taps(SpecialScenario.ComboLean), "the pairs rest and lean");
             Assert.AreEqual(24, SpecialScenarios.Focus(SpecialScenario.ComboLean));
+        }
+
+        /// <summary>Tuna 2026-10-14 (Pota Task 12): B Sinematik is the default — in code and in the scene's settings asset — and the lean stays.</summary>
+        [Test]
+        public void ComboDefaults_AreB_WithTheLeanOn()
+        {
+            var fresh = ScriptableObject.CreateInstance<ColorHuntSettings>();
+            try
+            {
+                Assert.AreEqual(ComboLook.B, fresh.ComboLook, "code default");
+                Assert.IsTrue(fresh.ComboLean);
+            }
+            finally { Object.DestroyImmediate(fresh); }
+            var s = AssetDatabase.LoadAssetAtPath<ColorHuntSettings>("Assets/_Project/Games/Pota/Settings/ColorHuntSettings.asset");
+            Assert.AreEqual(ComboLook.B, s.ComboLook, "ColorHuntSettings.asset");
+            Assert.IsTrue(s.ComboLean, "ColorHuntSettings.asset");
+        }
+
+        /// <summary>
+        /// Tuna 2026-10-14 (Pota Task 12): ALLEY-OOP! and FAST BREAK! sit in the board's lower half, as low as the lettering fits inside the
+        /// frame (Pota yaziYeri), so they no longer cover the pass balls' flight; CROSSOVER!, SHOWTIME!, MEGA SLAM! stay 1.2 over the centre.
+        /// </summary>
+        [Test]
+        public void ComboWord_PassCombosSitInTheLowerHalf_AreaCombosOverTheCentre()
+        {
+            var shared = new ComboShared();
+            foreach (int n in new[] { 7, 8, 9 })
+            foreach (var at in new[] { new Vector2(0f, 0f), new Vector2(-1f, 2f), new Vector2(2f, -1f) })
+            foreach (ComboKind k in System.Enum.GetValues(typeof(ComboKind)))
+            {
+                float w = CourtSpecials.WordCells(k, shared), h = w * 0.5f;
+                var spot = CourtSpecials.LetterSpot(CourtSpecials.WordAt(k, at, n), w, n);
+                bool pass = k == ComboKind.PassLine || k == ComboKind.PassBomb || k == ComboKind.PassPass;
+                if (!pass) { Assert.AreEqual(CourtSpecials.LetterSpot(at + new Vector2(0f, 1.2f), w, n), spot, $"{k} n {n} at {at}"); continue; }
+                Assert.AreEqual(-(n * 0.5f - 0.4f - 0.6f * h), spot.y, 1e-5f, $"{k} n {n}: as low as it fits");
+                Assert.Less(spot.y + h * 0.5f, 0f, $"{k} n {n}: the whole word is under the centre line");
+                Assert.Greater(spot.y - h * 0.5f, -n * 0.5f, $"{k} n {n}: above the bottom frame");
+                Assert.AreEqual(CourtSpecials.LetterSpot(at, w, n).x, spot.x, 1e-6f, "same column as the centre");
+            }
         }
 
         [Test]

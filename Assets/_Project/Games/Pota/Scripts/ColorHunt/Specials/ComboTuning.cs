@@ -4,14 +4,14 @@ using UnityEngine;
 namespace Project.ColorHunt
 {
     /// <summary>
-    /// The combo's two candidate choreographies (Pota spec 2026-10-13 §3, plan P4): A "Hızlı-sert" and B "Sinematik" — one choreography,
-    /// two sets of numbers; Tuna picks from the Specials video, the loser is deleted (Pota Task 12).
+    /// The combo's two choreographies (Pota spec 2026-10-13 §3, plan P4): A "Hızlı-sert" and B "Sinematik" — one choreography, two sets
+    /// of numbers. Tuna picked B (2026-10-14): B is the default and Pota's only set (OZEL_AN.kombo); A stays here as the workshop's reference.
     /// </summary>
     public enum ComboLook { A, B }
 
     /// <summary>
-    /// One set of the combo look contract (Pota src/ozelAyar.ts OZEL_AN.kombo.a / .b, Task 8 Step 1 — the same numbers; whoever changes one
-    /// changes the other in the same round). Times are game seconds unless they say real; lengths are board cells. The tooltip names the
+    /// One set of the combo look contract (B = Pota src/ozelAyar.ts OZEL_AN.kombo, Task 8 Step 1 — the same numbers; whoever changes one
+    /// changes the other in the same round; A = Pota's deleted OZEL_AN.kombo.a, reference). Times are game seconds unless they say real; lengths are board cells. The tooltip names the
     /// Pota key.
     /// </summary>
     [Serializable]
@@ -48,7 +48,7 @@ namespace Project.ColorHunt
         [Tooltip("yaziSure: the lettering's life (s).")]
         public float LetterTime;
 
-        /// <summary>OZEL_AN.kombo.a "Hızlı-sert".</summary>
+        /// <summary>The former OZEL_AN.kombo.a "Hızlı-sert" (reference; Pota deleted it, Task 12).</summary>
         public static ComboTuning A() => new ComboTuning
         {
             MergeTime = 0.15f, Grow = 0.18f, Rise = 0f, Glow = 0.8f, CameraPush = 0f, HitStop = 0.06f, SlowScale = 1f, SlowTime = 0f,
@@ -56,7 +56,7 @@ namespace Project.ColorHunt
             LetterTime = 0.55f,
         };
 
-        /// <summary>OZEL_AN.kombo.b "Sinematik".</summary>
+        /// <summary>OZEL_AN.kombo "Sinematik" (Tuna's pick, the default).</summary>
         public static ComboTuning B() => new ComboTuning
         {
             MergeTime = 0.35f, Grow = 0.3f, Rise = 0.45f, Glow = 1f, CameraPush = 0.06f, HitStop = 0.12f, SlowScale = 0.5f, SlowTime = 0.3f,

@@ -1013,7 +1013,7 @@ namespace Project.ColorHunt
             _game.Juice?.Shake?.Add(look.Shake);
             var cam = _game.Cam != null ? _game.Cam.GetComponent<ColorHuntCamera>() : null;
             if (cam != null && look.Kick > 0f) cam.Push(World(at, PotaLook.FrontZ), look.Kick, look.KickTime);
-            if (_comboWords.TryGetValue(combo.Kind, out var word)) Letter(word, at + new Vector2(0f, 1.2f), WordCells(combo.Kind, shared), look.LetterTime);
+            if (_comboWords.TryGetValue(combo.Kind, out var word)) Letter(word, WordAt(combo.Kind, at, BoardSize), WordCells(combo.Kind, shared), look.LetterTime);
             Sounds()?.PlayClip("kalabalik", _crowd, t.CrowdVolume * 0.75f);                // ses.cal("kalabalik", 0.6): the short crowd
             int n = BoardSize, r0 = ColorHuntRules.Row(n, center.Cell), c0 = ColorHuntRules.Col(n, center.Cell);
             switch (combo.Kind)
@@ -1035,6 +1035,14 @@ namespace Project.ColorHunt
                     break;
             }
         }
+
+        /// <summary>
+        /// Where a combo's word goes before <see cref="LetterSpot"/> keeps it inside the board (Pota renkAviFaz.ts komboAtesle): the area combos
+        /// 1.2 cells over the centre; the pass combos (ALLEY-OOP!, FAST BREAK!) at the board's bottom edge — the lower half, as low as the
+        /// lettering fits (Tuna 2026-10-14: the word no longer covers the pass balls' flight).
+        /// </summary>
+        public static Vector2 WordAt(ComboKind k, Vector2 at, int n)
+            => k == ComboKind.PassLine || k == ComboKind.PassBomb || k == ComboKind.PassPass ? new Vector2(at.x, -n * 0.5f) : at + new Vector2(0f, 1.2f);
 
         /// <summary>The combo flash sits in front of the merged pair's lift (B rises 0.45 cells) and the block fronts' bursts.</summary>
         public const float ComboFlashZ = PotaLook.FrontZ + 0.6f;

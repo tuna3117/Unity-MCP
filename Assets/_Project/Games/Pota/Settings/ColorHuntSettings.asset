@@ -141,7 +141,7 @@ MonoBehaviour:
     Tilt: 51.5662
   PassSprite: {fileID: 2800000, guid: e2f35e102450545b9a64f3f92c4d9d25, type: 3}
   PassModel: {fileID: 8771091787928289351, guid: f4e05209387ab4e99b7d65bc89ffc4c4, type: 3}
-  ComboLook: 0
+  ComboLook: 1
   ComboLookA:
     MergeTime: 0.15
     Grow: 0.18

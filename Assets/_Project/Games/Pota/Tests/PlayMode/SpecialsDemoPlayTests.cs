@@ -143,6 +143,10 @@ namespace Project.Tests
         {
             SpecialsDemo demo = null;
             yield return Load(d => demo = d);
+            Assert.AreEqual(ComboLook.B, demo.Game.ComboLook, "B Sinematik is the default (Tuna 2026-10-14)");
+            Assert.IsTrue(demo.Game.ComboLean, "the lean stays");
+            GameObject.Find("ComboA").GetComponent<Button>().onClick.Invoke();
+            Assert.AreEqual(ComboLook.A, demo.Game.ComboLook, "A stays as the reference");
             GameObject.Find("ComboB").GetComponent<Button>().onClick.Invoke();
             Assert.AreEqual(ComboLook.B, demo.Game.ComboLook);
             GameObject.Find("LeanOff").GetComponent<Button>().onClick.Invoke();

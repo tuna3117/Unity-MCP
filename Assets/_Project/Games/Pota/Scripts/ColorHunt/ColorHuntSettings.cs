@@ -53,12 +53,12 @@ namespace Project.ColorHunt
         [Tooltip("B: the Blender pass_ball delivery (ai_import_asset) — Basketball (960 tris) + Propeller (96 tris, its origin on the ball's up axis).")]
         public GameObject PassModel;
 
-        [Header("Combo (Pota spec 2026-10-13: two specials side by side merge on a tap; two choreographies, Tuna picks)")]
-        [Tooltip("Kombo koreografisi: A Hızlı-sert · B Sinematik (Pota OZEL_AN.kombo.a/.b; aynı sayılar). Specials sahnesinde düğmelerle değişir.")]
-        public ComboLook ComboLook = ComboLook.A;
-        [Tooltip("A \"Hızlı-sert\" — Pota src/ozelAyar.ts OZEL_AN.kombo.a.")]
+        [Header("Combo (Pota spec 2026-10-13: two specials side by side merge on a tap; B Sinematik, Tuna's pick)")]
+        [Tooltip("Kombo koreografisi: varsayılan B Sinematik (Tuna 2026-10-14 seçti; Pota yalnız B'yi tutar, OZEL_AN.kombo). A Hızlı-sert atölyede referans. Specials sahnesinde düğmelerle değişir.")]
+        public ComboLook ComboLook = ComboLook.B;
+        [Tooltip("A \"Hızlı-sert\" — reference only (Pota deleted it in Task 12; it was OZEL_AN.kombo.a).")]
         public ComboTuning ComboLookA = ComboTuning.A();
-        [Tooltip("B \"Sinematik\" — Pota src/ozelAyar.ts OZEL_AN.kombo.b.")]
+        [Tooltip("B \"Sinematik\" (Tuna's pick, the default) — Pota src/ozelAyar.ts OZEL_AN.kombo.")]
         public ComboTuning ComboLookB = ComboTuning.B();
         [Tooltip("What both share: lettering widths, the big bomb, the carry, the three-pass fan, the lean, the chunks.")]
         public ComboShared Combo = new ComboShared();

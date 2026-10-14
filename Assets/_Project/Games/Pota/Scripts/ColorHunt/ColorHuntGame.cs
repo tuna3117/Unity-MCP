@@ -828,8 +828,8 @@ namespace Project.ColorHunt
 
         // ---------- the combo (Pota spec 2026-10-13 §3: two specials side by side merge on a tap; A/B choreographies, the lean) ----------
 
-        /// <summary>The combo choreography (P4): A Hızlı-sert, B Sinematik — the demo's Görünüm row, the record tool's combo_look.</summary>
-        public ComboLook ComboLook { get; private set; } = ComboLook.A;
+        /// <summary>The combo choreography (P4): B Sinematik (Tuna's pick, the default), A Hızlı-sert (reference) — the demo's Görünüm row, the record tool's combo_look.</summary>
+        public ComboLook ComboLook { get; private set; } = ComboLook.B;
         /// <summary>K6: pairs that can combo lean toward each other while the board rests — the demo's Yaslanma row, the record tool's combo_lean.</summary>
         public bool ComboLean { get; private set; } = true;
         public event Action ComboLookChanged;
@@ -840,7 +840,7 @@ namespace Project.ColorHunt
         /// <summary>A step's drops began, with its depth (the recorder's "drops": a combo's last burst comes before its step's drops).</summary>
         public event Action<int> StepDropping;
         /// <summary>The chosen choreography's numbers (ColorHuntSettings.ComboLookA / B).</summary>
-        public ComboTuning ComboTuningNow => S == null ? ComboTuning.A() : ComboLook == ComboLook.B ? S.ComboLookB : S.ComboLookA;
+        public ComboTuning ComboTuningNow => S == null ? ComboTuning.B() : ComboLook == ComboLook.B ? S.ComboLookB : S.ComboLookA;
 
         private float _slowAt = -1f, _slowScale = 1f, _slowTime;
         private float _leanClock;

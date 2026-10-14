@@ -32,8 +32,8 @@ namespace Project.ColorHunt
         /// <summary>F9: metres the camera sits back from its fit (the lose moment pulls it; 0 = the fit).</summary>
         public float BackOffset;
         public Vector3 ZoomFocus;
-        private Vector3 _pushTarget;
-        private float _pushAmount, _pushTime = -1f, _pushDuration = 1f;
+        private Vector3 _pushTarget, _pushFrom;
+        private float _pushAmount, _pushFromAmount, _pushTime = -1f, _pushDuration = 1f;
         /// <summary>Royal's rockets: the axis shake swings at this rate (Hz).</summary>
         public const float AxisShakeHz = 18f;
         private Vector2 _axis;
@@ -61,13 +61,38 @@ namespace Project.ColorHunt
         public bool Pushing => _pushTime >= 0f;
 
         /// <summary>A short push toward <paramref name="target"/>: <paramref name="amount"/> of the way in and back out (sin), real time.</summary>
+        /// <summary>
+        /// The kick toward <paramref name="target"/>: <paramref name="amount"/> of the way, sin in and out over <paramref name="seconds"/>.
+        /// A push still running (the combo's merge push → its fire kick) hands over from where it is: the new kick starts at the old one's
+        /// weight and spot (<see cref="KickWeight"/>), so the camera never jumps back in one frame (Pota yapbozSahne.ts itme, Task 12).
+        /// With nothing running it is the plain sin push.
+        /// </summary>
         public void Push(Vector3 target, float amount, float seconds)
         {
+            if (_pushTime >= 0f)
+            {
+                float u = _pushTime / _pushDuration;
+                var from = KickSpot(u, _pushFrom, _pushTarget);
+                _pushFromAmount = KickWeight(u, _pushFromAmount, _pushAmount);
+                _pushFrom = from;
+            }
+            else { _pushFromAmount = 0f; _pushFrom = target; }
             _pushTarget = target;
             _pushAmount = amount;
             _pushDuration = Mathf.Max(0.01f, seconds);
             _pushTime = 0f;
         }
+
+        /// <summary>
+        /// A kick's weight at u: the first half eases from <paramref name="from"/> (the weight it took over) to <paramref name="amount"/>
+        /// (from + (amount − from)·sin πu), the second half is amount·sin πu. from = 0 → amount × <see cref="PushWeight"/>.
+        /// </summary>
+        public static float KickWeight(float u, float from, float amount)
+            => u <= 0f ? from : u >= 1f ? 0f : u < 0.5f ? from + (amount - from) * Mathf.Sin(u * Mathf.PI) : amount * Mathf.Sin(u * Mathf.PI);
+
+        /// <summary>The kick's spot at u: slides from the handed-over spot to the target over the first half (sin), then the target.</summary>
+        public static Vector3 KickSpot(float u, Vector3 from, Vector3 target)
+            => u > 0f && u < 0.5f ? Vector3.LerpUnclamped(from, target, Mathf.Sin(u * Mathf.PI)) : u <= 0f ? from : target;
 
         public static Vector3 Zoomed(Vector3 fit, Vector3 focus, float zoom)
         {
@@ -85,7 +110,7 @@ namespace Project.ColorHunt
             {
                 _pushTime += Time.unscaledDeltaTime;
                 float u = _pushTime / _pushDuration;
-                pos += (_pushTarget - pos) * (_pushAmount * PushWeight(u));
+                pos += (KickSpot(u, _pushFrom, _pushTarget) - pos) * KickWeight(u, _pushFromAmount, _pushAmount);
                 if (u >= 1f) _pushTime = -1f;
             }
             Vector3 axisOffset = Vector3.zero;

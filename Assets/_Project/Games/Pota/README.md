@@ -270,8 +270,9 @@ Unity'de iki koreografi var, Tuna seçecek; seçilenin sayıları Pota'ya satır
 Pota'nın `kombo` dalı (spec `~/projects/Pota-kombo/docs/superpowers/specs/2026-10-13-kombo-design.md`, Task 6–7): yan yana iki özel
 topa dokununca birleşir — **Artı** (çizgi + çizgi: satır + sütun), **Kalın artı** (çizgi + bomba: üç satır + üç sütun), **Dev bomba**
 (bomba + bomba: 5×5), **Pas+Çizgi / Pas+Bomba** (pas topu öbürünü hedefe taşır, orada ateşler), **Pas+Pas** (merkezden üç pas).
-Unity'de iki koreografi var (`ColorHuntSettings.ComboLook` A "Hızlı-sert" / B "Sinematik"), Tuna seçecek; sayılar Pota'nın
-`OZEL_AN.kombo.a/.b` sözleşmesiyle aynı (biri değişirse öbürü aynı turda değişir).
+Unity'de iki koreografi var (`ColorHuntSettings.ComboLook` A "Hızlı-sert" / B "Sinematik"). **Tuna 2026-10-14 B'yi seçti, yaslanma
+kalıyor:** varsayılan B (kod + `ColorHuntSettings.asset`), A atölyede referans; Pota yalnız B'yi tutar (`OZEL_AN.kombo`, Pota Task 12),
+B'nin sayıları onunla aynı (biri değişirse öbürü aynı turda değişir).
 
 - **Kurallar** (Task 6, `ColorHuntRules.Specials.cs`): `Features.Combo`, `ComboKind`, `FindComboPartner`, `ComboPairs`, `ComboCells`,
   `Step.Combo` (`ComboInfo`), K7 pas uzaklığı; Pota'nın kendi kodundan altın kayıt `Fixtures/combo-rules.json` (`Tools/potalook/combo_fixtures.ts`),
@@ -285,7 +286,9 @@ Unity'de iki koreografi var (`ColorHuntSettings.ComboLook` A "Hızlı-sert" / B 
   `CameraPush` yaklaşır; bitince plan t = 0'dan kurulur, iki ortak birlikte ateşlenir.
 - **Ateş** (`FireComboPartner`): A/B'nin hit-stop'u (×0,12, `HitStop` gerçek sn); B'de **ardından** ×0,5 `SlowTime` ağır çekim (R-10:
   üst üste binmez). Görünümün anı `IComboStyle.FireCombo` (yalnız 2 · Court): beyaz flaş, toon halka (`vfx-ring-toon`), sarsıntı, kamera
-  vuruşu, yazı (CROSSOVER! / SHOWTIME! / MEGA SLAM! / ALLEY-OOP! / FAST BREAK!, `Letter*`, `ComboShared.*Cells` genişlik), kalabalık;
+  vuruşu, yazı (CROSSOVER! / SHOWTIME! / MEGA SLAM! / ALLEY-OOP! / FAST BREAK!, `Letter*`, `ComboShared.*Cells` genişlik; yer
+  `CourtSpecials.WordAt`: alan kombolarında merkezin 1,2 üstü, pas kombolarında tahtanın alt yarısı — alt kenar istenir, `LetterSpot`
+  çerçevenin içine kıstırır; Tuna 2026-10-14: yazı pasın uçuşunu örtmesin), kalabalık;
   Artı merkezden iki eksen top, Kalın artı her eksende üç şerit (yalnız merkezin satırı sektirir), Dev bomba ×1,5 smaç (çatlak ×1,8, toz
   ×1,8, 5×5 zıplar, çarpmada hit-stop). Kombo adımının her patlaması blok renginde parça saçar (`vfx-pillow-shatter`'ın ilk üç parçası,
   merkezden dışa, yerçekimiyle tahtadan düşer, Pota'nın z geri çekişiyle yazının arkasında kalır). Pota/Royal görünümlerinde alan
@@ -293,6 +296,9 @@ Unity'de iki koreografi var (`ColorHuntSettings.ComboLook` A "Hızlı-sert" / B 
 - **Pas kombosu** (R-9, `LaunchComboFlights`, `PassFlight`): uçuşlar merkezden — Pas+Pas üç top `(j − 1)·PassFan` yelpazeyle (A'da üçüncü
   top yeni bir blok kopyası, B'de model), taşıyan pasın altında taşınan özelin bloğu `CarryDown` aşağıda `CarryScale` boyunda asılı; hedef
   yoksa taşınan özel merkezde hemen ateşlenir. `LaunchPass` artık hücrenin BÜTÜN uçuşlarını kaldırır.
+- **Kamera devri** (Pota Task 12, `ColorHuntCamera.Push`): süren bir itme varken (B: birleşme yaklaşması → ateşin vuruşu) yeni vuruş onun
+  o anki payından ve noktasından başlar (`KickWeight`/`KickSpot`: ilk yarıda payından kendi miktarına sin ile, ikinci yarıda bugünkü
+  sin itme) — kamera ateşte bir karede geri sıçramaz (eskiden %6 → %0,9). İtme yokken bugünkü itmeyle aynı.
 - **Yaslanma** (K6, `LeanPairs`): kombo yapabilen çift, tahta boşken her `LeanEvery` sn'de `LeanTime` sn boyunca birbirine `LeanAmount`
   hücre yaslanır (sin); `ColorHuntSettings.ComboLean`, oyunda `SetComboLean`.
 - **Vitrin** (`SpecialsDemo`): "Kombo:" satırı (Artı · Kalın artı · Dev bomba · Pas+Çizgi · Pas+Bomba · Pas+Pas · Yan yana), "Görünüm: A

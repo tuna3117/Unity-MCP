@@ -26,6 +26,35 @@ namespace Project.Tests
             Assert.AreEqual(0f, ColorHuntCamera.PushWeight(1f));
         }
 
+        /// <summary>
+        /// Pota Task 12: a kick that takes over a running push (the combo's merge push → its fire kick) starts at the push's weight and spot
+        /// — no frame jumps more than 1 % of the way — peaks at its own amount; from nothing it is exactly the old sin push.
+        /// </summary>
+        [Test]
+        public void KickWeight_FromNothingIsThePush_FromARunningPushHandsOverWithoutAJump()
+        {
+            for (int i = 0; i <= 100; i++)
+            {
+                float u = i / 100f;
+                Assert.AreEqual(0.1f * ColorHuntCamera.PushWeight(u), ColorHuntCamera.KickWeight(u, 0f, 0.1f), 1e-8f, $"u {u} (float rounding only)");
+            }
+            Assert.AreEqual(0.06f, ColorHuntCamera.KickWeight(0f, 0.06f, 0.1f), 1e-7f, "starts where the merge push was");
+            Assert.AreEqual(0.1f, ColorHuntCamera.KickWeight(0.5f, 0.06f, 0.1f), 1e-6f, "peaks at its own amount");
+            Assert.AreEqual(0f, ColorHuntCamera.KickWeight(1f, 0.06f, 0.1f));
+            float prev = 0.06f;
+            for (int i = 1; i <= 9; i++)
+            {
+                float w = ColorHuntCamera.KickWeight(i / 60f / 0.3f, 0.06f, 0.1f);
+                Assert.Less(Mathf.Abs(w - prev), 0.01f, $"60 Hz frame {i} of the 0.3 s kick");
+                prev = w;
+            }
+            var a = new Vector3(1f, 2f, 3f);
+            var b = new Vector3(4f, 5f, 6f);
+            Assert.AreEqual(a, ColorHuntCamera.KickSpot(0f, a, b));
+            Assert.AreEqual(b, ColorHuntCamera.KickSpot(0.5f, a, b));
+            Assert.AreEqual(b, ColorHuntCamera.KickSpot(0.25f, b, b), "from nothing: the target all the way");
+        }
+
         [Test]
         public void AxisShake_MovesOnlyAlongItsAxis_AtMostHalfTheAmount()
         {
